@@ -54,3 +54,22 @@ def test_an_old_account_with_an_old_style_name_still_logs_in(connect):
     client = connect()
     client.send({"type": "auth", "action": "login", "username": "Józef", "password": "pass1234"})
     assert client.expect(lambda m: m.get("type") == "auth_result")["ok"]
+
+
+# ---------------------------------------------------------------- 🔑 passwords: at least 6 for new accounts
+
+def test_a_new_account_needs_a_six_character_password(connect):
+    client = connect()
+    client.send({"type": "auth", "action": "register", "username": "Adi", "password": "12345"})
+    result = client.expect(lambda m: m.get("type") == "auth_result")
+    assert not result["ok"] and "6 to 64" in result["text"]
+    client.send({"type": "auth", "action": "register", "username": "Adi", "password": "123456"})
+    assert client.expect(lambda m: m.get("type") == "auth_result" and m.get("ok"))
+
+
+def test_an_old_account_with_a_short_password_still_logs_in(connect):
+    salt, digest = auth.hash_password("1234")
+    state.accounts["old"] = {**storage.new_account("Old", salt, digest), "created": 0}
+    client = connect()
+    client.send({"type": "auth", "action": "login", "username": "Old", "password": "1234"})
+    assert client.expect(lambda m: m.get("type") == "auth_result")["ok"]

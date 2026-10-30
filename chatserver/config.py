@@ -109,6 +109,8 @@ DEFAULT_ADMIN_PASSWORD = ""
 ADMIN_PASSWORD_WARN_UNDER = 8    # a shorter password still works, but the server warns once at startup
 ADMIN_FAIL_LIMIT, ADMIN_FAIL_WINDOW = 3, 600   # 3 wrong /admin tries by ANYONE in 10 minutes locks /admin
 ADMIN_TOKENS = 1000              # what /admintokens gives
+PASSWORD_MIN = 6                 # 🔑 characters for a NEW account's password...
+OLD_PASSWORD_MIN = 4             #    ...accounts made before that rule may have 4 or 5, and still log in
 GIVE_MIN_AGE_HOURS = 24          # 🎁 a new account can't /give for this long (no farming with extra accounts)...
 GIVE_DAILY_MAX = 500             # 🎁 ...and nobody gives more than this many tokens a day in total
 

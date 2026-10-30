@@ -69,8 +69,10 @@ def handle_auth(client, msg):
         return fail(f"❌ Username: {rooms.NAME_RULE}")
     if not 1 <= len(username) <= 16:
         return fail("❌ Wrong username or password.")
-    if not 4 <= len(password) <= 64:
-        return fail("❌ Password: 4 to 64 characters.")
+    if action == "register" and not config.PASSWORD_MIN <= len(password) <= 64:
+        return fail(f"❌ Password: {config.PASSWORD_MIN} to 64 characters.")
+    if not config.OLD_PASSWORD_MIN <= len(password) <= 64:   # older accounts may have a shorter one
+        return fail("❌ Wrong username or password.")
     try:
         password.encode("utf-8")
     except UnicodeEncodeError:  # a broken half-emoji character
