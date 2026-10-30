@@ -14,6 +14,7 @@ import * as rooms from "./rooms.js";
 import { startsNewList } from "./roomlogic.js";
 import { showLab, showTopic } from "./banners.js";
 import { applyReceipt } from "./receipts.js";
+import * as groups from "./groups.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
 import * as bigfiles from "./bigfiles.js";
@@ -164,6 +165,7 @@ function onServerText(msg, live) {
   const poll = msg.poll && Array.isArray(msg.poll.options) && live ? msg.poll.options.slice(0, 6).map((option, i) =>
     el("button", { class: "btn btn-ghost", type: "button", text: `${i + 1}) ${str(option)}`, onclick: () => sendLine(`/vote ${i + 1}`) }))
     : [];   // 📊 a poll: one button per option
+  if (live) groups.noteServerText(kind, text);   // 👥 the Groups screen hides the chat: show the reply there too
   const card = chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions: offer.length ? offer : poll.length ? poll : actions, label: result ? "Game over" : "",
     actionsLabel: offer.length ? `Answer: ${offerWhat(msg.offer)}` : "",
     tempId: str(msg.temp_id), receipt: msg.pm && typeof msg.pm === "object" ? msg.pm : null, pmId: msg.pm_id });
@@ -230,6 +232,10 @@ export function handleMessage(msg, live, sendLine) {
       return live ? typing.someoneTyping(str(msg.name)) : undefined;
     case "lab":
       return showLab(msg);
+    case "groups":
+      return groups.onGroups(msg);
+    case "group_info":
+      return groups.onGroupInfo(msg);
     case "topic":
       return showTopic(msg);
     case "receipt":

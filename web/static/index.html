@@ -65,6 +65,7 @@
         <p class="me-line">Logged in as <strong id="me-nick">…</strong></p>
         <p class="me-balance"><span aria-hidden="true">🪙</span> <span id="me-balance">…</span></p>
       </section>
+      <button id="groups-open" class="btn btn-ghost btn-wide gs-open-btn" type="button" aria-controls="groups-screen" aria-expanded="false"><span aria-hidden="true">👥</span> Groups</button>
       <section id="chats" class="chats" aria-labelledby="chats-title" hidden>
         <h2 id="chats-title" class="side-title"><span aria-hidden="true">💬</span> Chats</h2>
         <ul id="chat-list" class="chat-list"></ul>
@@ -161,6 +162,10 @@
         <span id="suggest-status" class="visually-hidden" role="status"></span>
         <button class="btn btn-primary" type="submit">Send</button>
       </form>
+      <section id="groups-screen" class="groups-screen" aria-labelledby="groups-title" hidden>
+        <div id="groups-body" class="gs-body"></div>
+        <p id="groups-reply" class="gs-reply" role="status" hidden></p>
+      </section>
     </main>
 
     <aside id="game-panel" class="game-panel" aria-label="Game">
@@ -172,6 +177,21 @@
       <p id="game-status" class="visually-hidden" role="status"></p>
     </aside>
     <div id="scrim" class="scrim" hidden></div>
+
+    <dialog id="groups-confirm" class="xray gs-confirm" aria-labelledby="gs-confirm-title" aria-describedby="gs-confirm-text">
+      <form method="dialog" class="gs-confirm-form">
+        <h2 id="gs-confirm-title"></h2>
+        <p id="gs-confirm-text" class="gs-confirm-text"></p>
+        <label id="gs-confirm-field" class="field" hidden>
+          <span id="gs-confirm-label"></span>
+          <input id="gs-confirm-input" autocomplete="off" spellcheck="false" autocapitalize="off">
+        </label>
+        <div class="gs-confirm-actions">
+          <button class="btn btn-ghost" value="cancel" type="submit">Cancel</button>
+          <button id="gs-confirm-yes" class="btn btn-primary" value="yes" type="submit"></button>
+        </div>
+      </form>
+    </dialog>
 
     <dialog id="xray" class="xray" aria-labelledby="xray-title">
       <div class="xray-head">

@@ -6,7 +6,7 @@ import { sendLine } from "./api.js";
 import { subscribe } from "./store.js";
 
 const QUICK = [
-  ["👥", "Groups", "/groups"],
+  ["🎯", "Quests", "/quests"],
   ["🎁", "Daily", "/daily"],
   ["🎮", "Games", "/games"],
   ["🟩", "Wordle", "/wordle"],

@@ -593,3 +593,151 @@ a { color: var(--gold); text-underline-offset: 3px; }
 /* ----- ✏️ edited messages, and the "editing" note above the message box */
 .edited { margin-left: 6px; color: var(--muted); font-size: 12px; }
 .edit-banner { font-style: normal; color: var(--text-2); }
+
+/* ----- 👥 the Groups screen: it takes the chat column's place (the whole screen on a phone) */
+.gs-open-btn { margin-top: 2px; }
+.app.groups-open .chat-col > :not(.groups-screen) { display: none; }
+.groups-screen { display: flex; flex-direction: column; min-height: 0; flex: 1; position: relative; }
+.groups-screen[hidden] { display: none; }
+.gs-body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 14px var(--chat-pad) 28px; display: flex; flex-direction: column; gap: 14px;
+}
+.gs-body > * { width: 100%; max-width: 1080px; margin-inline: auto; }
+.gs-head { display: flex; align-items: center; gap: 12px; padding-bottom: 6px; }
+.gs-title { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.015em; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gs-title:focus, .gs-title:focus-visible { outline: none; }   /* a heading we move focus to, not a control */
+.gs-h3 { margin: 0 0 10px; font-size: 13px; font-weight: 750; color: var(--text-2); letter-spacing: 0.02em; }
+.gs-h4 { margin: 0 0 8px; font-size: 14px; font-weight: 750; }
+.gs-muted, .gs-empty { margin: 0; color: var(--muted); font-size: 14px; }
+.gs-search .input { min-height: 44px; }
+.gs-new { flex: none; }
+
+/* the create form: right under the header, no modal */
+.gs-create {
+  display: grid; gap: 10px; padding: 14px; border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--line);
+}
+.gs-check { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); }
+.gs-check input { width: 20px; height: 20px; accent-color: var(--gold); }
+.gs-create-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* the list: one row per group, like a menu board */
+.gs-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line-soft); border-radius: var(--radius); background: var(--panel); }
+.gs-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px; }
+.gs-row + .gs-row { border-top: 1px solid var(--line-soft); }
+.gs-badge {
+  display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 12px;
+  background: var(--crust); border: 1px solid var(--crust-line); font-size: 22px;
+}
+.gs-badge-letter { font-size: 18px; font-weight: 800; color: var(--crisp); }
+.gs-row-main { min-width: 0; display: grid; gap: 3px; }
+.gs-row-title { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+.gs-name {
+  padding: 0; border: 0; background: none; color: var(--text); font-size: 16.5px; font-weight: 750;
+  text-align: start; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px;
+}
+.gs-name:hover { text-decoration-color: var(--gold); }
+.gs-chip {
+  display: inline-flex; align-items: center; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: var(--panel-3); color: var(--text-2); white-space: nowrap;
+}
+.gs-chip-owner, .gs-chip-admin { background: var(--crust); color: var(--crisp); }
+.gs-chip-requested { background: var(--mustard-soft); color: var(--mustard); }
+.gs-topic, .gs-persona, .gs-meta, .gs-war { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.gs-topic { color: var(--text); }
+.gs-persona { color: var(--text-2); font-style: italic; }
+.gs-meta { color: var(--muted); font-variant-numeric: tabular-nums; }
+.gs-row-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.gs-waiting { font-size: 14px; color: var(--mustard); font-weight: 650; }
+
+/* one group */
+.gs-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+.gs-col { display: grid; gap: 16px; min-width: 0; }
+.gs-block { padding: 16px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line-soft); min-width: 0; }
+.gs-about { display: grid; gap: 4px; margin-top: 4px; }
+.gs-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.gs-summary-text { min-width: 0; flex: 1 1 260px; }
+.gs-sub { margin-top: 16px; }
+.gs-members, .gs-people, .gs-upgrades, .gs-history, .gs-donors { list-style: none; margin: 0; padding: 0; }
+.gs-member { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 8px 0; }
+.gs-member + .gs-member { border-top: 1px solid var(--line-soft); }
+.gs-member-name { font-weight: 700; }
+.gs-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--panel-3); border: 1px solid var(--line); flex: none; }
+.gs-dot.on { background: var(--pickle); border-color: transparent; }
+.gs-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-inline-start: auto; }
+.gs-tool { width: auto; padding: 0 10px; font-size: 13px; font-weight: 650; border-radius: 999px; }
+.gs-select { min-height: 32px; padding: 0 8px; border-radius: 999px; background: var(--bg-deep); border: 1px solid var(--line); font-size: 13px; }
+.gs-danger { color: var(--ketchup); }
+.gs-small { min-height: 34px; padding: 0 14px; font-size: 14px; }
+.gs-person { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 0; }
+
+/* 🏦 the bank */
+.gs-balance { margin: 0; font-size: 40px; font-weight: 850; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--pickle); }
+.gs-balance-unit { font-size: 22px; }
+.gs-earning { margin: 8px 0 0; font-size: 14px; color: var(--text-2); }
+.gs-chart { margin: 14px 0 0; }
+.gs-chart-svg { display: block; width: 100%; height: 72px; overflow: visible; }
+.gs-chart-area { fill: var(--pickle-soft); }
+.gs-chart-line { fill: none; stroke: var(--pickle); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.gs-chart-caption { display: flex; justify-content: space-between; margin-top: 4px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.gs-donate { display: flex; gap: 8px; margin-top: 14px; }
+.gs-donate .input { max-width: 180px; }
+.gs-donors li, .gs-history-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; font-size: 14px; }
+.gs-donors li { justify-content: space-between; }
+.gs-history-row + .gs-history-row, .gs-donors li + li { border-top: 1px solid var(--line-soft); }
+.gs-time { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; min-width: 82px; }
+.gs-what { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gs-num { font-variant-numeric: tabular-nums; font-weight: 750; white-space: nowrap; }
+.gs-plus { color: var(--pickle); }
+.gs-minus { color: var(--ketchup); }
+.gs-after { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gs-history { max-height: 320px; overflow-y: auto; overscroll-behavior: contain; padding-inline-end: 4px; }
+
+/* ⬆️ upgrades */
+.gs-upgrade { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; }
+.gs-upgrade + .gs-upgrade { border-top: 1px solid var(--line-soft); }
+.gs-upgrade-icon { font-size: 22px; width: 36px; text-align: center; }
+.gs-upgrade-main { min-width: 0; display: grid; gap: 2px; }
+.gs-upgrade-name { margin: 0; display: flex; gap: 10px; align-items: baseline; font-weight: 750; text-transform: capitalize; }
+.gs-price { color: var(--text-2); font-size: 14px; text-transform: none; }
+.gs-upgrade-does { margin: 0; font-size: 13.5px; color: var(--text-2); }
+.gs-upgrade-state { margin: 0; font-size: 13px; font-weight: 650; color: var(--muted); }
+.gs-upgrade-owned .gs-upgrade-state { color: var(--pickle); }
+.gs-upgrade-can_buy .gs-upgrade-state { color: var(--text); }
+.gs-upgrade-locked .gs-upgrade-icon { opacity: 0.55; }
+
+/* 🛡️ admin settings */
+.gs-settings { display: grid; gap: 12px; }
+.gs-setting { display: grid; gap: 6px; }
+.gs-setting-row { display: flex; gap: 8px; }
+.gs-setting .input:disabled { opacity: 0.6; }
+.gs-disband .btn { margin-top: 8px; }
+
+/* the latest server reply, at the bottom (the chat is hidden) */
+.gs-reply {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; max-width: min(640px, calc(100% - 32px));
+  padding: 10px 16px; border-radius: 12px; font-size: 14px; font-weight: 650; box-shadow: var(--shadow-2);
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--text); animation: fade-in 160ms ease;
+}
+.gs-reply-error { background: var(--ketchup-soft); border-color: var(--ketchup); }
+.gs-reply-money { background: var(--pickle-soft); border-color: var(--pickle); }
+.gs-reply-event { background: var(--mustard-soft); border-color: var(--mustard); }
+
+/* the confirm step */
+.gs-confirm { width: min(440px, calc(100vw - 32px)); }
+.gs-confirm-form { display: grid; gap: 14px; }
+.gs-confirm-form h2 { margin: 0; font-size: 20px; }
+.gs-confirm-text { margin: 0; color: var(--text-2); }
+.gs-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+@media (max-width: 1000px) { .gs-columns { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .gs-row { grid-template-columns: auto minmax(0, 1fr); }
+  .gs-row-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .gs-row-actions .btn { min-height: 44px; }
+  .gs-tool, .gs-select { min-height: 40px; }
+  .gs-title { font-size: 20px; }
+  .gs-balance { font-size: 34px; }
+}
+@media (pointer: coarse) { .gs-tool, .gs-select, .gs-small { min-height: 44px; } }
