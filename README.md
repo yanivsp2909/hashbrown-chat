@@ -21,12 +21,12 @@
 
 ## ✨ Features
 
-- 💬 **Chat**: a lobby, group rooms, private messages (`/send`), `/me` actions, nicknames and Hebrew (right-to-left) text.
+- 💬 **Chat**: a lobby, group rooms, private messages (`/send`), `/me` actions, nicknames, Hebrew (right-to-left) text, reactions, "is typing…" and `/poll`.
 - 👥 **Groups**: public groups, or 🔒 private groups where an admin approves you. Admins can kick, ban, mute, promote and demote.
 - 💬 **Chat switcher** (website): 🌍 the Lobby and all your groups in one list, with unread counts and the last message, like a messaging app.
 - 🏦 **Group bank**: every group earns its own tokens and spends them on upgrades.
 - 🪙 **Tokens**: earn them by being online, with a `/daily` streak, winning games and achievements. Spend them in the badge shop or the casino (fake tokens only).
-- 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel and solo Wordle. Challenge a friend, with an optional token bet.
+- 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel and solo Wordle. Challenge a friend, with an optional token bet; `/rematch`, and `/claim` if they stop moving.
 - 🥔 **Hashbrown**: an AI member. Type `@hashbrown` in chat, or `/ask` for a private answer. Each question costs tokens. Without an API key, Hashbrown is simply off.
 - 🌐 **Website**: chat from any phone or laptop on the same Wi-Fi. Light and dark mode, clickable game boards, file sharing.
 - ⌨️ **Terminal client**: `client.py` works in Terminal, Windows CMD and PyCharm.
@@ -142,6 +142,8 @@ Every packet is **one JSON object on one line**, ending with `\n`. That's called
 | server → client | `chat` | `time`, `name`, `badge`, `text`, `action`, `id`, and `room` (its key) for clients with the `rooms` feature |
 | server → client | `stream` | `stream_id`, `append` (a piece of Hashbrown's answer, only for clients with the `stream` feature) |
 | client → server | `ping` | `t` (any number; it comes straight back) |
+| client → server | `typing` | (none): passed on as `typing` + `name` to clients with the `typing` feature |
+| client → server | `react` | `id` (a chat message), `emoji`: the room gets `reactions` with `id` and `counts` |
 | server → client | `pong` | `t` (the same number: now minus `t` is the round trip) |
 | UDP, client → everyone | `discover` | (none) — broadcast to port 8821 |
 | UDP, server → client | `server` | `name`, `port`, `web_port` — the client uses the IP the answer came from |

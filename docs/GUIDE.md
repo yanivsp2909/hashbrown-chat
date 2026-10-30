@@ -128,13 +128,14 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 | | |
 |---|---|
 | 💬 Chat | `/help` `/users` `/send name msg` `/me action` `/nick name` `/whois name` `/quit` |
-| 🥔 Hashbrown | `@hashbrown question` (everyone sees the answer) or `/ask question` (only you see it, you pay) |
+| 📊 Polls | `/poll question \| option \| option` (2-6 options) `/vote 2` `/poll` (see the votes) `/endpoll` |
+| 🥔 Hashbrown | `@hashbrown question` (everyone sees the answer) or `/ask question` (only you see it, you pay), `/tldr` (a summary of the chat, only for you) |
 | 👥 Groups | `/groups` `/create name [private]` `/join name` `/lobby` `/leave` `/members` `/requests` `/approve name` `/reject name` |
 | 🛡️ Admin | `/kick` `/ban` `/unban` `/mute name [min]` `/unmute` `/promote` `/demote` `/disband` |
 | 🏦 Group bank | `/bank` `/donate amount` `/upgrade name` `/groupemoji 🍟` `/topgroups` |
 | 🪙 Tokens | `/balance` `/top` `/give name amount` `/daily` `/rob name` `/shop` `/buy 🔥` `/badge 🔥` `/achievements` |
 | 🎰 Casino | `/coinflip amount heads` `/dice amount` `/slots amount` |
-| 🎮 Games | `/games` `/challenge name ttt\|damka\|math [bet]` `/accept` `/decline` `/board` `/resign` `/wordle` `/g word` `/giveup` |
+| 🎮 Games | `/games` `/challenge name ttt\|damka\|math [bet]` `/accept` `/decline` `/board` `/resign` `/wordle` `/g word` `/giveup` `/rematch` (same person, game and bet) `/claim` (win if they stopped moving for 2 min) |
 | 🛠️ Admin | `/admin password` `/admintokens [name]` |
 | 📁 Files | `/sendfile name path/to/file` |
 
@@ -144,6 +145,10 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 - Math Duel: the number, like `42`
 
 The admin password is `ADMIN_PASSWORD` in `chatserver/config.py`. **Change it from 123**, or your friends will guess it.
+
+## On the website: reactions and typing 😂
+
+Hover (or tab to) a message and press **☺︎+** to react with 👍 ❤️ 😂 😮 😢 or 🥔. Click a reaction under a message to add or take back yours. While someone in your room types, you see *Noa is typing…* above the message box. A poll shows a button for each option.
 
 ## Chat switcher 💬 (website)
 
