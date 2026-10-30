@@ -46,6 +46,8 @@ def load_saved(saved):
     state.supply_history = [list(p) for p in supply if isinstance(p, list) and len(p) == 2] if isinstance(supply, list) else []
     extra = saved.get("extra")
     state.economy_extra = extra if isinstance(extra, dict) else {}
+    from chatserver import auctions   # (auctions saves through storage: importing it at the top would loop)
+    auctions.refund_after_restart()   # 🔨 a held bid goes back
     market.ensure()
 
 

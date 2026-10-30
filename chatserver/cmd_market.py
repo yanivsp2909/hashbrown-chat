@@ -1,7 +1,7 @@
 """
 📈 Market commands: /stocks, /buy SYM n (and /buy 🔥 still buys badges), /sell SYM n, /portfolio.
 """
-from chatserver import market, registry, storage
+from chatserver import auctions, market, marketplace, registry, storage
 
 
 def parse_trade(client, args, verb):
@@ -33,8 +33,11 @@ def cmd_stocks(client, args):
     client.say(market.listing(), "money")
 
 
-@registry.command("/sell", "/sell FRY 5", "sell shares", "📈 Market")
+@registry.command("/sell", "/sell FRY 5", "sell shares (or a badge: /sell badge 🔥 300)", "📈 Market")
 def cmd_sell(client, args):
+    if args.split()[:1] and args.split()[0].lower() == "badge":   # 🛒 the player marketplace
+        marketplace.sell(client, args)
+        return
     found = parse_trade(client, args, "sell")
     if found:
         error = market.trade(client, *found, buying=False)
@@ -46,3 +49,28 @@ def cmd_sell(client, args):
 @registry.command("/portfolio", "/portfolio", "your shares and what they're worth", "📈 Market")
 def cmd_portfolio(client, args):
     client.say(market.portfolio_text(client.key), "money")
+
+
+@registry.command("/market", "/market [buy N | cancel N]", "players' badges for sale 🛒", "📈 Market")
+def cmd_market(client, args):
+    word, _, rest = args.strip().partition(" ")
+    if word.lower() == "buy":
+        marketplace.buy(client, rest.strip())
+    elif word.lower() == "cancel":
+        marketplace.cancel(client, rest.strip())
+    else:
+        marketplace.show(client)
+
+
+@registry.command("/bid", "/bid amount", "bid in the lobby's auction 🔨", "📈 Market")
+def cmd_bid(client, args):
+    auctions.bid(client, args)
+
+
+@registry.command("/auction", "/auction", "admin: start an auction of a rare badge now", "🛠️ Admin")
+def cmd_auction(client, args):
+    from chatserver import state
+    if not state.accounts[client.key]["admin"]:
+        client.say("🔨 Only server admins can start an auction.", "error")
+    elif not auctions.start():
+        client.say("🔨 An auction is already on.", "error")

@@ -172,8 +172,8 @@ Decision: group commands work on the room you're in, so a button for a group you
 | N8 | 📰 Hashbrown market news | done: when a company stock is MARKET_NEWS_MOVE_PERCENT 15% up or down from the day's open, Hashbrown posts one funny "📰 ..." line in the Lobby (AI, once per stock per day, MARKET_NEWS_PER_DAY 3, counted in the server-wide cap; nothing without Hashbrown); tested with the fake AI only |
 | N9 | 🏦 Savings with interest | done: /save, /withdraw, /savings; SAVINGS_MAX 5000; once a day +SAVINGS_INTEREST_PERCENT 1% (at most SAVINGS_INTEREST_MAX 50), paid only by the public fund (empty fund: no interest) |
 | N10 | 💳 Loans | done: /loan N (LOAN_MAX 500, one at a time, accounts older than 24 h), you owe LOAN_INTEREST_PERCENT 10% more, due in LOAN_DAYS 3; /repay [N|all] into the fund; late: the per-minute income repays it first; loans come from the fund first (new tokens if short) |
-| N11 | 🛒 Player marketplace | not started |
-| N12 | 🔨 Auctions | not started |
+| N11 | 🛒 Player marketplace | done: /sell badge 🔥 300 lists a badge you own (it leaves your badges while listed), /market, /market buy N (MARKETPLACE_FEE_PERCENT 5% to the fund, the rest to the seller), /market cancel N; at most MARKETPLACE_LISTINGS_MAX 5 each; saved. Only badges (they're the only items in the game) |
+| N12 | 🔨 Auctions | done: a rare badge (RARE_BADGES 🦄 🌈 🪐 🐉 🏆, not in the shop) is auctioned in the lobby every AUCTION_EVERY_HOURS 6 with 2+ online (admins: /auction); /bid (AUCTION_START_PRICE 100, +AUCTION_MIN_STEP 10), the bid is held and given back when outbid; after AUCTION_SECONDS 120 the top bid wins and the money goes to the fund; a held bid is given back after a restart |
 | N13 | 📊 Economy dashboard (website) | not started |
 
 ### Round 5, group A reviews

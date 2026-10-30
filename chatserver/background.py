@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, bank_log, config, drawing, economy, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
+from chatserver import achievements, auctions, bank_log, config, drawing, economy, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
 
 
 # ---------------------------------------------------------------- background threads
@@ -51,6 +51,7 @@ def market_loop():
         with state.lock:
             run_safely(economy.daily_tick)
             run_safely(market.tick)
+            run_safely(auctions.tick)
 
 
 def income_loop():
