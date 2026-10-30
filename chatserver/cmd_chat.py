@@ -3,7 +3,7 @@
 """
 from datetime import datetime
 
-from chatserver import chat, config, receipts, registry, rooms, state, storage
+from chatserver import chat, config, receipts, registry, reminders, rooms, state, storage
 
 
 # ----- 💬 Chat
@@ -64,6 +64,16 @@ def keep_for_later(client, target, text):
     inbox.append({"from": rooms.shown(client.key), "time": datetime.now().strftime("%H:%M"), "text": text})
     storage.save_data()
     client.say(f"📬 {rooms.nick(target)} is offline. They'll get your message when they log in.")
+
+
+@registry.command("/remind", "/remind 10m text", "a private reminder later ⏰ (/remind alone: yours)", "💬 Chat")
+def cmd_remind(client, args):
+    if not args.strip():
+        client.say(reminders.listing(client))
+        return
+    error = reminders.add(client, args)
+    if error:
+        client.say(error, "error")
 
 
 @registry.command("/me", "/me action", "act it out: * Yaniv dances", "💬 Chat")

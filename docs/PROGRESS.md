@@ -128,7 +128,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | # | Item | Status |
 |---|---|---|
 | R13 | Read receipts for private messages | done: /send to someone online: your copy gets "pm": {id, status "sent"}, theirs "pm_id"; new packet {"type": "receipt", id, status} "delivered" once their writer really sent it, "seen" after their app sends the new {"type": "seen", id} (only the receiver, once; the last RECEIPTS_KEEP 500 remembered); website ✓ / ✓✓ in the card head, "seen" when the card is 60% on screen and the tab is in front (receipts.js). Messages kept for offline people have no receipts. The terminal client never says "seen" |
-| R14 | `/remind` | not started |
+| R14 | `/remind` | done: /remind 10m|2h|1h30m|90s text (up to REMIND_MAX_HOURS 24, REMIND_MAX 5 waiting each), /remind alone lists yours; "⏰ Reminder: ..." privately (event card), checked every 5 s; due while away -> at login "(it was due at HH:MM)"; saved under "reminders" in chat_data.json |
 | R15 | `/pin` room topic | not started |
 | R16 | `/search` | not started |
 | R17 | Daily quests | not started |
