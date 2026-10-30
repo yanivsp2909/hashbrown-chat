@@ -350,7 +350,7 @@ def test_sendfile_commands_go_to_send_file(monkeypatch, line):
 # ---------------------------------------------------------------- 🌐 terminal or website?
 
 def test_the_ip_is_the_first_argument_that_isnt_a_flag():
-    assert client.parse_args([]) == ("127.0.0.1", set())
+    assert client.parse_args([]) == (None, set())
     assert client.parse_args(["192.168.1.20"]) == ("192.168.1.20", set())
     assert client.parse_args(["--web", "192.168.1.20"]) == ("192.168.1.20", {"--web"})
 

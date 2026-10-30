@@ -34,6 +34,9 @@ DATA_FILE = os.path.join(BASE_DIR, "chat_data.json")
 HASHBROWN_CONFIG = os.path.join(BASE_DIR, "hashbrown_config.json")
 START_WEBSITE = True   # server.py also starts the website (web/web_server.py). False: start it yourself
 WEB_PORT = 8080
+SERVER_NAME = "Hashbrown Chat"   # what clients see when they search the Wi-Fi for servers
+DISCOVERY_PORT = 8821             # UDP: clients broadcast {"type": "discover"} here to find the server
+DISCOVERY_MAX_PER_SECOND = 20
 HISTORY_DB = os.path.join(BASE_DIR, "history.db")  # chat history (SQLite), see chatserver/history.py
 
 MAX_LINE = 4 * 1024 * 1024   # biggest single message in bytes (room for a 2 MB file)

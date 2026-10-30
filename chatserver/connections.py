@@ -9,7 +9,7 @@ import time
 import traceback
 
 from chatserver import (auth, background, chat, config, hashbrown_ai, matches, rooms, session, state, storage,
-                        textutil, website)
+                        textutil, website, discovery)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
 
 
@@ -184,7 +184,10 @@ def main():
     if server_socket is None:
         return
     web = website.start_website(config.PORT)
+    finder = discovery.start_discovery()   # lets client.py find this server without typing an IP
     try:
         serve_forever(server_socket)
     finally:
         website.stop_website(web)
+        if finder is not None:
+            finder.close()

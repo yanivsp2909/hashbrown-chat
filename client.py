@@ -2,7 +2,7 @@
 💬 Chat client
 
 Run:   python client.py 192.168.1.20  -> connects to the server at that IP (ask the host for it)
-       python client.py               -> connects to a server on this same computer (127.0.0.1)
+       python client.py               -> looks for a server on this Wi-Fi (UDP broadcast), else asks for the IP
        python client.py IP --web      -> opens the host's website in your browser instead
        python client.py IP --packets  -> also shows every packet and every raw recv() chunk (Packet X-ray)
 Files people send you are saved in a folder called received_files.
@@ -23,11 +23,14 @@ PORT = 8820
 WEB_PORT = 8080   # where the host's website runs (server.py starts it)
 
 
+DISCOVERY_PORT = 8821   # UDP port where servers answer {"type": "discover"}
+
+
 def parse_args(args):
-    """python client.py [IP] [--web]  ->  (the IP, the set of --flags)."""
+    """python client.py [IP] [--web] [--packets]  ->  (the IP or None, the set of --flags)."""
     flags = {a for a in args if a.startswith("--")}
     others = [a for a in args if not a.startswith("-")]
-    return (others[0] if others else "127.0.0.1"), flags
+    return (others[0] if others else None), flags
 
 
 SERVER_IP, FLAGS = parse_args(sys.argv[1:])
@@ -480,6 +483,55 @@ def chat_loop(sock):
             send(sock, {"type": "line", "text": text})
 
 
+def discover(targets=None, timeout=1.5):
+    """🔎 Shout {"type": "discover"} over UDP and collect [(server IP, name)] from whoever answers.
+    The default target is the broadcast address: every computer on this Wi-Fi gets the packet."""
+    targets = targets or [("255.255.255.255", DISCOVERY_PORT)]
+    found = []
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp:
+        udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        for target in targets:
+            try:
+                udp.sendto(b'{"type": "discover"}', target)
+            except OSError:
+                continue  # e.g. no network at all
+            if "--packets" in FLAGS:
+                show_packet(f'⬆ UDP to {target[0]}:{target[1]}  {{"type": "discover"}}')
+        udp.settimeout(timeout)
+        while True:
+            try:
+                data, (ip, _port) = udp.recvfrom(2048)
+            except (socket.timeout, OSError):
+                return found
+            if "--packets" in FLAGS:
+                show_packet(f"⬇ UDP from {ip}  {data.decode('utf-8', 'replace')}")
+            try:
+                reply = json.loads(data.decode("utf-8"))
+            except (UnicodeDecodeError, ValueError):
+                continue
+            if isinstance(reply, dict) and reply.get("type") == "server" and ip not in [f[0] for f in found]:
+                found.append((ip, printable(str(reply.get("name", "Hashbrown Chat")))[:40]))
+
+
+def find_server():
+    """No IP given: look for servers on the Wi-Fi, then on this computer, else ask."""
+    print("🔎 Looking for a Hashbrown server on this Wi-Fi...")
+    servers = discover() or discover(targets=[("127.0.0.1", DISCOVERY_PORT)], timeout=0.3)
+    if len(servers) == 1 or (servers and not sys.stdin.isatty()):
+        print(f"🔎 Found {servers[0][1]} at {servers[0][0]}")
+        return servers[0][0]
+    if servers:
+        for number, (ip, name) in enumerate(servers, 1):
+            print(f"  {number}) {name} at {ip}")
+        answer = input("Which one? (Enter = 1)\n> ").strip()
+        index = int(answer) - 1 if answer.isdecimal() and 0 < int(answer) <= len(servers) else 0
+        return servers[index][0]
+    if not sys.stdin.isatty():
+        return "127.0.0.1"
+    answer = input("No server found. The host's IP address (Enter = this computer): ").strip()
+    return answer or "127.0.0.1"
+
+
 def ask_terminal_or_web():
     """Ask how to play. Enter means the terminal. Only asks when someone is typing at a keyboard."""
     if not sys.stdin.isatty():
@@ -502,14 +554,15 @@ def open_website(ip):
 
 
 def main():
+    server_ip = SERVER_IP or find_server()
     mode = "web" if "--web" in FLAGS else ask_terminal_or_web()
-    if mode == "web" and open_website(SERVER_IP):
+    if mode == "web" and open_website(server_ip):
         return
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        sock.connect((SERVER_IP, PORT))
+        sock.connect((server_ip, PORT))
     except OSError as e:
-        print(f"[CLIENT] Can't connect to {SERVER_IP}:{PORT} ({e})")
+        print(f"[CLIENT] Can't connect to {server_ip}:{PORT} ({e})")
         return
     try:
         messages = read_messages(sock)

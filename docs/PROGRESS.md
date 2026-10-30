@@ -47,7 +47,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | # | Feature | Status |
 |---|---|---|
 | 5 | Packet X-ray (Packets tab + TCP tab), `client.py --packets` | done: bridge records raw recv()/sendall() only while the tab's X-ray is open (never login packets); `<dialog>` with Packets/TCP tabs; client --packets |
-| 6 | UDP auto-discovery (`client.py` with no IP finds the server, else asks) | not started |
+| 6 | UDP auto-discovery (`client.py` with no IP finds the server, else asks) | done: chatserver/discovery.py on UDP 8821 (tiny fixed reply, rate-limited); client broadcasts, then tries 127.0.0.1, then asks |
 | 7 | `/ping`, the network lab (console lag/loss), `/netstats` | not started |
 
 ## Group 3: chat switcher
