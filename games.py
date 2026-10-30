@@ -74,6 +74,76 @@ class TicTacToe:
         return "\n".join(lines)
 
 
+# --------------------------------------------------------------------------- Connect 4
+
+class Connect4:
+    title = "🔴🟡 Connect 4"
+    help = "Type a column from 1 to 7. Your piece falls to the bottom. Four in a row wins!"
+    ROWS, COLS = 6, 7
+    NUMBERS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"]
+
+    def __init__(self, p1, p2):
+        self.players = [p1, p2]
+        self.marks = {p1: "🔴", p2: "🟡"}
+        self.cells = [None] * (self.ROWS * self.COLS)   # row by row, the top row first
+        self.turn = p1
+        self.finished = False
+        self.winner = None
+
+    def looks_like_move(self, text):
+        text = text.strip()
+        return len(text) == 1 and text in "1234567"
+
+    def at(self, row, col):
+        if 0 <= row < self.ROWS and 0 <= col < self.COLS:
+            return self.cells[row * self.COLS + col]
+        return None
+
+    def four_from(self, row, col, mark):
+        """Does the piece at (row, col) make four in a row in any direction?"""
+        for d_row, d_col in ((0, 1), (1, 0), (1, 1), (1, -1)):
+            count = 1
+            for sign in (1, -1):   # walk both ways from the new piece
+                r, c = row + sign * d_row, col + sign * d_col
+                while self.at(r, c) == mark:
+                    count, r, c = count + 1, r + sign * d_row, c + sign * d_col
+            if count >= 4:
+                return True
+        return False
+
+    def move(self, player, text):
+        if player != self.turn:
+            return False, "⏳ Not your turn, wait for your opponent."
+        if not self.looks_like_move(text):
+            return False, "Pick a column with a number from 1 to 7."
+        col = int(text.strip()) - 1
+        free = [row for row in range(self.ROWS) if self.at(row, col) is None]
+        if not free:
+            return False, "That column is full."
+        row = free[-1]   # the lowest empty spot: pieces fall down
+        mark = self.marks[player]
+        self.cells[row * self.COLS + col] = mark
+        if self.four_from(row, col, mark):
+            self.finished, self.winner = True, player
+        elif all(self.cells):
+            self.finished, self.winner = True, "draw"
+        else:
+            self.turn = other_player(self.players, player)
+        return True, ""
+
+    def state(self, viewer):
+        return {"game": "connect4", "cells": list(self.cells), "you": self.marks[viewer],
+                "your_turn": self.turn == viewer and not self.finished, "finished": self.finished}
+
+    def render(self, viewer):
+        rows = ["".join(self.at(r, c) or "⚪" for c in range(self.COLS)) for r in range(self.ROWS)]
+        lines = rows + ["".join(self.NUMBERS)]
+        if not self.finished:
+            lines.append(f"👉 Your turn ({self.marks[viewer]})" if self.turn == viewer
+                         else f"⏳ Opponent's turn. You are {self.marks[viewer]}")
+        return "\n".join(lines)
+
+
 # --------------------------------------------------------------------------- Damka (checkers)
 
 class Checkers:

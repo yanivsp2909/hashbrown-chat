@@ -82,7 +82,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | # | Feature | Status |
 |---|---|---|
 | 20 | Chunked files up to 15 MB with a progress bar | not started |
-| 21 | Connect 4 | not started |
+| 21 | Connect 4 | done: games.Connect4 (columns 1-7, gravity, 4 in a row, draw when full), /challenge name connect4 (or c4), website column buttons |
 | 22 | Battleship | not started |
 | 23 | Spectating | not started |
 | 24 | ELO + leaderboards | not started |

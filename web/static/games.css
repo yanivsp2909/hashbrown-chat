@@ -211,3 +211,12 @@
   .sq.must .piece { animation: none; }
   .drain > span { animation-duration: var(--drain-ms, 180s) !important; }
 }
+
+/* 🔴🟡 Connect 4: seven column buttons, six round cells each */
+.c4 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 8px; border-radius: 14px; background: var(--panel-3); }
+.c4-col { display: grid; grid-template-rows: repeat(6, 1fr); gap: 6px; padding: 4px; border: 2px solid transparent;
+  border-radius: 12px; background: none; cursor: pointer; }
+.c4-col:not(:disabled):hover, .c4-col:focus-visible { border-color: var(--gold-ring); background: var(--gold-soft); }
+.c4-col:disabled { cursor: default; }
+.c4-cell { aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: var(--bg);
+  font-size: clamp(14px, 3.2vw, 26px); line-height: 1; }
