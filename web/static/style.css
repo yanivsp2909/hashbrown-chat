@@ -602,6 +602,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .gs-body {
   flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
   padding: 14px var(--chat-pad) 76px; display: flex; flex-direction: column; gap: 14px;   /* room for the reply line */
+  scroll-padding-bottom: 84px;   /* a focused control never hides behind it */
 }
 .gs-body > * { width: 100%; max-width: 1080px; margin-inline: auto; }
 .gs-head { display: flex; align-items: center; gap: 12px; padding-bottom: 6px; }
@@ -634,7 +635,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .gs-row-main { min-width: 0; display: grid; gap: 3px; }
 .gs-row-title { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
 .gs-name {
-  padding: 0; border: 0; background: none; color: var(--text); font-size: 16.5px; font-weight: 750;
+  min-height: 24px; padding: 0; border: 0; background: none; color: var(--text); font-size: 16.5px; font-weight: 750;
   text-align: start; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px;
 }
 .gs-name:hover { text-decoration-color: var(--gold); }
@@ -734,6 +735,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
 }
 .gs-ticket-name { font-weight: 750; overflow-wrap: anywhere; }
 .gs-ticket .gs-ticket-reject { color: var(--paper-ink); border-color: var(--paper-muted); }
+.gs-ticket :focus-visible { outline-color: #8a5600; }   /* gold is too pale on the paper */
 
 /* a confirm that loses something is ketchup, not gold */
 .btn-danger { background: var(--ketchup); color: #2a1904; }
@@ -742,7 +744,9 @@ a { color: var(--gold); text-underline-offset: 3px; }
 
 /* light theme: the sauces need to be darker on the light panels to stay readable */
 :root[data-theme="light"] :is(.gs-plus, .gs-upgrade-owned .gs-upgrade-state) { color: #2d5a12; }
-:root[data-theme="light"] .gs-danger { color: #a82a17; }
+:root[data-theme="light"] :is(.gs-danger, .gs-minus) { color: #a82a17; }
+[aria-disabled="true"].btn { opacity: 0.6; cursor: not-allowed; }
+.input[readonly][aria-disabled="true"] { opacity: 0.6; }
 :root[data-theme="light"] .gs-chip-requested { color: #5c4f08; }
 :root[data-theme="light"] :is(.gs-chip-owner, .gs-chip-admin) { box-shadow: inset 0 0 0 1px var(--crust-line); }
 
@@ -765,4 +769,4 @@ a { color: var(--gold); text-underline-offset: 3px; }
   .gs-head .gs-badge { display: none; }   /* the name gets the room */
   .gs-head .gs-chip { margin-inline-start: 52px; }
 }
-@media (pointer: coarse) { .gs-tool, .gs-select, .gs-small { min-height: 44px; } }
+@media (pointer: coarse) { .gs-tool, .gs-select, .gs-small, .gs-name { min-height: 44px; } }

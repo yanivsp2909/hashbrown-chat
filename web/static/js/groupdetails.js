@@ -46,38 +46,39 @@ function about(info) {
   return lines.length ? el("div", { class: "gs-about" }, lines) : null;
 }
 
-function memberTools(info, member) {
+function memberTools(info, member, index) {
   const target = str(member.name);
   const me = getState().nick;
   if (!info.admin || target === me || member.role === "owner") return null;
   const owner = info.your_role === "owner";
-  const muteId = `gs-mute-${target}`;
+  const muteId = `gs-mute-${index}`;   // (an index: old nicknames may have characters an id can't)
   const ask = (action, title, text, yes) => async () => {
     if (await confirmStep({ title, text, yes, danger: true })) act(action, info, { target });
   };
   return el("div", { class: "gs-tools", role: "group", "aria-label": `Manage ${target}` },
-    el("button", { class: "mini-btn gs-tool", type: "button", text: "Kick", "aria-label": `Kick ${target}`,
+    el("button", { class: "mini-btn gs-tool", type: "button", text: "Kick", "aria-label": `Kick ${target}`, "data-act": actKey("kick", info, target),
       onclick: ask("kick", `Kick ${target}?`, `${target} leaves ${str(info.name)} but can join again.`, "Kick") }),
     el("label", { class: "visually-hidden", for: muteId, text: `Mute ${target} for how many minutes` }),
     el("select", { id: muteId, class: "gs-select" }, MUTE_CHOICES.map((m) => el("option", { value: String(m), text: `${m} min` }))),
     el("button", { class: "mini-btn gs-tool", type: "button", text: "Mute", "aria-label": `Mute ${target}`, "data-act": actKey("mute", info, target),
       onclick: () => act("mute", info, { target, value: $(muteId).value }) }),
-    el("button", { class: "mini-btn gs-tool gs-danger", type: "button", text: "Ban", "aria-label": `Ban ${target}`,
+    el("button", { class: "mini-btn gs-tool gs-danger", type: "button", text: "Ban", "aria-label": `Ban ${target}`, "data-act": actKey("ban", info, target),
       onclick: ask("ban", `Ban ${target}?`, `${target} is kicked and can't come back until an admin unbans them.`, "Ban") }),
     owner ? el("button", { class: "mini-btn gs-tool", type: "button", text: member.role === "admin" ? "Demote" : "Promote",
       "aria-label": `${member.role === "admin" ? "Demote" : "Promote"} ${target}`,
+      "data-act": actKey(member.role === "admin" ? "demote" : "promote", info, target),
       onclick: () => act(member.role === "admin" ? "demote" : "promote", info, { target }) }) : null);
 }
 
 function members(info) {
   const list = Array.isArray(info.members_list) ? info.members_list : [];
   return block("gs-members-title", `👥 Members (${list.length})`,
-    el("ul", { class: "gs-members" }, list.map((member) => el("li", { class: "gs-member" },
+    el("ul", { class: "gs-members" }, list.map((member, i) => el("li", { class: "gs-member" },
       el("span", { class: `gs-dot${member.online ? " on" : ""}`, "aria-hidden": "true" }),
       el("span", { class: `gs-member-name ${nameClass(str(member.name))}`, dir: "auto", text: str(member.name) }),
       el("span", { class: "visually-hidden", text: member.online ? ", online" : ", offline" }),
       el("span", { class: `gs-chip gs-chip-${member.role}`, text: memberRole(member.role) }),
-      memberTools(info, member)))));
+      memberTools(info, member, i)))));
 }
 
 // ---------------------------------------------------------------- 🏦 the bank
@@ -85,11 +86,11 @@ function members(info) {
 function chart(points) {
   const path = G.chartPath(points, CHART_W, CHART_H);
   if (!path) return null;
-  const label = `Balance over the last days: from ${path.first} to ${path.last} 🪙 (lowest ${path.min}, highest ${path.max})`;
+  const label = `Bank balance, last 7 days: from ${path.first} to ${path.last} tokens (lowest ${path.min}, highest ${path.max})`;
   return el("figure", { class: "gs-chart" },
     svg("svg", { viewBox: `0 -4 ${CHART_W} ${CHART_H + 8}`, role: "img", "aria-label": label, preserveAspectRatio: "none", class: "gs-chart-svg" },
       svg("path", { d: path.area, class: "gs-chart-area" }), svg("path", { d: path.line, class: "gs-chart-line" })),
-    el("figcaption", { class: "gs-chart-caption" },
+    el("figcaption", { class: "gs-chart-caption", "aria-hidden": "true" },
       el("span", { text: `${path.first} 🪙` }), el("span", { text: "last 7 days" }), el("span", { text: `${path.last} 🪙` })));
 }
 
@@ -104,7 +105,11 @@ function donateForm(info) {
     event.preventDefault();
     const field = $("gs-donate");
     const amount = Number.parseInt(field.value, 10);
-    if (!(amount > 0)) return field.focus();
+    if (!(amount > 0)) {
+      field.setAttribute("aria-invalid", "true");
+      return field.focus();
+    }
+    field.removeAttribute("aria-invalid");
     if (await act("donate", info, { value: amount })) field.value = "";
   };
   return el("form", { class: "gs-donate", onsubmit: submit },
@@ -132,7 +137,7 @@ function bankBlock(info) {
       el("ol", { class: "gs-donors" }, donors.map((d) => el("li", {},
         el("span", { dir: "auto", text: str(d.name) }), el("span", { class: "gs-num", text: `${d.amount} 🪙` }))))) : null,
     el("div", { class: "gs-sub" }, el("h4", { class: "gs-h4", text: "📜 History" }),
-      history.length ? el("ul", { class: "gs-history" }, history.map((row) => el("li", { class: "gs-history-row" },
+      history.length ? el("ul", { class: "gs-history", tabindex: "0", "aria-label": "Bank history, newest first" }, history.map((row) => el("li", { class: "gs-history-row" },
         el("span", { class: "gs-time", text: G.timeLabel(row.time) }),
         el("span", { class: "gs-what", dir: "auto", text: G.historyLine(row) }),
         el("span", { class: `gs-num ${row.amount >= 0 ? "gs-plus" : "gs-minus"}`, text: `${row.amount >= 0 ? "+" : "−"}${Math.abs(row.amount)}` }),
@@ -168,19 +173,20 @@ function upgradesBlock(info) {
 
 // ---------------------------------------------------------------- 🛡️ admin tools (only sent to admins)
 
-function settingForm(info, { id, label, action, value, placeholder, needs, max }) {
+function settingForm(info, { id, label, action, value, placeholder, needs, max, what }) {
   const locked = needs && !(Array.isArray(info.upgrades) && info.upgrades.some((u) => u.name === needs && u.state === "owned"));
   const submit = async (event) => {
     event.preventDefault();
-    act(action, info, { value: $(id).value.trim() });
+    if (!locked) act(action, info, { value: $(id).value.trim() });
   };
   return el("form", { class: "gs-setting", onsubmit: submit },
     el("label", { class: "field field-small", for: id }, el("span", { text: label })),
     el("div", { class: "gs-setting-row" },
-      el("input", { id, class: "input", value: value || "", placeholder, maxlength: String(max), disabled: locked,
-        "aria-describedby": locked ? `${id}-why` : null, autocomplete: "off" }),
-      el("button", { class: "btn btn-ghost", type: "submit", text: "Save", disabled: locked, "data-locked": locked ? "1" : null,
-        "data-act": actKey(action, info) })),
+      el("input", { id, class: "input", value: value || "", placeholder, maxlength: String(max), readonly: locked,
+        "aria-disabled": locked ? "true" : null, "aria-describedby": locked ? `${id}-why` : null, autocomplete: "off" }),
+      el("button", { class: "btn btn-ghost", type: "submit", text: "Save", "aria-label": `Save ${what}`,
+        "aria-disabled": locked ? "true" : null, "aria-describedby": locked ? `${id}-why` : null,
+        "data-locked": locked ? "1" : null, "data-act": actKey(action, info) })),
     locked ? el("p", { id: `${id}-why`, class: "field-hint", text: `Needs the ${needs} upgrade first.` }) : null);
 }
 
@@ -197,15 +203,17 @@ function adminBlock(info) {
     muted.length ? el("div", { class: "gs-sub" }, el("h4", { class: "gs-h4", text: "🔇 Muted" }),
       el("ul", { class: "gs-people" }, muted.map((m) => person(`${str(m.name)} · ${m.minutes} min left`,
         el("button", { class: "btn btn-ghost gs-small", type: "button", text: "Unmute", "aria-label": `Unmute ${str(m.name)}`,
+          "data-act": actKey("unmute", info, str(m.name)),
           onclick: () => act("unmute", info, { target: str(m.name) }) }))))) : null,
     banned.length ? el("div", { class: "gs-sub" }, el("h4", { class: "gs-h4", text: "🚫 Banned" }),
       el("ul", { class: "gs-people" }, banned.map((who) => person(who,
         el("button", { class: "btn btn-ghost gs-small", type: "button", text: "Unban", "aria-label": `Unban ${who}`,
+          "data-act": actKey("unban", info, who),
           onclick: () => act("unban", info, { target: who }) }))))) : null,
     el("div", { class: "gs-sub gs-settings" },
-      settingForm(info, { id: "gs-topic", label: "📌 Pinned topic (empty: take it down)", action: "topic", value: info.topic, placeholder: "Nothing pinned", max: 120 }),
-      settingForm(info, { id: "gs-emoji", label: "🎨 Group emoji", action: "emoji", value: info.emoji, placeholder: "One emoji, like 🍟", needs: "emoji", max: 8 }),
-      settingForm(info, { id: "gs-persona", label: "🎭 Hashbrown's persona here (empty: normal)", action: "persona", value: info.persona, placeholder: "Like: a pirate who loves potatoes", needs: "personality", max: 120 })),
+      settingForm(info, { id: "gs-topic", label: "📌 Pinned topic (empty: take it down)", action: "topic", value: info.topic, placeholder: "Nothing pinned", max: 120, what: "topic" }),
+      settingForm(info, { id: "gs-emoji", label: "🎨 Group emoji", action: "emoji", value: info.emoji, placeholder: "One emoji, like 🍟", needs: "emoji", max: 8, what: "emoji" }),
+      settingForm(info, { id: "gs-persona", label: "🎭 Hashbrown's persona here (empty: normal)", action: "persona", value: info.persona, placeholder: "Like: a pirate who loves potatoes", needs: "personality", max: 120, what: "persona" })),
     info.your_role === "owner" ? el("div", { class: "gs-sub gs-disband" },
       el("h4", { class: "gs-h4", text: "💥 Disband" }),
       el("p", { class: "gs-muted", text: "Deletes the group and its chat. Whatever is in the bank goes to you." }),

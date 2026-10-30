@@ -41,6 +41,7 @@ export async function act(action, group, extra = {}) {
   if (inFlight.has(id)) return false;   // still sending the last click
   inFlight.add(id);
   lastAct = Date.now();
+  hideReply();
   markBusy();
   try {
     for (const line of G.commandsFor(action, group, { currentRoom: getState().currentRoom, ...extra })) {
@@ -61,9 +62,14 @@ export async function act(action, group, extra = {}) {
 /** Buttons whose action is still on its way are disabled (render() draws new ones: this runs after it too). */
 function markBusy() {
   for (const button of $("groups-body").querySelectorAll("[data-act]")) {
-    const busy = inFlight.has(button.dataset.act);
-    button.disabled = busy || button.dataset.locked === "1";
-    button.toggleAttribute("aria-busy", busy);
+    const busy = inFlight.has(button.dataset.act);   // (not "disabled": that would throw the keyboard focus away)
+    if (busy) {
+      button.setAttribute("aria-disabled", "true");
+      button.setAttribute("aria-busy", "true");
+    } else if (button.dataset.locked !== "1") {
+      button.removeAttribute("aria-disabled");
+      button.removeAttribute("aria-busy");
+    }
   }
 }
 
@@ -73,7 +79,9 @@ export const actKey = (action, group, target = "") => `${action}:${group.key ?? 
 /** A confirm step in a small dialog. requireText: they must type it (like the group's name) first. */
 export function confirmStep({ title, text, yes, requireText = "", label = "", danger = false }) {
   const dialog = $("groups-confirm");
-  const opener = document.activeElement;
+  const active = document.activeElement;
+  const openerKey = active && (active.dataset?.act || active.dataset?.focus || active.id) || "";
+  const openerView = view;
   $("gs-confirm-title").textContent = title;
   $("gs-confirm-text").textContent = text;
   $("gs-confirm-yes").textContent = yes;
@@ -85,12 +93,22 @@ export function confirmStep({ title, text, yes, requireText = "", label = "", da
   yesButton.className = `btn ${danger ? "btn-danger" : "btn-primary"}`;   // losing something is ketchup, not gold
   yesButton.disabled = Boolean(requireText);
   input.oninput = () => { yesButton.disabled = input.value.trim().toLowerCase() !== requireText.toLowerCase(); };
+  input.onkeydown = (event) => {   // Enter means "yes" here (the form's first button is Cancel)
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    if (!yesButton.disabled) yesButton.click();
+  };
   dialog.returnValue = "";
   dialog.showModal();
   if (requireText) input.focus();
   return new Promise((resolve) => {
     dialog.addEventListener("close", () => {
-      if (opener && document.contains(opener)) opener.focus();
+      // The screen may have been drawn again meanwhile: find the same button (or the heading) again
+      const body = $("groups-body");
+      const again = openerKey && (body.querySelector(`[data-act="${CSS.escape(openerKey)}"]`)
+        || body.querySelector(`[data-focus="${CSS.escape(openerKey)}"]`) || document.getElementById(openerKey));
+      if (again && !again.disabled) again.focus();
+      else if (view !== null && view === openerView) ($("gs-details-title") || $("groups-title"))?.focus();
       resolve(dialog.returnValue === "yes");
     }, { once: true });
   });
@@ -100,11 +118,19 @@ export function confirmStep({ title, text, yes, requireText = "", label = "", da
 export function noteServerText(kind, text, force = false) {
   if (!isOpen() || (!force && Date.now() - lastAct > REPLY_WINDOW)) return;
   const line = $("groups-reply");
-  line.textContent = str(text).split("\n")[0];
+  const isError = kind === "error";
+  line.textContent = "";   // empty first, then the text a moment later: screen readers announce a change
+  line.setAttribute("role", isError ? "alert" : "status");
   line.className = `gs-reply gs-reply-${["error", "money", "event"].includes(kind) ? kind : "system"}`;
-  line.hidden = false;
   clearTimeout(replyTimer);
-  replyTimer = setTimeout(() => { line.hidden = true; }, REPLY_MS);
+  setTimeout(() => { line.textContent = str(text).split("\n")[0]; }, 50);
+  if (!isError) replyTimer = setTimeout(() => hideReply(), REPLY_MS);   // errors stay until the next button
+}
+
+function hideReply() {
+  const line = $("groups-reply");
+  line.textContent = "";
+  line.className = "gs-reply visually-hidden";
 }
 
 /** The confirm step before leaving a group (from its row or its details). */
@@ -122,9 +148,9 @@ function groupRow(card) {
   if (Number.isInteger(card.bank)) meta.push(`🏦 ${card.bank} 🪙`);
   const upgrades = Array.isArray(card.upgrades) && card.upgrades.length ? card.upgrades.map(str).join(" · ") : "";
   const actions = member
-    ? [el("button", { class: "btn btn-primary", type: "button", text: "Open chat", "aria-label": `Open the chat of ${name}`,
+    ? [el("button", { class: "btn btn-primary", type: "button", text: "Open chat", "aria-label": `Open chat ${name}`,
       "data-act": actKey("open", card),
-      onclick: async () => { if (await act("open", card)) close(); } }),
+      onclick: async () => { if (await act("open", card)) { close(); $("input").focus(); } } }),
     role !== "owner" ? el("button", { class: "btn btn-ghost", type: "button", text: "Leave", "aria-label": `Leave ${name}`,
       onclick: async () => {
         if (await confirmLeave(card)) act("leave", card);
@@ -142,14 +168,17 @@ function groupRow(card) {
         card.private ? el("span", { class: "gs-chip", text: "🔒 Private" }) : null,
         roleChip(role) ? el("span", { class: `gs-chip gs-chip-${role}`, text: roleChip(role) }) : null),
       card.topic ? el("p", { class: "gs-topic", dir: "auto", text: `📌 ${str(card.topic)}` }) : null,
-      el("p", { class: "gs-meta", text: meta.join(" · ") + (upgrades ? ` · ⬆️ ${upgrades}` : "") }),
+      el("p", { class: "gs-meta" }, el("span", { "aria-hidden": "true", text: meta.join(" · ") + (upgrades ? ` · ⬆️ ${upgrades}` : "") }),
+        el("span", { class: "visually-hidden", text: [`${card.members} members`, Number.isInteger(card.online) ? `${card.online} online` : "",
+          Number.isInteger(card.bank) ? `bank ${card.bank} tokens` : "", upgrades ? `upgrades: ${upgrades}` : ""].filter(Boolean).join(", ") })),
       card.persona ? el("p", { class: "gs-persona", dir: "auto", text: `🎭 ${str(card.persona)}` }) : null),
     el("div", { class: "gs-row-actions" }, actions));
 }
 
 function section(title, list, empty) {
-  return el("section", { class: "gs-section", "aria-label": title },
-    el("h3", { class: "gs-h3", text: title }),
+  const id = `gs-sec-${title.split(" ")[0].toLowerCase()}`;
+  return el("section", { class: "gs-section", "aria-labelledby": id },
+    el("h3", { id, class: "gs-h3", text: title }),
     list.length ? el("ul", { class: "gs-list" }, list.map(groupRow)) : el("p", { class: "gs-empty", text: empty }));
 }
 
@@ -157,7 +186,10 @@ function createForm() {
   const submit = async (event) => {
     event.preventDefault();
     const name = $("gs-create-name").value.trim();
-    if (!name) return $("gs-create-name").focus();
+    if (!name) {
+      noteServerText("error", "Type a name for the group first.", true);
+      return $("gs-create-name").focus();
+    }
     if (await act("create", { key: "", name }, { private: $("gs-create-private").checked })) {
       creating = false;
       render();
@@ -176,7 +208,6 @@ function createForm() {
 }
 
 function renderList(body) {
-  const { mine, others } = G.split(cards, query);
   body.append(...[
     el("header", { class: "gs-head" },
       el("button", { class: "icon-btn gs-back", type: "button", "aria-label": "Back to the chat", onclick: close }, backIcon()),
@@ -186,15 +217,28 @@ function renderList(body) {
     creating ? createForm() : null,
     el("label", { class: "gs-search" }, el("span", { class: "visually-hidden", text: "Search groups" }),
       el("input", { id: "gs-search", class: "input", type: "search", placeholder: "🔍 Search groups…", value: query,
-        autocomplete: "off", oninput: (event) => { query = event.target.value; render(); } })),
+        autocomplete: "off", oninput: (event) => { query = event.target.value; drawLists(); } })),
+    el("p", { id: "gs-count", class: "visually-hidden", role: "status" }),
+    el("div", { id: "gs-lists" }),
     !loaded ? el("p", { class: "loading-text", text: "Loading groups…" }) : null,
     loaded && !cards.length ? el("div", { class: "empty-grill" }, el("span", { class: "big", "aria-hidden": "true", text: "👥" }),
       el("h2", { text: "No groups yet" }), el("p", { text: "Make the first one and invite your friends. 🎉" }),
       el("div", { class: "row" }, el("button", { class: "btn btn-primary", type: "button", text: "+ Create group",
         onclick: () => { creating = true; render(); $("gs-create-name").focus(); } }))) : null,
-    cards.length ? section("Your groups", mine, query ? "None of yours match." : "You're not in a group yet. Join one below!") : null,
-    cards.length ? section("Other groups", others, query ? `No other group matches "${query}".` : "That's every group.") : null,
   ].filter(Boolean));
+  drawLists();
+}
+
+/** Only the two lists (typing in the search box keeps the box itself). */
+function drawLists() {
+  const box = $("gs-lists");
+  if (!box) return;
+  const { mine, others } = G.split(cards, query);
+  box.replaceChildren(...(cards.length ? [
+    section("Your groups", mine, query ? "None of yours match." : "You're not in a group yet. Join one below!"),
+    section("Other groups", others, query ? `No other group matches "${query}".` : "That's every group."),
+  ] : []));
+  if (query) $("gs-count").textContent = `${mine.length + others.length} group${mine.length + others.length === 1 ? "" : "s"} found`;
 }
 
 // ---------------------------------------------------------------- the shell
@@ -202,23 +246,29 @@ function renderList(body) {
 /** Draw again, keeping what you typed and where the keyboard was. */
 function render() {
   const body = $("groups-body");
-  const typed = Object.fromEntries([...body.querySelectorAll("input[id], textarea[id], select[id]")].map((f) => [f.id, f.value]));
+  const fields = [...body.querySelectorAll("input[id], textarea[id], select[id]")];
+  const typed = Object.fromEntries(fields.map((f) => [f.id, f.type === "checkbox" ? f.checked : f.value]));
   const active = document.activeElement;
-  const focusKey = body.contains(active) ? (active.id || active.dataset.focus || "") : "";
+  const focusKey = body.contains(active) ? (active.id || active.dataset.focus || active.dataset.act || "") : "";
   const caret = focusKey && typeof active.selectionStart === "number" ? [active.selectionStart, active.selectionEnd] : null;
   clear(body);
   if (view === "") renderList(body);
   else if (view) renderDetails(body, info, { back: showList });
   for (const [id, value] of Object.entries(typed)) {
     const field = document.getElementById(id);
-    if (field && body.contains(field) && field.type !== "checkbox" && id !== "gs-search") field.value = value;
+    if (!field || !body.contains(field) || id === "gs-search") continue;
+    if (field.type === "checkbox") field.checked = value;
+    else field.value = value;
   }
   markBusy();
   if (focusKey) {
-    const again = body.querySelector(`#${CSS.escape(focusKey)}`) || body.querySelector(`[data-focus="${CSS.escape(focusKey)}"]`);
+    const again = body.querySelector(`#${CSS.escape(focusKey)}`) || body.querySelector(`[data-focus="${CSS.escape(focusKey)}"]`)
+      || body.querySelector(`[data-act="${CSS.escape(focusKey)}"]`);
     if (again) {
       again.focus({ preventScroll: true });
       if (caret && typeof again.setSelectionRange === "function") again.setSelectionRange(...caret);
+    } else {   // that button is gone (the member was kicked, the request answered): the view's heading
+      ($("gs-details-title") || $("groups-title"))?.focus({ preventScroll: true });
     }
   }
 }
@@ -226,6 +276,7 @@ function render() {
 function setOpen(open) {
   const screen = $("groups-screen");
   screen.hidden = !open;
+  screen.setAttribute("aria-label", "Groups");
   $("screen-chat").classList.toggle("groups-open", open);
   $("groups-open").setAttribute("aria-expanded", String(open));
 }
@@ -245,21 +296,23 @@ export function close() {
   if (view === null) return;
   view = null;
   setOpen(false);
-  $("groups-reply").hidden = true;
   send({ type: "groups_closed" });
-  $("groups-open").focus();
+  hideReply();
+  const opener = $("groups-open");   // (on a phone it's inside the closed drawer: the menu button instead)
+  (opener.offsetParent && getComputedStyle(opener).visibility !== "hidden" ? opener : $("open-sidebar")).focus();
 }
 
 function openGroup(key) {
   view = key;
   info = null;
   render();
+  $("gs-details-title")?.focus();
   send({ type: "get_group", group: key });
   clearTimeout(detailsTimer);
   detailsTimer = setTimeout(() => {
     if (view !== key || info) return;
     const body = $("groups-body");
-    body.append(el("div", { class: "empty-grill" }, el("p", { text: "Couldn't load this group." }),
+    body.append(el("div", { class: "empty-grill", role: "alert" }, el("p", { text: "Couldn't load this group." }),
       el("div", { class: "row" },
         el("button", { class: "btn btn-primary", type: "button", text: "Try again", onclick: () => openGroup(key) }),
         el("button", { class: "btn btn-ghost", type: "button", text: "Back", onclick: showList }))));
@@ -276,7 +329,13 @@ function showList() {
 }
 
 /** {"type": "groups"} from the server. */
+let lastCards = "";
+let lastInfo = "";
+
 export function onGroups(msg) {
+  const text = JSON.stringify(msg.groups);
+  if (loaded && text === lastCards) return;   // nothing new: don't redraw (screen readers would hear it all again)
+  lastCards = text;
   cards = Array.isArray(msg.groups) ? msg.groups.filter((c) => c && typeof c.key === "string") : [];
   loaded = true;
   if (view && !cards.some((c) => c.key === view)) {   // the group you were looking at is gone (disbanded)
@@ -291,6 +350,9 @@ export function onGroups(msg) {
 export function onGroupInfo(msg) {
   const group = msg.group;
   if (!group || typeof group.key !== "string" || group.key !== view) return;
+  const text = JSON.stringify(group);
+  if (info !== null && text === lastInfo) return;
+  lastInfo = text;
   const first = info === null;
   info = group;
   render();
@@ -309,7 +371,8 @@ export function initGroups(nextHooks) {
   hooks = { ...hooks, ...nextHooks };
   $("groups-open").addEventListener("click", () => (isOpen() ? close() : open()));
   $("groups-screen").addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !$("groups-confirm").open) {
+    const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName) && event.target.type !== "checkbox";
+    if (event.key === "Escape" && !$("groups-confirm").open && !typing && !event.defaultPrevented && !event.isComposing) {
       event.preventDefault();
       if (view) showList(); else close();
     }
