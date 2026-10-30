@@ -15,6 +15,7 @@ import select
 import socket
 import sys
 import threading
+import time
 import unicodedata
 import warnings
 import webbrowser
@@ -256,6 +257,11 @@ def send(sock, obj):
     sock.sendall((line + "\n").encode())
 
 
+def send_ping(sock):
+    """🏓 Send the time now; the server sends it straight back, so the difference is the round trip."""
+    send(sock, {"type": "ping", "t": time.time()})
+
+
 def describe_chunk(chunk):
     """'312 bytes: 2 packets' — TCP doesn't keep messages apart, the newlines do."""
     ends = chunk.count(b"\n")
@@ -342,6 +348,9 @@ def show_message(msg):
             lines += [format_chat(old) for old in past]
             lines.append(paint("─────────────────────────", DIM))
         console.out("\n".join(lines))
+    elif kind == "pong" and isinstance(msg.get("t"), (int, float)):
+        ms = round((time.time() - msg["t"]) * 1000)
+        console.out(paint(f"🏓 Pong: {ms} ms there and back", KIND_COLORS.get("system", "")))
     elif kind == "file":
         save_file(msg)
 
@@ -475,6 +484,8 @@ def chat_loop(sock):
             continue
         if text.lower().split()[0] == "/sendfile":
             send_file(sock, text)
+        elif text.lower() == "/ping":
+            send_ping(sock)
         elif text.lower() == "/quit":
             quitting.set()  # set first, so the receiver doesn't report a "disconnect"
             send(sock, {"type": "line", "text": text})

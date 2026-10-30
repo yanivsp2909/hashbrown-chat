@@ -83,6 +83,25 @@ def quiz_loop():
             run_safely(quiz_close, *opened)
 
 
+def network_lab(cmd, value):
+    """🧪 lag 300 / loss 10 / lab / lab off: make the network worse on purpose and watch what happens."""
+    if cmd == "lab":
+        if value == "off":
+            state.lab_lag_ms, state.lab_loss_percent = 0, 0
+        textutil.log(f"[LAB] 🧪 lag {state.lab_lag_ms} ms, loss {state.lab_loss_percent}% "
+                     f"(a lost packet arrives {config.LAB_RESEND_MS} ms late, like a TCP resend)")
+        return
+    limit = 5000 if cmd == "lag" else 100
+    if not value.isdecimal() or int(value) > limit:
+        textutil.log("[LAB] Use: lag <milliseconds> (0-5000)  or  loss <percent> (0-100)")
+        return
+    if cmd == "lag":
+        state.lab_lag_ms = int(value)
+    else:
+        state.lab_loss_percent = int(value)
+    network_lab("lab", "")
+
+
 def console_command(line):
     """One command typed into the server window. Only whoever runs the server can use these."""
     cmd, _, rest = line.strip().partition(" ")
@@ -117,12 +136,15 @@ def console_command(line):
         elif cmd == "save":
             if storage.save_data():
                 textutil.log("[CONSOLE] Saved.")
+        elif cmd in ("lag", "loss", "lab"):
+            network_lab(cmd, rest.strip())
         elif cmd:
-            textutil.log("[CONSOLE] Commands: say, give, kick, list, save")
+            textutil.log("[CONSOLE] Commands: say, give, kick, list, save, lag, loss, lab")
 
 
 def console_loop():
-    textutil.log("[CONSOLE] Commands: say <text> | give <name> <amount> | kick <name> | list | save")
+    textutil.log("[CONSOLE] Commands: say <text> | give <name> <amount> | kick <name> | list | save\n"
+                 "[CONSOLE] Network lab: lag <milliseconds> | loss <percent> | lab (show) | lab off")
     while True:
         try:
             line = input()

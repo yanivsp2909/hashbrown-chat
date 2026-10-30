@@ -424,3 +424,20 @@ def test_no_packet_printing_without_the_flag(monkeypatch):
     client.send(a, {"type": "line", "text": "hi"})
     assert printed == []
     a.close(), b.close()
+
+
+# ---------------------------------------------------------------- 🏓 /ping
+
+def test_typing_ping_sends_a_ping_packet_with_the_time(monkeypatch):
+    sent = []
+    monkeypatch.setattr(client, "send", lambda sock, obj: sent.append(obj))
+    client.send_ping(None)
+    assert sent[0]["type"] == "ping" and isinstance(sent[0]["t"], float)
+
+
+def test_a_pong_shows_the_round_trip_in_milliseconds(monkeypatch):
+    printed = []
+    monkeypatch.setattr(client.console, "out", printed.append)
+    monkeypatch.setattr(client.time, "time", lambda: 100.25)
+    client.show_message({"type": "pong", "t": 100.0})
+    assert "🏓 Pong: 250 ms" in printed[0]

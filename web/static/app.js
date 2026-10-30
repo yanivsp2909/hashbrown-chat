@@ -205,6 +205,11 @@ initComposer({
       openFilePanel({ to: text.split(/\s+/)[1] || "" });
       return true;
     }
+    if (lower === "/ping") {   // 🏓 the server sends the time straight back: the difference is the round trip
+      const error = await api.send({ type: "ping", t: Date.now() });
+      if (error) showError(error);
+      return true;
+    }
     if (lower === "/quit") quitting = true;
     const command = lower.split(/\s+/u)[0];
     if (command === "/users" || command === "/balance") youAsked(command.slice(1));   // show you the answer

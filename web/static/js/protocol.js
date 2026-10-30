@@ -171,6 +171,9 @@ export function handleMessage(msg, live, sendLine) {
       remember(name);
       return chat.addChat(msg, { live, mine: name === getState().nick });
     }
+    case "pong":
+      if (typeof msg.t === "number" && live) chat.addNotice("system", `🏓 Pong: ${Math.max(0, Date.now() - msg.t)} ms there and back`);
+      return undefined;
     case "history":
       chat.removeAllStreams();
       setState({ room: str(msg.room, "🏠 Lobby") });

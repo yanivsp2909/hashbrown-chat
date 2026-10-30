@@ -64,9 +64,25 @@ def try_auth(client, msg):
         return False
 
 
+def answer_ping(client, msg):
+    """{"type": "ping", "t": 123.4} -> {"type": "pong", "t": 123.4}: the client times the round trip."""
+    now = time.time()
+    while client.pings and now - client.pings[0] > 1:
+        client.pings.popleft()
+    if len(client.pings) >= config.PINGS_PER_SECOND:
+        return
+    client.pings.append(now)
+    t = msg.get("t")
+    has_number = isinstance(t, (int, float)) and not isinstance(t, bool)
+    client.send({"type": "pong", **({"t": t} if has_number else {})})
+
+
 def handle_message(client, msg):
     """A message from someone who is logged in. Called while holding the lock."""
     try:
+        if msg.get("type") == "ping":   # 🏓 not chat, so it skips the spam limit (it has its own)
+            answer_ping(client, msg)
+            return
         text = textutil.clean_text(msg.get("text", ""))[:config.MAX_TEXT]
         if not matches.is_game_move(client, text) and not rooms.spam_ok(client):
             return  # game moves don't count as spam

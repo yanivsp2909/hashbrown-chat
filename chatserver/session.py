@@ -3,13 +3,14 @@
 """
 import json
 import queue
+import random
 import socket
 import threading
 import time
 import traceback
 from collections import deque
 
-from chatserver import config, textutil
+from chatserver import config, state, textutil
 
 
 # ---------------------------------------------------------------- one connected person
@@ -26,18 +27,27 @@ class Client:
         self.recent = deque()    # times of recent messages, for spam protection
         # Sending goes through a queue + its own thread, so a slow connection
         # can never freeze the server while it holds the lock.
-        self.outbox = queue.Queue(maxsize=config.OUTBOX_LIMIT)
+        self.outbox = queue.Queue(maxsize=config.OUTBOX_LIMIT)   # (when it was queued, the message)
+        # 📊 for /netstats: what went over this connection
+        self.connected_at = time.time()
+        self.packets_in = self.bytes_in = self.packets_out = self.bytes_out = 0
+        self.pings = deque()     # times of recent pings, for their own small limit
         self.writer = threading.Thread(target=self._write_loop, daemon=True)
         self.writer.start()
 
     def _write_loop(self):
         while True:
-            obj = self.outbox.get()
-            if obj is None:
+            item = self.outbox.get()
+            if item is None:
                 return
+            queued_at, obj = item
+            lab_delay(queued_at)
             try:
                 # "replace": a broken character becomes "?" instead of killing this thread
-                self.sock.sendall((json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8", "replace"))
+                data = (json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8", "replace")
+                self.sock.sendall(data)
+                self.packets_out += 1
+                self.bytes_out += len(data)
             except OSError:  # the connection is gone: make the reading side notice too
                 hang_up(self)
                 return
@@ -48,7 +58,7 @@ class Client:
 
     def send(self, obj):
         try:
-            self.outbox.put_nowait(obj)
+            self.outbox.put_nowait((time.monotonic(), obj))
         except queue.Full:
             # They stopped reading. Dropping messages would break their game board, so disconnect them.
             hang_up(self)
@@ -74,6 +84,17 @@ class Client:
             pass
 
 
+def lab_delay(queued_at):
+    """🧪 Network lab: wait as long as the host's "lag" says, and a bit more for a "lost" packet.
+    A lost TCP packet is never really lost: TCP sends it again, so it just arrives late, and
+    everything after it waits too (that's called head-of-line blocking)."""
+    wait = state.lab_lag_ms / 1000 - (time.monotonic() - queued_at)
+    if state.lab_loss_percent and random.random() * 100 < state.lab_loss_percent:
+        wait += config.LAB_RESEND_MS / 1000
+    if wait > 0:
+        time.sleep(wait)
+
+
 def recv_lines(sock, client):
     """Yield complete lines from the socket (one JSON message per line)."""
     buffer = bytearray()
@@ -95,6 +116,8 @@ def recv_lines(sock, client):
             line = bytes(buffer[:end])
             del buffer[:end + 1]
             start = 0
+            client.packets_in += 1
+            client.bytes_in += len(line) + 1
             yield line
         limit = config.MAX_LINE if client.key else config.MAX_LOGIN_LINE  # strangers can't send 4 MB
         if len(buffer) > limit:  # no newline that far: broken or abusive client

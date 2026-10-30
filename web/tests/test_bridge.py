@@ -340,3 +340,11 @@ class TestPacketXray(BridgeTestCase):
         a.wait(lambda e: e["data"].get("text") == "after x-ray", what="the chat line after x-ray")
         seen = [e["data"] for e in a.stream.seen if e["data"].get("type") == "xray"]
         self.assertFalse(any("before x-ray" in d["text"] or "after x-ray" in d["text"] for d in seen))
+
+
+class TestPing(BridgeTestCase):
+    def test_a_ping_comes_back_as_a_pong_through_the_bridge(self):
+        a, _ = self.user()
+        status, _ = a.send({"type": "ping", "t": 1712.5})
+        self.assertEqual(status, 202)
+        self.assertEqual(a.wait(lambda e: e["data"].get("type") == "pong", what="the pong")["t"], 1712.5)

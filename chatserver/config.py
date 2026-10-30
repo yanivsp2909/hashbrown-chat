@@ -37,6 +37,8 @@ WEB_PORT = 8080
 SERVER_NAME = "Hashbrown Chat"   # what clients see when they search the Wi-Fi for servers
 DISCOVERY_PORT = 8821             # UDP: clients broadcast {"type": "discover"} here to find the server
 DISCOVERY_MAX_PER_SECOND = 20
+PINGS_PER_SECOND = 5             # 🏓 more pings than this a second are ignored (they skip the spam limit)
+LAB_RESEND_MS = 300              # 🧪 network lab: how late a "lost" packet arrives (TCP resends it)
 HISTORY_DB = os.path.join(BASE_DIR, "history.db")  # chat history (SQLite), see chatserver/history.py
 
 MAX_LINE = 4 * 1024 * 1024   # biggest single message in bytes (room for a 2 MB file)

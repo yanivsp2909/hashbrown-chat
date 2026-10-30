@@ -34,12 +34,19 @@ hashbrown_no_reasoning = False  # True once the AI said no to the "reasoning" se
 hashbrown_questions = 0        # counts questions: gives each "thinking" notice its temp_id
 
 
+# 🧪 The network lab (console: lag / loss / lab off): makes every packet the server sends slow or "lost"
+lab_lag_ms = 0          # extra delay for every packet
+lab_loss_percent = 0    # this % of packets arrive LAB_RESEND_MS late, like a TCP resend after a loss
+
+
 def reset_state():
     """Forget everything in memory (the tests use this to start each test from zero)."""
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
+    global lab_lag_ms, lab_loss_percent
     with lock:
         for table in (accounts, groups, online, mutes, invites, matches, last_rob, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)
         hashbrown_questions, hashbrown_no_reasoning = 0, False
+        lab_lag_ms, lab_loss_percent = 0, 0

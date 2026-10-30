@@ -75,5 +75,9 @@
 🥔 Hashbrown
   /ask question                    ask Hashbrown, the AI (20 🪙)
 
+🌐 Network
+  /ping                            how long a packet takes there and back 🏓
+  /netstats                        packets and bytes on your connection 📊
+
 Anything that isn't a command is a chat message to the room you're in.
 🥔 Start a message with @hashbrown to ask the AI (20 🪙).

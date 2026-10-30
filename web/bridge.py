@@ -96,10 +96,13 @@ def validate(msg, logged_in):
         if "features" in msg:   # optional: what this browser understands, like ["stream"]
             auth["features"] = clean_features(msg["features"])
         return auth
-    if kind not in ("line", "file"):
+    if kind not in ("line", "file", "ping"):
         raise BridgeError(400, "Unknown message type.")
     if not logged_in:
         raise BridgeError(403, "Log in first.")
+    if kind == "ping":   # 🏓 only a number travels with it
+        t = msg.get("t")
+        return {"type": "ping", **({"t": t} if isinstance(t, (int, float)) and not isinstance(t, bool) else {})}
     if kind == "line":
         return {"type": "line", "text": clean(msg.get("text"), MAX_TEXT, "Message")}
     data = msg.get("data")
