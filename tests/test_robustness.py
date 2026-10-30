@@ -146,6 +146,7 @@ def test_login_with_a_damaged_account_fails_politely(connect):
 
 def test_commands_and_quitting_still_work_when_saving_fails(user, monkeypatch, tmp_path):
     adi, ben = user("Adi"), user("Ben")
+    state.accounts["adi"]["created"] = 0   # an old account (new ones can't /give)
     monkeypatch.setattr(config, "DATA_FILE", str(tmp_path))  # a folder: every save fails
     adi.line("/give Ben 10")
     adi.expect_text("You gave 10")

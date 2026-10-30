@@ -78,6 +78,7 @@ def test_top_lists_the_richest_first(user):
 
 def test_give_moves_tokens_to_the_other_person(user):
     adi, ben = user("Adi"), user("Ben")
+    state.accounts["adi"]["created"] = 0   # an old account (new ones can't /give)
     adi.line("/give Ben 30")
     adi.expect_text("You gave 30", kind="money")
     ben.expect_text("Adi gave you 30", kind="money")
@@ -87,6 +88,7 @@ def test_give_moves_tokens_to_the_other_person(user):
 
 def test_give_all_empties_your_wallet(user):
     adi, _ben = user("Adi"), user("Ben")
+    state.accounts["adi"]["created"] = 0   # an old account (new ones can't /give)
     adi.line("/give Ben all")
     adi.expect_text("You gave", kind="money")
     assert tokens("Adi") == 0

@@ -44,6 +44,7 @@ def test_chat_reaches_everyone_in_the_room(user):
 
 def test_give_moves_tokens(user):
     adi, ben = user("Adi"), user("Ben")
+    state.accounts["adi"]["created"] = 0   # an old account (new ones can't /give)
     adi.line("/give Ben 30")
     adi.expect_text("You gave 30")
     ben.expect_text("gave you 30")

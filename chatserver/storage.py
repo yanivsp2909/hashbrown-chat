@@ -27,6 +27,7 @@ def load_data():
             return False
     # Files saved by an older version are missing the newer fields: fill them in
     for account in state.accounts.values():
+        account.setdefault("created", 0)   # made before we kept the time: certainly older than a day
         for field, default in new_account("", "", "").items():
             account.setdefault(field, default)
     for key, group in state.groups.items():
@@ -70,7 +71,9 @@ def new_account(username, salt, digest):
             "draws": 0, "last_daily": 0, "streak": 0, "messages": 0, "achievements": [],
             "win_day": "", "rewarded_wins": 0, "solo_day": "", "solo_rewarded": 0,
             "admin": False, "joined": textutil.today(), "elo": config.START_ELO,
-            "inbox": []}   # 📬 private messages that came while they were offline
+            "inbox": [],   # 📬 private messages that came while they were offline
+            "created": time.time(),   # 🎁 when it was made: new accounts can't /give yet
+            "given": ["", 0]}         # 🎁 [day, tokens given with /give that day]
 
 
 def new_group(name, owner, private):

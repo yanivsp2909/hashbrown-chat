@@ -118,7 +118,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 | # | Item | Status |
 |---|---|---|
-| R9 | /give limits for new accounts | not started |
+| R9 | /give limits for new accounts | done: accounts keep "created" (old saves get 0 = old) and "given" [day, total]; /give refused in the first GIVE_MIN_AGE_HOURS (24) with "🐣 ... (Nh left)", and over GIVE_DAILY_MAX (500) a day with how much is left. Not limited (noted for later): group bank deposits and game bets also move tokens between accounts |
 | R10 | Look-alike names | not started |
 | R11 | File offers (Accept/Decline) | not started |
 | R12 | Minimum password length | not started |

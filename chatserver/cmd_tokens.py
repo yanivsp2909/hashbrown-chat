@@ -4,7 +4,7 @@
 import random
 import time
 
-from chatserver import achievements, config, registry, rooms, state, storage
+from chatserver import achievements, config, registry, rooms, state, storage, textutil
 
 
 # ----- 🪙 Tokens
@@ -28,6 +28,26 @@ def cmd_top(client, args):
     client.say("\n".join(lines), "money")
 
 
+def give_allowed(client, amount):
+    """🎁 Against farming tokens with extra accounts: no giving in an account's first GIVE_MIN_AGE_HOURS, and at
+    most GIVE_DAILY_MAX a day in total. If it's allowed, it's counted in today's total."""
+    account = state.accounts[client.key]
+    age = time.time() - account["created"]
+    if age < config.GIVE_MIN_AGE_HOURS * 3600:
+        left = config.GIVE_MIN_AGE_HOURS - int(age // 3600)
+        client.say(f"🐣 New accounts can't give tokens in their first {config.GIVE_MIN_AGE_HOURS} hours "
+                   f"({left}h left).", "error")
+        return False
+    day, given = account["given"]
+    given = given if day == textutil.today() else 0
+    if given + amount > config.GIVE_DAILY_MAX:
+        client.say(f"🎁 You can give at most {config.GIVE_DAILY_MAX} 🪙 a day. "
+                   f"You have {config.GIVE_DAILY_MAX - given} left today.", "error")
+        return False
+    account["given"] = [textutil.today(), given + amount]
+    return True
+
+
 @registry.command("/give", "/give name amount", "send tokens to someone", "🪙 Tokens")
 def cmd_give(client, args):
     parts = args.split()
@@ -39,7 +59,7 @@ def cmd_give(client, args):
         client.say("❓ Give to who?", "error")
         return
     amount = rooms.parse_amount(client, parts[1])
-    if amount is None:
+    if amount is None or not give_allowed(client, amount):
         return
     state.accounts[client.key]["tokens"] -= amount
     state.accounts[target]["tokens"] += amount
