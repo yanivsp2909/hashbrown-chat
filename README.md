@@ -152,6 +152,7 @@ hashbrown-chat/
 ├── chatserver/         the server code, one topic per file
 │   ├── config.py       every setting: ports, prices, ADMIN_PASSWORD
 │   ├── connections.py  accepts connections, one thread per person
+│   ├── history.py      chat history in history.db (SQLite), every message has an id
 │   ├── chat.py         what happens with each line someone types
 │   ├── cmd_*.py        the /commands, grouped like /help
 │   └── hashbrown_ai.py talks to the AI

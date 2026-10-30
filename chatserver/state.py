@@ -5,7 +5,6 @@ Always use it as state.accounts, state.quiz...: never `from chatserver.state imp
 or you'd keep an old copy when the server replaces the value.
 """
 import threading
-from collections import deque
 
 from chatserver import config
 
@@ -16,7 +15,6 @@ lock = threading.RLock()
 accounts = {}   # login name (lowercase) -> account dict      (saved to disk)
 groups = {}     # group name (lowercase) -> group dict        (saved to disk)
 online = {}     # login name -> Client, only people connected right now
-history = {"lobby": deque(maxlen=config.HISTORY_SIZE)}  # room -> last chat messages
 mutes = {}      # (group, login) -> time the mute ends
 invites = {}    # login -> game challenges waiting for that person
 matches = {}    # login -> the Match they're playing
@@ -39,7 +37,6 @@ def reset_state():
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today
     with lock:
         for table in (accounts, groups, online, mutes, invites, matches, last_rob, solo, login_fails,
-                      admin_fail_times, hashbrown_last, hashbrown_today, history):
+                      admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
-        history["lobby"] = deque(maxlen=config.HISTORY_SIZE)
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)

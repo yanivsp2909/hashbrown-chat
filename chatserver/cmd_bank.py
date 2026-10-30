@@ -2,7 +2,6 @@
 🏦 Group bank commands.
 """
 import unicodedata
-from collections import deque
 
 from chatserver import achievements, config, registry, rooms, state, storage
 
@@ -63,8 +62,6 @@ def cmd_upgrade(client, args):
         return
     group["bank"] -= price
     group["upgrades"].append(name)
-    if name == "history":
-        state.history[key] = deque(state.history[key], maxlen=config.BIG_HISTORY_SIZE)
     storage.save_data()
     rooms.notify_room(key, f"⬆️ {rooms.shown(client.key)} bought {icon} {name}: {what}!", kind="event")
     if name == "emoji":

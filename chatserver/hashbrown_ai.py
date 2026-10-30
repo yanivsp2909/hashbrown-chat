@@ -8,7 +8,7 @@ import time
 import urllib.error
 import urllib.request
 
-from chatserver import achievements, config, rooms, state, storage, textutil
+from chatserver import achievements, config, history, rooms, state, storage, textutil
 
 
 
@@ -135,7 +135,7 @@ def ask_hashbrown(client, question):
         return
 
     # Give it the recent chat so it knows what everyone is talking about
-    recent = "\n".join(f"{m['name']}: {m['text']}" for m in list(state.history[room])[-10:])
+    recent = "\n".join(f"{m['name']}: {m['text']}" for m in history.recent(room, 10))
     messages = [{"role": "system", "content": config.HASHBROWN_PROMPT},
                 {"role": "user", "content": f"Recent chat:\n{recent}\n\n{rooms.nick(key)} asks you: {question}"}]
 
@@ -199,7 +199,7 @@ def hashbrown_worker(asker, room, group, messages, payer):
             return
         if room_still_there:
             msg = rooms.chat_message("Hashbrown", "🥔", answer)
-            state.history[room].append(msg)
+            history.add(room, msg)
             rooms.send_room(room, msg)
             textutil.log(f"[{room}] Hashbrown: {answer}")
         else:  # the group was disbanded while Hashbrown thought: answer just the asker

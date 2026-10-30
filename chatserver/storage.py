@@ -1,10 +1,9 @@
 """
-💾 Saving and loading chat_data.json (accounts, groups, chat history).
+💾 Saving and loading chat_data.json (accounts and groups; the chat history lives in history.db, see history.py).
 """
 import json
 import os
 import time
-from collections import deque
 
 from chatserver import config, state, textutil
 
@@ -30,13 +29,8 @@ def load_data():
     for key, group in state.groups.items():
         for field, default in new_group(key, "", False).items():
             group.setdefault(field, default)
-        state.history[key] = deque(maxlen=history_size(group))
     textutil.log(f"[SERVER] Loaded {len(state.accounts)} accounts and {len(state.groups)} groups")
     return True
-
-
-def history_size(group):
-    return config.BIG_HISTORY_SIZE if "history" in group["upgrades"] else config.HISTORY_SIZE
 
 
 def save_data():

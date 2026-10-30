@@ -4,7 +4,7 @@
 import os
 import time
 
-from chatserver import achievements, config, hashbrown_ai, matches, registry, rooms, state, storage, textutil
+from chatserver import achievements, config, hashbrown_ai, history, matches, registry, rooms, state, storage, textutil
 
 
 def handle_file(client, msg):
@@ -32,7 +32,7 @@ def post_chat(client, text, action=False):
         return False
     account = state.accounts[client.key]
     msg = rooms.chat_message(account["nick"], account["badge"], text, action)
-    state.history[room].append(msg)
+    history.add(room, msg)  # gives msg its "id"
     rooms.send_room(room, msg)  # the sender gets it too, so they see their own line with the time
     textutil.log(f"[{room}] {account['nick']}: {text}")
     account["messages"] += 1

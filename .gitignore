@@ -3,6 +3,10 @@ hashbrown_config.json
 chat_data.json
 chat_data.json.tmp
 chat_data.backup.json
+history.db
+history.db-journal
+history.db-wal
+history.db-shm
 received_files/
 
 # Python and tool clutter

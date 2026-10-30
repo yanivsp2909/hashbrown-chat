@@ -2,9 +2,8 @@
 👥 Group commands.
 """
 import time
-from collections import deque
 
-from chatserver import achievements, config, registry, rooms, state, storage
+from chatserver import achievements, config, history, registry, rooms, state, storage
 
 
 @registry.command("/groups", "/groups", "list all groups", "👥 Groups")
@@ -45,7 +44,7 @@ def cmd_create(client, args):
         return
     account["tokens"] -= config.GROUP_COST
     state.groups[key] = storage.new_group(name, client.key, private)
-    state.history[key] = deque(maxlen=config.HISTORY_SIZE)
+    history.delete_room(key)  # start clean, whatever an old group with this name left behind
     client.say(f"🎉 Created {rooms.room_title(key)} for {config.GROUP_COST} 🪙. You're the owner 👑\n"
                f"🏦 The group bank earns {config.GROUP_INCOME} 🪙/min while a member is online. See /bank", "event")
     rooms.announce(f"✨ New group: {rooms.room_title(key)} by {rooms.shown(client.key)}", exclude={client.key})

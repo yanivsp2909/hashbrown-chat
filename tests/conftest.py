@@ -12,7 +12,7 @@ import urllib.request
 
 import pytest
 
-from chatserver import config, connections, session, state
+from chatserver import config, connections, history, session, state
 from helpers import FakeClient, FakeFoundry, auth
 
 
@@ -24,9 +24,10 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.delenv("HASHBROWN_ADMIN_PASSWORD", raising=False)
     monkeypatch.setattr(config, "DATA_FILE", str(tmp_path / "chat_data.json"))
     monkeypatch.setattr(config, "HASHBROWN_CONFIG", str(tmp_path / "hashbrown_config.json"))
+    monkeypatch.setattr(config, "HISTORY_DB", str(tmp_path / "history.db"))
     monkeypatch.setattr(config, "SPAM_LIMIT", 1000)  # tests type fast; the spam test sets it back
     monkeypatch.setattr(config, "ACCEPT_WAKEUP", 0.1)  # stop each test's server quickly
-    for path in (config.DATA_FILE, config.HASHBROWN_CONFIG):
+    for path in (config.DATA_FILE, config.HASHBROWN_CONFIG, config.HISTORY_DB):
         assert os.path.realpath(path).startswith(os.path.realpath(str(tmp_path)))
 
     real_urlopen = urllib.request.urlopen
@@ -39,8 +40,10 @@ def isolated(tmp_path, monkeypatch):
 
     monkeypatch.setattr(urllib.request, "urlopen", local_only)
     state.reset_state()
+    history.reset()
     yield
     state.reset_state()
+    history.reset()
 
 
 # ---------------------------------------------------------------- the real server

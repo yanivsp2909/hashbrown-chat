@@ -37,7 +37,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 | # | Feature | Status |
 |---|---|---|
-| 1 | SQLite chat history (`history.db`, message ids, survives restarts, room history + history upgrade keep working) | not started |
+| 1 | SQLite chat history (`history.db`, message ids, survives restarts, room history + history upgrade keep working) | done |
 | 2 | Private `/ask`, "thinking" notice replaced by the answer (`temp_id` / `replaces`), Hashbrown prompt upgrade | not started |
 | 3 | Streaming with the `openai` package (`requirements.txt`); old clients get one full message | not started |
 | 4 | `server.py` starts the website; `client.py` asks terminal or website (`--web`) | not started |
@@ -95,3 +95,4 @@ If you're picking this up after a break: read the rules, then continue from the 
 ## Decisions made on the way
 
 (Choices made without asking, so the owner can review them.)
+- Item 1: `chat_data.json` never held history, so there was nothing to migrate and its format is unchanged. A disbanded group's rows are deleted from `history.db` so a new group with the same name starts empty. Falls back to in-memory history if the DB can't open.

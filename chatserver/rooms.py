@@ -4,7 +4,7 @@
 import time
 from datetime import datetime
 
-from chatserver import config, state
+from chatserver import config, history, state
 
 
 # ---------------------------------------------------------------- small helpers
@@ -97,7 +97,7 @@ def move_to_room(client, room):
             notify_room(old, f"🚪 {shown(client.key)} left the room")
         if room != "lobby":
             notify_room(room, f"➡️ {shown(client.key)} entered", exclude=client)
-    client.send({"type": "history", "room": room_title(room), "messages": list(state.history[room])})
+    client.send({"type": "history", "room": room_title(room), "messages": history.recent(room)})
 
 
 def spam_ok(client):
@@ -125,5 +125,6 @@ def is_admin(group, key):
 
 
 def chat_message(name, badge, text, action=False):
+    """A chat packet. history.add() gives it its "id" once it is saved."""
     return {"type": "chat", "time": datetime.now().strftime("%H:%M"), "name": name,
             "badge": badge, "text": text, "action": action}

@@ -13,6 +13,7 @@ PORT = 8820
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # the folder with server.py
 DATA_FILE = os.path.join(BASE_DIR, "chat_data.json")
 HASHBROWN_CONFIG = os.path.join(BASE_DIR, "hashbrown_config.json")
+HISTORY_DB = os.path.join(BASE_DIR, "history.db")  # chat history (SQLite), see chatserver/history.py
 
 MAX_LINE = 4 * 1024 * 1024   # biggest single message in bytes (room for a 2 MB file)
 MAX_FILE_B64 = 2_800_000     # a 2 MB file is about 2.7 MB after base64

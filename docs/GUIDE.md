@@ -22,7 +22,7 @@ Pure Python, no installs. Python 3.8 or newer.
 - 🟩 **Solo Wordle**: guess the word and win up to 60 🪙 (5 rewarded games a day).
 - 🛠️ **Admins**: `/admin password`, then `/admintokens`.
 - 📁 **File sending**: up to 2 MB.
-- 💌 Private messages, `/me` actions, nicknames, timestamps, chat history, colors and emojis.
+- 💌 Private messages, `/me` actions, nicknames, timestamps, chat history (saved in `history.db`, so it survives a restart), colors and emojis.
 
 ## Files
 

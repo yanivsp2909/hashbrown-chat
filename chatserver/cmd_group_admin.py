@@ -3,7 +3,7 @@
 """
 import time
 
-from chatserver import registry, rooms, state, storage
+from chatserver import history, registry, rooms, state, storage
 
 
 # ----- 🛡️ Group admin
@@ -153,9 +153,9 @@ def cmd_disband(client, args):
     for c in list(state.online.values()):
         if c.room == key:
             c.room = "lobby"
-            c.send({"type": "history", "room": rooms.room_title("lobby"), "messages": list(state.history["lobby"])})
+            c.send({"type": "history", "room": rooms.room_title("lobby"), "messages": history.recent("lobby")})
     del state.groups[key]
-    del state.history[key]
+    history.delete_room(key)
     for mute in [m for m in state.mutes if m[0] == key]:
         del state.mutes[mute]
     storage.save_data()
