@@ -1,0 +1,686 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T10:43:20+00:00",
+  "title": "Design System: Hashbrown Chat",
+  "extensions": {
+    "colorMeta": {
+      "golden-crisp": {
+        "role": "primary",
+        "displayName": "Golden Crisp",
+        "canonical": "#f5b432",
+        "tonalRamp": [
+          "oklch(15% 0.154 80)",
+          "oklch(25% 0.154 80)",
+          "oklch(35% 0.154 80)",
+          "oklch(48% 0.154 80)",
+          "oklch(60% 0.154 80)",
+          "oklch(72% 0.154 80)",
+          "oklch(84% 0.154 80)",
+          "oklch(95% 0.154 80)"
+        ]
+      },
+      "golden-crisp-hover": {
+        "role": "primary",
+        "displayName": "Golden Crisp Hover",
+        "canonical": "#ffc54d",
+        "tonalRamp": [
+          "oklch(15% 0.148 82)",
+          "oklch(25% 0.148 82)",
+          "oklch(35% 0.148 82)",
+          "oklch(48% 0.148 82)",
+          "oklch(60% 0.148 82)",
+          "oklch(72% 0.148 82)",
+          "oklch(84% 0.148 82)",
+          "oklch(95% 0.148 82)"
+        ]
+      },
+      "golden-ink": {
+        "role": "primary",
+        "displayName": "Golden Ink",
+        "canonical": "#2a1904",
+        "tonalRamp": [
+          "oklch(15% 0.043 70)",
+          "oklch(25% 0.043 70)",
+          "oklch(35% 0.043 70)",
+          "oklch(48% 0.043 70)",
+          "oklch(60% 0.043 70)",
+          "oklch(72% 0.043 70)",
+          "oklch(84% 0.043 70)",
+          "oklch(95% 0.043 70)"
+        ]
+      },
+      "ketchup": {
+        "role": "secondary",
+        "displayName": "Ketchup",
+        "canonical": "#ff6f5b",
+        "tonalRamp": [
+          "oklch(15% 0.160 30)",
+          "oklch(25% 0.160 30)",
+          "oklch(35% 0.160 30)",
+          "oklch(48% 0.160 30)",
+          "oklch(60% 0.160 30)",
+          "oklch(72% 0.160 30)",
+          "oklch(84% 0.160 30)",
+          "oklch(95% 0.160 30)"
+        ]
+      },
+      "pickle": {
+        "role": "secondary",
+        "displayName": "Pickle",
+        "canonical": "#9ad66f",
+        "tonalRamp": [
+          "oklch(15% 0.148 134)",
+          "oklch(25% 0.148 134)",
+          "oklch(35% 0.148 134)",
+          "oklch(48% 0.148 134)",
+          "oklch(60% 0.148 134)",
+          "oklch(72% 0.148 134)",
+          "oklch(84% 0.148 134)",
+          "oklch(95% 0.148 134)"
+        ]
+      },
+      "mustard": {
+        "role": "secondary",
+        "displayName": "Mustard",
+        "canonical": "#cbb85a",
+        "tonalRamp": [
+          "oklch(15% 0.117 98)",
+          "oklch(25% 0.117 98)",
+          "oklch(35% 0.117 98)",
+          "oklch(48% 0.117 98)",
+          "oklch(60% 0.117 98)",
+          "oklch(72% 0.117 98)",
+          "oklch(84% 0.117 98)",
+          "oklch(95% 0.117 98)"
+        ]
+      },
+      "lavender": {
+        "role": "secondary",
+        "displayName": "Lavender",
+        "canonical": "#bba9ff",
+        "tonalRamp": [
+          "oklch(15% 0.122 293)",
+          "oklch(25% 0.122 293)",
+          "oklch(35% 0.122 293)",
+          "oklch(48% 0.122 293)",
+          "oklch(60% 0.122 293)",
+          "oklch(72% 0.122 293)",
+          "oklch(84% 0.122 293)",
+          "oklch(95% 0.122 293)"
+        ]
+      },
+      "turnip": {
+        "role": "secondary",
+        "displayName": "Turnip",
+        "canonical": "#ff8fc8",
+        "tonalRamp": [
+          "oklch(15% 0.149 349)",
+          "oklch(25% 0.149 349)",
+          "oklch(35% 0.149 349)",
+          "oklch(48% 0.149 349)",
+          "oklch(60% 0.149 349)",
+          "oklch(72% 0.149 349)",
+          "oklch(84% 0.149 349)",
+          "oklch(95% 0.149 349)"
+        ]
+      },
+      "crisp-edge": {
+        "role": "tertiary",
+        "displayName": "Crisp Edge",
+        "canonical": "#d9a483",
+        "tonalRamp": [
+          "oklch(15% 0.078 53)",
+          "oklch(25% 0.078 53)",
+          "oklch(35% 0.078 53)",
+          "oklch(48% 0.078 53)",
+          "oklch(60% 0.078 53)",
+          "oklch(72% 0.078 53)",
+          "oklch(84% 0.078 53)",
+          "oklch(95% 0.078 53)"
+        ]
+      },
+      "roast-ground": {
+        "role": "neutral",
+        "displayName": "Roast Ground",
+        "canonical": "#1a120c",
+        "tonalRamp": [
+          "oklch(15% 0.018 58)",
+          "oklch(25% 0.018 58)",
+          "oklch(35% 0.018 58)",
+          "oklch(48% 0.018 58)",
+          "oklch(60% 0.018 58)",
+          "oklch(72% 0.018 58)",
+          "oklch(84% 0.018 58)",
+          "oklch(95% 0.018 58)"
+        ]
+      },
+      "roast-deep": {
+        "role": "neutral",
+        "displayName": "Roast Deep",
+        "canonical": "#120c08",
+        "tonalRamp": [
+          "oklch(15% 0.013 56)",
+          "oklch(25% 0.013 56)",
+          "oklch(35% 0.013 56)",
+          "oklch(48% 0.013 56)",
+          "oklch(60% 0.013 56)",
+          "oklch(72% 0.013 56)",
+          "oklch(84% 0.013 56)",
+          "oklch(95% 0.013 56)"
+        ]
+      },
+      "fryer-panel": {
+        "role": "neutral",
+        "displayName": "Fryer Panel",
+        "canonical": "#241911",
+        "tonalRamp": [
+          "oklch(15% 0.023 57)",
+          "oklch(25% 0.023 57)",
+          "oklch(35% 0.023 57)",
+          "oklch(48% 0.023 57)",
+          "oklch(60% 0.023 57)",
+          "oklch(72% 0.023 57)",
+          "oklch(84% 0.023 57)",
+          "oklch(95% 0.023 57)"
+        ]
+      },
+      "fryer-panel-2": {
+        "role": "neutral",
+        "displayName": "Fryer Panel 2",
+        "canonical": "#2e2017",
+        "tonalRamp": [
+          "oklch(15% 0.027 54)",
+          "oklch(25% 0.027 54)",
+          "oklch(35% 0.027 54)",
+          "oklch(48% 0.027 54)",
+          "oklch(60% 0.027 54)",
+          "oklch(72% 0.027 54)",
+          "oklch(84% 0.027 54)",
+          "oklch(95% 0.027 54)"
+        ]
+      },
+      "fryer-panel-3": {
+        "role": "neutral",
+        "displayName": "Fryer Panel 3",
+        "canonical": "#3a2a1e",
+        "tonalRamp": [
+          "oklch(15% 0.031 58)",
+          "oklch(25% 0.031 58)",
+          "oklch(35% 0.031 58)",
+          "oklch(48% 0.031 58)",
+          "oklch(60% 0.031 58)",
+          "oklch(72% 0.031 58)",
+          "oklch(84% 0.031 58)",
+          "oklch(95% 0.031 58)"
+        ]
+      },
+      "crust": {
+        "role": "neutral",
+        "displayName": "Crust",
+        "canonical": "#3b2512",
+        "tonalRamp": [
+          "oklch(15% 0.045 60)",
+          "oklch(25% 0.045 60)",
+          "oklch(35% 0.045 60)",
+          "oklch(48% 0.045 60)",
+          "oklch(60% 0.045 60)",
+          "oklch(72% 0.045 60)",
+          "oklch(84% 0.045 60)",
+          "oklch(95% 0.045 60)"
+        ]
+      },
+      "crust-line": {
+        "role": "neutral",
+        "displayName": "Crust Line",
+        "canonical": "#6a4321",
+        "tonalRamp": [
+          "oklch(15% 0.072 60)",
+          "oklch(25% 0.072 60)",
+          "oklch(35% 0.072 60)",
+          "oklch(48% 0.072 60)",
+          "oklch(60% 0.072 60)",
+          "oklch(72% 0.072 60)",
+          "oklch(84% 0.072 60)",
+          "oklch(95% 0.072 60)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#45321f",
+        "tonalRamp": [
+          "oklch(15% 0.041 66)",
+          "oklch(25% 0.041 66)",
+          "oklch(35% 0.041 66)",
+          "oklch(48% 0.041 66)",
+          "oklch(60% 0.041 66)",
+          "oklch(72% 0.041 66)",
+          "oklch(84% 0.041 66)",
+          "oklch(95% 0.041 66)"
+        ]
+      },
+      "line-soft": {
+        "role": "neutral",
+        "displayName": "Line Soft",
+        "canonical": "#33241a",
+        "tonalRamp": [
+          "oklch(15% 0.029 55)",
+          "oklch(25% 0.029 55)",
+          "oklch(35% 0.029 55)",
+          "oklch(48% 0.029 55)",
+          "oklch(60% 0.029 55)",
+          "oklch(72% 0.029 55)",
+          "oklch(84% 0.029 55)",
+          "oklch(95% 0.029 55)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Text",
+        "canonical": "#f6eadb",
+        "tonalRamp": [
+          "oklch(15% 0.024 74)",
+          "oklch(25% 0.024 74)",
+          "oklch(35% 0.024 74)",
+          "oklch(48% 0.024 74)",
+          "oklch(60% 0.024 74)",
+          "oklch(72% 0.024 74)",
+          "oklch(84% 0.024 74)",
+          "oklch(95% 0.024 74)"
+        ]
+      },
+      "text-2": {
+        "role": "neutral",
+        "displayName": "Text 2",
+        "canonical": "#dcc6ae",
+        "tonalRamp": [
+          "oklch(15% 0.041 70)",
+          "oklch(25% 0.041 70)",
+          "oklch(35% 0.041 70)",
+          "oklch(48% 0.041 70)",
+          "oklch(60% 0.041 70)",
+          "oklch(72% 0.041 70)",
+          "oklch(84% 0.041 70)",
+          "oklch(95% 0.041 70)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#b39a82",
+        "tonalRamp": [
+          "oklch(15% 0.045 66)",
+          "oklch(25% 0.045 66)",
+          "oklch(35% 0.045 66)",
+          "oklch(48% 0.045 66)",
+          "oklch(60% 0.045 66)",
+          "oklch(72% 0.045 66)",
+          "oklch(84% 0.045 66)",
+          "oklch(95% 0.045 66)"
+        ]
+      },
+      "ticket-paper": {
+        "role": "neutral",
+        "displayName": "Ticket Paper",
+        "canonical": "#f8f0e3",
+        "tonalRamp": [
+          "oklch(15% 0.019 80)",
+          "oklch(25% 0.019 80)",
+          "oklch(35% 0.019 80)",
+          "oklch(48% 0.019 80)",
+          "oklch(60% 0.019 80)",
+          "oklch(72% 0.019 80)",
+          "oklch(84% 0.019 80)",
+          "oklch(95% 0.019 80)"
+        ]
+      },
+      "ticket-ink": {
+        "role": "neutral",
+        "displayName": "Ticket Ink",
+        "canonical": "#2b1d12",
+        "tonalRamp": [
+          "oklch(15% 0.029 59)",
+          "oklch(25% 0.029 59)",
+          "oklch(35% 0.029 59)",
+          "oklch(48% 0.029 59)",
+          "oklch(60% 0.029 59)",
+          "oklch(72% 0.029 59)",
+          "oklch(84% 0.029 59)",
+          "oklch(95% 0.029 59)"
+        ]
+      },
+      "ticket-muted": {
+        "role": "neutral",
+        "displayName": "Ticket Muted",
+        "canonical": "#6f5844",
+        "tonalRamp": [
+          "oklch(15% 0.043 63)",
+          "oklch(25% 0.043 63)",
+          "oklch(35% 0.043 63)",
+          "oklch(48% 0.043 63)",
+          "oklch(60% 0.043 63)",
+          "oklch(72% 0.043 63)",
+          "oklch(84% 0.043 63)",
+          "oklch(95% 0.043 63)"
+        ]
+      },
+      "bun-ground": {
+        "role": "neutral",
+        "displayName": "Bun Ground",
+        "canonical": "#e9cfa5",
+        "tonalRamp": [
+          "oklch(15% 0.062 80)",
+          "oklch(25% 0.062 80)",
+          "oklch(35% 0.062 80)",
+          "oklch(48% 0.062 80)",
+          "oklch(60% 0.062 80)",
+          "oklch(72% 0.062 80)",
+          "oklch(84% 0.062 80)",
+          "oklch(95% 0.062 80)"
+        ]
+      },
+      "bun-panel": {
+        "role": "neutral",
+        "displayName": "Bun Panel",
+        "canonical": "#f5e4c8",
+        "tonalRamp": [
+          "oklch(15% 0.041 80)",
+          "oklch(25% 0.041 80)",
+          "oklch(35% 0.041 80)",
+          "oklch(48% 0.041 80)",
+          "oklch(60% 0.041 80)",
+          "oklch(72% 0.041 80)",
+          "oklch(84% 0.041 80)",
+          "oklch(95% 0.041 80)"
+        ]
+      },
+      "bun-text": {
+        "role": "neutral",
+        "displayName": "Bun Text",
+        "canonical": "#2a1a0f",
+        "tonalRamp": [
+          "oklch(15% 0.032 55)",
+          "oklch(25% 0.032 55)",
+          "oklch(35% 0.032 55)",
+          "oklch(48% 0.032 55)",
+          "oklch(60% 0.032 55)",
+          "oklch(72% 0.032 55)",
+          "oklch(84% 0.032 55)",
+          "oklch(95% 0.032 55)"
+        ]
+      },
+      "bun-gold": {
+        "role": "primary",
+        "displayName": "Bun Gold (light theme)",
+        "canonical": "#e9a21d",
+        "tonalRamp": [
+          "oklch(15% 0.154 76)",
+          "oklch(25% 0.154 76)",
+          "oklch(35% 0.154 76)",
+          "oklch(48% 0.154 76)",
+          "oklch(60% 0.154 76)",
+          "oklch(72% 0.154 76)",
+          "oklch(84% 0.154 76)",
+          "oklch(95% 0.154 76)"
+        ]
+      },
+      "name-palette": {
+        "role": "tertiary",
+        "displayName": "Name palette n0-n7 (dark)",
+        "canonical": "#ff9a76",
+        "tonalRamp": [
+          "#ff9a76",
+          "#c8d4e8",
+          "#a4e07a",
+          "#6fd6c6",
+          "#8fbfff",
+          "#c9a6ff",
+          "#ff95cc",
+          "#f7a65e"
+        ]
+      }
+    },
+    "softTints": {
+      "gold-soft": "rgb(245 180 50 / 0.14)",
+      "gold-ring": "rgb(245 180 50 / 0.55)",
+      "ketchup-soft": "rgb(255 111 91 / 0.12)",
+      "pickle-soft": "rgb(154 214 111 / 0.12)",
+      "mustard-soft": "rgb(203 184 90 / 0.13)",
+      "lavender-soft": "rgb(187 169 255 / 0.13)",
+      "turnip-soft": "rgb(255 143 200 / 0.11)"
+    },
+    "gameSemantics": {
+      "wordle-green": "#4f9a35",
+      "wordle-yellow": "#c49a1d",
+      "wordle-gray": "#5b4b3e",
+      "damka-light": "#e7cfa6",
+      "damka-dark": "#8b5a33",
+      "damka-frame": "#5b3a1f",
+      "piece-red": "#df4535",
+      "piece-blue": "#3a76dc",
+      "stamp-won": "#2f7a1a",
+      "stamp-lost": "#c3341f",
+      "stamp-draw": "#6f5844",
+      "drain": "#9c8670",
+      "drain-low": "#d0442e"
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Login and closed-room card titles."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Game card titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Brand, room title, chat header."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Chat lines; 16px under 760px."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, section titles, hints."
+      },
+      "score": {
+        "displayName": "Score",
+        "purpose": "Math duel scores, tabular."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Command usage, help/board dumps, ticket numbers."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-1",
+        "value": "0 1px 2px rgb(0 0 0 / 0.35), 0 4px 14px rgb(0 0 0 / 0.25)",
+        "purpose": "Resting lift: Hashbrown card, selected tab, Damka board."
+      },
+      {
+        "name": "shadow-2",
+        "value": "0 2px 6px rgb(0 0 0 / 0.4), 0 18px 40px rgb(0 0 0 / 0.35)",
+        "purpose": "Floating: login ticket, popovers, drawers, jump pill."
+      },
+      {
+        "name": "ticket-hang",
+        "value": "0 1px 1px rgb(0 0 0 / 0.25), 0 8px 18px rgb(0 0 0 / 0.28)",
+        "purpose": "Rail tickets; lit adds 0 0 0 3px gold in front."
+      },
+      {
+        "name": "focus-halo",
+        "value": "0 0 0 3px rgb(245 180 50 / 0.14)",
+        "purpose": "Field focus, with gold border."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Entrances: messages 200ms, tickets 240ms, stamps 320ms, popovers 150-180ms, presses 100ms."
+      },
+      {
+        "name": "ease-in-out",
+        "value": "cubic-bezier(0.77, 0, 0.175, 1)",
+        "purpose": "Loading potato sizzle, must-capture nudge."
+      },
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Sidebar 280ms and game panel 300ms drawers."
+      },
+      {
+        "name": "drain",
+        "value": "linear, var(--drain-ms, 180s)",
+        "purpose": "Invite countdown bar; kept under reduced motion as it carries information."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "medium",
+        "value": "1180px"
+      },
+      {
+        "name": "narrow",
+        "value": "760px"
+      }
+    ],
+    "layout": {
+      "desktopColumns": "280px minmax(0,1fr) 384px",
+      "mediumColumns": "248px minmax(0,1fr)",
+      "plate": "min(348px, 100%)",
+      "ticketWidth": "236px / 196px narrow",
+      "messageMeasure": "78ch"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The gold action; only actionable things are gold.",
+      "html": "<button class=\"ds-btn-primary\">Send challenge</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border:1px solid transparent;border-radius:999px;background:#f5b432;color:#2a1904;font:650 15px/1.5 ui-rounded,system-ui,sans-serif;box-shadow:0 2px 8px rgb(0 0 0/.25);cursor:pointer;transition:background-color 160ms ease,transform 100ms cubic-bezier(.23,1,.32,1)}.ds-btn-primary:hover{background:#ffc54d}.ds-btn-primary:active{transform:scale(.97)}.ds-btn-primary:focus-visible{outline:2px solid #f5b432;outline-offset:2px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary actions; border warms to gold on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Log out</button>",
+      "css": ".ds-btn-ghost{min-height:40px;padding:0 16px;border:1px solid #45321f;border-radius:999px;background:transparent;color:#dcc6ae;font:650 15px/1.5 ui-rounded,system-ui,sans-serif;cursor:pointer;transition:border-color 160ms ease}.ds-btn-ghost:hover{border-color:rgb(245 180 50/.55);color:#f6eadb}.ds-btn-ghost:focus-visible{outline:2px solid #f5b432;outline-offset:2px}"
+    },
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "icon-button",
+      "description": "40px circle with an inline SVG stroke icon.",
+      "html": "<button class=\"ds-icon-btn\" aria-label=\"Close\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg></button>",
+      "css": ".ds-icon-btn{display:inline-grid;place-items:center;width:40px;height:40px;border:1px solid #45321f;border-radius:50%;background:#2e2017;color:#f6eadb;cursor:pointer}.ds-icon-btn:hover{border-color:rgb(245 180 50/.55)}.ds-icon-btn:active{transform:scale(.94)}.ds-icon-btn:focus-visible{outline:2px solid #f5b432;outline-offset:2px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Sunken field with a gold focus halo.",
+      "html": "<input class=\"ds-input\" placeholder=\"Say something\">",
+      "css": ".ds-input{width:100%;min-height:44px;padding:0 14px;background:#120c08;border:1px solid #45321f;border-radius:9px;color:#f6eadb;font:400 15px/1.5 ui-rounded,system-ui,sans-serif;transition:border-color 160ms ease,box-shadow 160ms ease}.ds-input::placeholder{color:#b39a82}.ds-input:focus{outline:2px solid transparent;border-color:#f5b432;box-shadow:0 0 0 3px rgb(245 180 50/.14)}"
+    },
+    {
+      "name": "Order Ticket",
+      "kind": "card",
+      "refersTo": "ticket",
+      "description": "Rail ticket clipped to the bar, with a draining invite timer.",
+      "html": "<div class=\"ds-ticket\"><div class=\"ds-ticket-top\"><b>Tic-Tac-Toe</b><span class=\"ds-no\">#12</span></div><div class=\"ds-line\">Noa challenges you</div><div class=\"ds-drain\"><span></span></div><button class=\"ds-tk-btn\">Accept</button></div>",
+      "css": ".ds-ticket{position:relative;width:236px;padding:18px 14px 14px;display:grid;gap:8px;background:#f8f0e3;color:#2b1d12;border-radius:4px 4px 10px 10px;box-shadow:0 1px 1px rgb(0 0 0/.25),0 8px 18px rgb(0 0 0/.28);font:400 15px/1.5 ui-rounded,system-ui,sans-serif}.ds-ticket::before{content:\"\";position:absolute;top:-4px;left:50%;width:46px;height:12px;translate:-50% 0;border-radius:3px;background:#6a4321}.ds-ticket-top{display:flex;justify-content:space-between;align-items:baseline}.ds-ticket-top b{font-weight:800}.ds-no{font:11.5px ui-monospace,monospace;color:#6f5844;font-variant-numeric:tabular-nums}.ds-line{font-size:13.5px;color:#6f5844}.ds-drain{height:4px;border-radius:4px;background:#e6d8c4;overflow:hidden}.ds-drain span{display:block;height:100%;width:60%;background:#9c8670}.ds-tk-btn{min-height:34px;border:0;border-radius:999px;background:#f5b432;color:#2a1904;font-weight:650;cursor:pointer}.ds-tk-btn:hover{background:#ffc54d}.ds-tk-btn:focus-visible{outline:2px solid #8a5600;outline-offset:2px}"
+    },
+    {
+      "name": "Sauce Notices",
+      "kind": "custom",
+      "refersTo": "notice-event",
+      "description": "Chat notices tinted by meaning: event, error, money, private.",
+      "html": "<div class=\"ds-n ds-ev\">Daily bonus is live</div><div class=\"ds-n ds-er\">That room is full. Try another.</div><div class=\"ds-n ds-mo\">+50 tokens</div><div class=\"ds-n ds-pr\">Noa whispers: hi</div>",
+      "css": ".ds-n{margin:4px 0;padding:8px 12px;border-radius:12px;font:400 14px/1.5 ui-rounded,system-ui,sans-serif}.ds-ev{background:rgb(203 184 90/.13);color:#cbb85a}.ds-er{background:rgb(255 111 91/.12);color:#ff6f5b}.ds-mo{background:rgb(154 214 111/.12);color:#9ad66f}.ds-pr{background:rgb(187 169 255/.13);color:#bba9ff;box-shadow:0 0 0 2px #bba9ff inset}"
+    },
+    {
+      "name": "Turn Pill",
+      "kind": "chip",
+      "refersTo": "turn-pill-lit",
+      "description": "Gold only when it is your move.",
+      "html": "<span class=\"ds-pill ds-lit\">Your turn</span> <span class=\"ds-pill\">Waiting for Noa</span>",
+      "css": ".ds-pill{display:inline-block;padding:5px 12px;border-radius:999px;background:#3a2a1e;color:#dcc6ae;font:700 14px ui-rounded,system-ui,sans-serif}.ds-lit{background:#f5b432;color:#2a1904}"
+    },
+    {
+      "name": "Wordle Row",
+      "kind": "custom",
+      "refersTo": "board-plate",
+      "description": "Game-semantic tiles on the 348px plate width; yellow is not the action gold.",
+      "html": "<div class=\"ds-row\"><span class=\"ds-t ds-g\">c</span><span class=\"ds-t ds-y\">r</span><span class=\"ds-t ds-x\">i</span><span class=\"ds-t\">s</span><span class=\"ds-t\">p</span></div>",
+      "css": ".ds-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(348px,100%)}.ds-t{aspect-ratio:1;display:grid;place-items:center;border-radius:8px;border:2px solid #45321f;background:#120c08;color:#f6eadb;font:850 24px ui-rounded,system-ui,sans-serif;text-transform:uppercase}.ds-g{background:#4f9a35;border-color:#4f9a35;color:#fff}.ds-y{background:#c49a1d;border-color:#c49a1d;color:#1f1503}.ds-x{background:#5b4b3e;border-color:#5b4b3e;color:#f1e6d8}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Fry Station",
+    "overview": "A night-shift snack-bar kitchen run by a potato. The shell is roasted and warm (deep brown ground, crust-brown cards, fryer-oil neutrals), deliberately not the gray-plus-blurple chat default. Anything that needs the user (a challenge, a live match, a Wordle in progress) hangs on a ticket rail across the top of the chat as a paper order ticket clipped to a bar; finished games stamp the ticket WON, LOST or DRAW.\n\nDensity is chat-dense but friendly: rounded system type, pill buttons, soft shadows. Dark is the default and required; a light \"bun\" theme keeps every role and swaps only values.",
+    "keyCharacteristics": [
+      "Gold means \"you can press this\" and nothing else.",
+      "Semantic sauces: mustard events, ketchup errors and losses, pickle money, lavender private.",
+      "Paper order tickets with a crust-coloured clip, used for the login card and every rail item.",
+      "Every game board sits on one fixed 348px plate.",
+      "System rounded sans only; tabular figures for every number."
+    ],
+    "rules": [
+      {
+        "name": "The Gold Is For Pressing Rule",
+        "body": "Golden Crisp appears only on things the user can act on, or on the state that asks them to act (your turn, a lit ticket). Never use it for decoration, headings or status.",
+        "section": "colors"
+      },
+      {
+        "name": "The Sauce Rule",
+        "body": "Mustard means an event, ketchup means an error or a loss, pickle means money, lavender means private. A colour never takes on a second meaning.",
+        "section": "colors"
+      },
+      {
+        "name": "The Game Semantics Exception",
+        "body": "Wordle green/yellow/gray tiles, Damka red and blue pieces, the wood board and the stamp inks follow game convention and are defined locally in the game stylesheet. Wordle yellow is a game result, not the gold action colour, and must never be swapped for it.",
+        "section": "colors"
+      },
+      {
+        "name": "The System Type Rule",
+        "body": "No downloaded or web fonts (a PRODUCT.md constraint: no CDNs, strict CSP). Rounded comes from ui-rounded where the OS has it, plain system sans elsewhere.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Times, scores, file sizes, coordinates and ticket numbers all use tabular numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Plate Rule",
+        "body": "Every board (tic-tac-toe, Damka, math duel) sits on a square plate of min(348px, 100%). The Wordle grid, letter tray and guess form share that same 348px width, so stacked match and Wordle cards line up on one edge.",
+        "section": "layout"
+      },
+      {
+        "name": "The Paper Floats Rule",
+        "body": "Only paper (tickets, the login card) and transient surfaces (popovers, drawers) cast a strong shadow. Panels never do.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** reserve Golden Crisp for actions and your-turn states.",
+      "**Do** keep sauce colours to their single meanings, with their soft tint for backgrounds.",
+      "**Do** put any new board on the 348px plate.",
+      "**Do** use tabular figures for every number.",
+      "**Do** give every motion a reduced-motion fallback (fade or 1ms)."
+    ],
+    "donts": [
+      "**Don't** load web fonts or use CDNs.",
+      "**Don't** use gold for headings, dividers, decoration or status.",
+      "**Don't** recolour Wordle yellow to the action gold, or the action gold to Wordle yellow.",
+      "**Don't** add shadows to the sidebar, chat column or game panel."
+    ]
+  }
+}

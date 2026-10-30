@@ -1,0 +1,213 @@
+/* 🎟️ The ticket rail, the game panel and the four boards. Tokens live in style.css. */
+
+/* ----- ticket rail: whatever needs you hangs here like an order ticket */
+
+.rail {
+  position: relative; z-index: var(--z-rail);
+  display: flex; gap: 12px; align-items: flex-start; overflow-x: auto;
+  padding: 0 18px 12px; min-height: 0;
+  background: linear-gradient(var(--line), var(--line)) 0 7px / 100% 3px no-repeat;
+  scroll-snap-type: x proximity; scrollbar-width: none;
+}
+.rail::-webkit-scrollbar { display: none; }
+.rail:empty { display: none; }
+.rail-empty { padding: 16px 4px 2px; color: var(--muted); font-size: 13.5px; }
+
+.ticket {
+  position: relative; flex: none; width: 236px; margin-top: 4px; padding: 18px 14px 14px;
+  background: var(--paper); color: var(--paper-ink); border-radius: 4px 4px 10px 10px;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.25), 0 8px 18px rgb(0 0 0 / 0.28);
+  display: grid; gap: 8px; scroll-snap-align: start;
+  transform-origin: top center;
+}
+.ticket.fresh { animation: ticket-in 240ms var(--ease-out); }
+.ticket::before {  /* the clip that holds it on the rail */
+  content: ""; position: absolute; top: -4px; left: 50%; width: 46px; height: 12px; translate: -50% 0;
+  border-radius: 3px; background: var(--crust-line);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+}
+@keyframes ticket-in { from { opacity: 0; transform: translateY(-10px) rotate(-1.5deg); } }
+.ticket.lit { box-shadow: 0 0 0 3px var(--gold), 0 1px 1px rgb(0 0 0 / 0.25), 0 8px 18px rgb(0 0 0 / 0.28); }
+.ticket-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ticket-open { border: 0; padding: 0; background: none; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.ticket-open:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ticket-title { font-weight: 800; font-size: 15px; line-height: 1.25; letter-spacing: -0.005em; overflow-wrap: anywhere; }
+.ticket-no { font-family: var(--mono); font-size: 11.5px; color: var(--paper-muted); font-variant-numeric: tabular-nums; }
+.ticket-line { font-size: 13.5px; color: var(--paper-muted); overflow-wrap: anywhere; }
+.ticket-line strong { color: var(--paper-ink); }
+.ticket-actions { display: flex; gap: 6px; }
+.ticket-actions .btn { min-height: 34px; padding: 0 12px; font-size: 13.5px; flex: 1; }
+.ticket .btn-ghost { color: var(--paper-ink); border-color: #cdbba4; }
+.drain { height: 4px; border-radius: 4px; background: #e6d8c4; overflow: hidden; }
+.drain > span {
+  display: block; height: 100%; background: #9c8670; transform-origin: left;
+  animation: drain var(--drain-ms, 180s) linear forwards;
+}
+.drain.low > span { background: #d0442e; }
+@keyframes drain { from { transform: scaleX(var(--from, 1)); } to { transform: scaleX(0); } }
+
+.stamp {
+  position: absolute; right: 10px; bottom: 12px; padding: 2px 10px;
+  border: 3px solid currentColor; border-radius: 6px; rotate: -10deg;
+  font-weight: 900; font-size: 20px; letter-spacing: 0.06em; text-transform: uppercase;
+  mix-blend-mode: multiply; pointer-events: none;
+}
+.stamp.fresh { animation: stamp-in 320ms var(--ease-out); }
+.stamp.won { color: #2f7a1a; }
+.stamp.lost { color: #c3341f; }
+.stamp.draw { color: #6f5844; }
+@keyframes stamp-in { from { opacity: 0; transform: scale(1.5); } 60% { opacity: 1; } }
+
+/* ----- game panel */
+
+.game-panel {
+  display: flex; flex-direction: column; min-height: 0;
+  background: var(--panel); border-left: 1px solid var(--line-soft);
+}
+.game-panel .side-head { padding: 14px 16px 0; }
+.game-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 18px; display: grid; gap: 22px; align-content: start; }
+.game-card { display: grid; gap: 14px; }
+.game-head { display: grid; gap: 4px; }
+.game-head h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.015em; }
+.players { color: var(--text-2); font-size: 14px; overflow-wrap: anywhere; }
+.turn-pill {
+  justify-self: start; margin-top: 4px; padding: 5px 12px; border-radius: 999px;
+  background: var(--panel-3); color: var(--text-2); font-weight: 700; font-size: 14px;
+}
+.turn-pill.lit { background: var(--gold); color: var(--gold-ink); }
+.turn-pill.over { background: var(--panel-2); color: var(--muted); }
+.game-foot { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-foot .btn { min-height: 36px; font-size: 14px; }
+.game-text {
+  margin: 0; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-deep);
+  font: 12.5px/1.5 var(--mono); white-space: pre-wrap; color: var(--text-2); overflow-x: auto;
+}
+.game-error {
+  padding: 8px 12px; border-radius: var(--radius-sm); background: var(--ketchup-soft);
+  color: var(--ketchup); font-weight: 650; font-size: 14px; white-space: pre-wrap;
+}
+.game-note { color: var(--text-2); font-size: 14px; white-space: pre-wrap; unicode-bidi: plaintext; }
+
+/* Every board sits on the same plate: one size, one baseline */
+.plate { width: min(348px, 100%); aspect-ratio: 1; justify-self: center; position: relative; }
+.plate.auto { aspect-ratio: auto; }
+
+.empty-grill {
+  display: grid; place-content: center; justify-items: center; gap: 12px; padding: 20px; text-align: center;
+  border: 2px dashed var(--line); border-radius: 18px; color: var(--text-2);
+}
+.empty-grill .big { font-size: 44px; line-height: 1; }
+.empty-grill h2 { font-size: 18px; font-weight: 800; }
+.empty-grill p { color: var(--muted); font-size: 14px; text-wrap: balance; }
+.empty-grill .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* ----- Tic-Tac-Toe */
+
+.ttt { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; height: 100%; }
+.ttt button {
+  display: grid; place-items: center; border: 1px solid var(--line); border-radius: 16px;
+  background: var(--panel-2); font-size: clamp(34px, 9vw, 52px); line-height: 1;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 100ms var(--ease-out);
+}
+.ttt button .hint { font-size: 15px; color: var(--muted); font-weight: 700; }
+.ttt button:not(:disabled) { border-color: var(--gold-ring); }
+.ttt button:active:not(:disabled) { transform: scale(0.96); }
+.ttt button:disabled { cursor: default; }
+.ttt .mark { animation: place 180ms var(--ease-out); }
+@keyframes place { from { opacity: 0; transform: scale(0.85); } }
+@media (hover: hover) and (pointer: fine) {
+  .ttt button:hover:not(:disabled) { background: var(--gold-soft); }
+}
+
+/* ----- Damka */
+
+.damka-wrap { display: grid; grid-template-columns: 16px 1fr; grid-template-rows: 1fr 16px; gap: 4px; height: 100%; }
+.damka {
+  display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+  border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 3px #5b3a1f, var(--shadow-1);
+}
+.ranks, .files { display: grid; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 600; }
+.ranks { grid-template-rows: repeat(8, 1fr); align-items: center; justify-items: center; }
+.files { grid-column: 2; grid-template-columns: repeat(8, 1fr); justify-items: center; }
+.sq:focus-visible { outline-offset: -3px; }
+.sq { position: relative; display: grid; place-items: center; border: 0; padding: 0; background: #e7cfa6; }
+.sq.dark { background: #8b5a33; }
+.sq:disabled { cursor: default; }
+.sq.target::after {
+  content: ""; width: 26%; aspect-ratio: 1; border-radius: 50%; background: rgb(245 180 50 / 0.75);
+}
+.sq.selected { box-shadow: inset 0 0 0 3px var(--gold); }
+.piece {
+  width: 76%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+  font-size: clamp(11px, 3vw, 18px);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.4);
+  transition: transform 120ms var(--ease-out);
+}
+.piece.r { background: #df4535; border: 3px solid #a3271a; }
+.piece.b { background: #3a76dc; border: 3px solid #24509f; }
+.sq.selected .piece { transform: translateY(-2px) scale(1.06); }
+.sq.must .piece { box-shadow: 0 0 0 3px var(--gold), 0 2px 4px rgb(0 0 0 / 0.4); animation: nudge 600ms var(--ease-in-out) 2; }
+@keyframes nudge { 50% { transform: scale(1.1); } }
+@media (hover: hover) and (pointer: fine) {
+  .sq.mine:not(:disabled):hover .piece { transform: translateY(-1px); }
+  .sq.target:hover::after { background: var(--gold); }
+}
+
+/* ----- Math duel */
+
+.math { display: grid; gap: 16px; align-content: center; height: 100%; padding: 18px; border-radius: 18px; background: var(--panel-2); border: 1px solid var(--line); }
+.scoreboard { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; text-align: center; gap: 8px; }
+.score { font-size: 40px; font-weight: 850; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.score-label { font-size: 12.5px; color: var(--muted); font-weight: 650; }
+.score-vs { color: var(--muted); font-weight: 700; }
+.question { text-align: center; font-size: clamp(30px, 8vw, 44px); font-weight: 850; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.math-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.math-form input { text-align: center; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.math-meta { text-align: center; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.math-locked { text-align: center; color: var(--ketchup); font-weight: 650; font-size: 14px; }
+
+/* ----- Wordle */
+
+.wordle { display: grid; gap: 12px; }
+.wordle-grid { display: grid; grid-template-rows: repeat(6, 1fr); gap: 6px; width: min(348px, 100%); justify-self: center; }
+.wordle-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.tile {
+  aspect-ratio: 1; display: grid; place-items: center; border-radius: 8px;
+  border: 2px solid var(--line); background: var(--bg-deep);
+  font-size: 24px; font-weight: 850; text-transform: uppercase;
+}
+.tile.typed { border-color: var(--muted); }
+.tile.green { background: #4f9a35; border-color: #4f9a35; color: #fff; }
+.tile.yellow { background: #c49a1d; border-color: #c49a1d; color: #1f1503; }
+.tile.gray { background: #5b4b3e; border-color: #5b4b3e; color: #f1e6d8; }
+.wordle-row.fresh .tile { animation: flip 260ms var(--ease-out) backwards; }
+.wordle-row.fresh .tile:nth-child(2) { animation-delay: 70ms; }
+.wordle-row.fresh .tile:nth-child(3) { animation-delay: 140ms; }
+.wordle-row.fresh .tile:nth-child(4) { animation-delay: 210ms; }
+.wordle-row.fresh .tile:nth-child(5) { animation-delay: 280ms; }
+@keyframes flip { from { transform: rotateX(90deg); } }
+.letters { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; max-width: 348px; justify-self: center; }
+.letters span {
+  min-width: 24px; padding: 3px 0; text-align: center; border-radius: 5px;
+  font-size: 12.5px; font-weight: 750; background: var(--panel-3); color: var(--text-2);
+}
+.letters .green { background: #4f9a35; color: #fff; }
+.letters .yellow { background: #c49a1d; color: #1f1503; }
+.letters .gray { background: transparent; color: var(--muted); opacity: 0.55; text-decoration: line-through; }
+.wordle-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; width: min(348px, 100%); justify-self: center; }
+.wordle-form input { text-transform: uppercase; letter-spacing: 0.3em; font-weight: 800; text-align: center; }
+.wordle-result { text-align: center; font-weight: 750; }
+
+@media (max-width: 760px) {
+  .rail { padding: 0 12px 10px; gap: 10px; }
+  .ticket { width: 196px; padding: 14px 12px 10px; gap: 4px; }
+  .ticket-title { font-size: 14px; }
+  .stamp { font-size: 16px; bottom: 8px; }
+  .game-body { padding: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket.fresh, .stamp.fresh, .ttt .mark, .wordle-row.fresh .tile { animation: fade-in 160ms ease !important; }
+  .sq.must .piece { animation: none; }
+  .drain > span { animation-duration: var(--drain-ms, 180s) !important; }
+}
