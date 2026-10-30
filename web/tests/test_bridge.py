@@ -359,6 +359,18 @@ class TestChatSwitcher(BridgeTestCase):
         self.assertEqual([r["key"] for r in rooms["rooms"]], ["lobby"])
 
 
+class TestTyping(BridgeTestCase):
+    def test_typing_and_stopped_go_through_the_bridge(self):
+        a, b = self.tab(), self.tab()
+        name = next(names)
+        self.assertTrue(a.auth(name, PASSWORD, "register", ["typing"])["ok"])
+        self.assertTrue(b.auth(next(names), PASSWORD, "register", ["typing"])["ok"])
+        self.assertEqual(a.send({"type": "typing", "extra": "dropped"})[0], 202)
+        self.assertEqual(b.wait(lambda e: e["data"].get("type") == "typing", what="typing")["name"], name)
+        self.assertEqual(a.send({"type": "typing_stop"})[0], 202)
+        self.assertEqual(b.wait(lambda e: e["data"].get("type") == "typing_stop", what="stopped")["name"], name)
+
+
 class TestBigFiles(BridgeTestCase):
     """📦 A big file through the website: chunks with acks, and the chunks never go into the reload replay."""
 

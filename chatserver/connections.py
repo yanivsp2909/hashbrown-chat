@@ -79,16 +79,33 @@ def answer_ping(client, msg):
     client.send({"type": "pong", **({"t": t} if has_number else {})})
 
 
-def pass_on_typing(client):
-    """⌨️ Tell the others in the room (the clients that asked for it) that this person is typing."""
+def pass_on_typing(client, stopped=False):
+    """⌨️ Tell the others in the room (the clients that asked for it) that this person is typing, or stopped.
+    No more than TYPING_LIMIT of these in TYPING_WINDOW seconds, so switching on and off can't flood the room."""
+    if stopped != client.is_typing:
+        return   # a stop without a start (or a start while already typing: keep_typing decides those)
     now = time.time()
-    if now - client.last_typing < config.TYPING_EVERY:
+    while client.typing_times and now - client.typing_times[0] > config.TYPING_WINDOW:
+        client.typing_times.popleft()
+    if len(client.typing_times) >= config.TYPING_LIMIT:
         return
-    client.last_typing = now
-    note = {"type": "typing", "name": rooms.nick(client.key)}
+    client.typing_times.append(now)
+    if not stopped:
+        client.last_typing = now
+    client.is_typing = not stopped
+    note = {"type": "typing_stop" if stopped else "typing", "name": rooms.nick(client.key)}
     for other in list(state.online.values()):
         if other is not client and other.room == client.room and "typing" in other.features:
             other.send({**note, "room": client.room} if "rooms" in other.features else note)
+
+
+def keep_typing(client):
+    """A "typing" packet: the first one starts it; while typing, it's a refresh (limited to TYPING_EVERY)."""
+    if not client.is_typing:
+        pass_on_typing(client)
+    elif time.time() - client.last_typing >= config.TYPING_EVERY:
+        client.is_typing = False      # passed on again as a fresh "typing"
+        pass_on_typing(client)
 
 
 BIG_FILE_PACKETS = {"file_start": transfers.start, "file_chunk": transfers.chunk, "file_cancel": transfers.cancel}
@@ -102,7 +119,10 @@ def handle_message(client, msg):
             answer_ping(client, msg)
             return
         if kind == "typing":     # ⌨️ the same: its own small limit
-            pass_on_typing(client)
+            keep_typing(client)
+            return
+        if kind == "typing_stop":
+            pass_on_typing(client, stopped=True)
             return
         if kind in BIG_FILE_PACKETS:   # 📦 big files: not counted as spam, the acks slow them down
             BIG_FILE_PACKETS[kind](client, msg)

@@ -187,6 +187,8 @@ export function handleMessage(msg, live, sendLine) {
       return Number.isInteger(msg.id) ? updateReactions(msg) : undefined;
     case "typing":
       return live ? typing.someoneTyping(str(msg.name)) : undefined;
+    case "typing_stop":
+      return live ? typing.stoppedTyping(str(msg.name)) : undefined;
     case "stream":
       return msg.done ? undefined : chat.addStreamPiece(msg, { live });
     case "auth_result":

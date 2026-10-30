@@ -55,3 +55,49 @@ def test_typing_doesnt_count_toward_the_spam_limit_and_has_its_own_limit(typer, 
     adi.line("still allowed to talk")
     ben.expect(lambda m: m.get("text") == "still allowed to talk")
     assert len(typing_from(ben, "Adi")) == 1                   # one per TYPING_EVERY seconds
+
+
+def test_stopping_is_passed_on_and_the_next_start_goes_out_at_once(typer):
+    """{"type": "typing_stop"} (you sent it or emptied the box) reaches the others right away, and when you
+    start again the first "typing" isn't held back by the 2-second limit (that's only for refreshes)."""
+    adi, ben = typer("Adi"), typer("Ben")
+    adi.send({"type": "typing"})
+    ben.expect(lambda m: m.get("type") == "typing")
+    adi.send({"type": "typing_stop"})
+    assert ben.expect(lambda m: m.get("type") == "typing_stop")["name"] == "Adi"
+    adi.send({"type": "typing"})
+    ben.expect(lambda m: m.get("type") == "typing" and len(typing_from(ben, "Adi")) == 2)
+
+
+def test_sending_a_message_ends_your_typing(typer):
+    adi, ben = typer("Adi"), typer("Ben")
+    adi.send({"type": "typing"})
+    ben.expect(lambda m: m.get("type") == "typing")
+    adi.line("done")
+    ben.expect(lambda m: m.get("text") == "done")
+    adi.send({"type": "typing"})                       # a new message: the first key goes out at once
+    ben.expect(lambda m: m.get("type") == "typing" and len(typing_from(ben, "Adi")) == 2)
+
+
+def test_a_stop_without_a_start_isnt_passed_on_and_old_clients_never_see_stops(typer, user):
+    adi, ben = typer("Adi"), typer("Ben")
+    old = user("Old")
+    adi.send({"type": "typing_stop"})
+    adi.send({"type": "typing"})
+    adi.send({"type": "typing_stop"})
+    ben.expect(lambda m: m.get("type") == "typing_stop")
+    settle(old)
+    settle(ben)
+    assert len([m for m in ben.messages if m.get("type") == "typing_stop"]) == 1
+    assert not [m for m in old.messages if str(m.get("type", "")).startswith("typing")]
+
+
+def test_start_stop_flooding_is_still_limited(typer):
+    adi, ben = typer("Adi"), typer("Ben")
+    for _ in range(20):
+        adi.send({"type": "typing"})
+        adi.send({"type": "typing_stop"})
+    settle(adi)
+    settle(ben)
+    passed = [m for m in ben.messages if str(m.get("type", "")).startswith("typing")]
+    assert len(passed) == config.TYPING_LIMIT            # then nothing until TYPING_WINDOW has passed

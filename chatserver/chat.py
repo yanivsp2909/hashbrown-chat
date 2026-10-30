@@ -35,6 +35,7 @@ def post_chat(client, text, action=False):
     msg = rooms.chat_message(account["nick"], account["badge"], text, action)
     history.add(room, msg, client.key)  # gives msg its "id"
     rooms.send_room(room, msg)  # the sender gets it too, so they see their own line with the time
+    client.is_typing, client.last_typing = False, 0.0   # ⌨️ the message ends "typing" (the others hide it)
     textutil.log(f"[{room}] {account['nick']}: {text}")
     account["messages"] += 1
     if account["messages"] >= 100:

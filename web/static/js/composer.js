@@ -2,6 +2,7 @@
 
 import { $, clear, el } from "./dom.js";
 import { getState } from "./store.js";
+import { stopMyTyping } from "./typing.js";
 
 const MAX_HISTORY = 50;
 const MAX_SUGGESTIONS = 8;
@@ -95,6 +96,7 @@ export function initComposer({ onSubmit }) {
     if (!text) return;
     closeSuggestions();
     input.value = "";
+    stopMyTyping();   // ⌨️ the others stop seeing "is typing…" now, and your next message starts fresh
     const keep = await onSubmit(text);
     if (keep === false) {
       if (!input.value) input.value = text;  // it failed: give the text back (unless they're typing again)

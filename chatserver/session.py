@@ -32,7 +32,9 @@ class Client:
         self.connected_at = time.time()
         self.packets_in = self.bytes_in = self.packets_out = self.bytes_out = 0
         self.pings = deque()     # times of recent pings, for their own small limit
-        self.last_typing = 0.0   # when we last passed on their "is typing"
+        self.last_typing = 0.0   # when we last passed on their "is typing" (or "stopped")
+        self.is_typing = False   # between a "typing" we passed on and their stop or message
+        self.typing_times = deque()   # when we passed on their last typing / stopped packets
         self.writer = threading.Thread(target=self._write_loop, daemon=True)
         self.writer.start()
 
