@@ -12,11 +12,12 @@ import unittest
 from harness import WEB
 
 MODULE = (WEB / "static" / "js" / "roomlogic.js").as_uri()
+MENTIONS = (WEB / "static" / "js" / "mentions.js").as_uri()
 
 
 def run(code):
-    """Run `code` as an ES module that has the roomlogic.js exports as `R`; returns what it prints as JSON."""
-    script = f"import * as R from {json.dumps(MODULE)};\n{code}"
+    """Run `code` as an ES module with roomlogic.js as `R` and mentions.js as `M`; returns what it prints as JSON."""
+    script = f"import * as R from {json.dumps(MODULE)};\nimport * as M from {json.dumps(MENTIONS)};\n{code}"
     done = subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True, text=True, timeout=20)
     if done.returncode:
         raise AssertionError(done.stderr)
@@ -50,6 +51,28 @@ class RoomLogicTestCase(unittest.TestCase):
                 messages: [{name: "Ben", text: "first"}, {name: "Adi", text: "last one"}]}, "lobby");
             console.log(JSON.stringify(previews))"""),
             {"lobby": "Adi: hello lobby", "potatoes": "Adi: last one"})
+
+
+@unittest.skipUnless(shutil.which("node"), "Node isn't installed")
+class MentionsTestCase(unittest.TestCase):
+    """@ autocomplete: typing @ suggests @hashbrown and the people in this chat."""
+
+    def test_the_word_after_an_at_sign_is_found_at_the_caret(self):
+        self.assertEqual(run("""console.log(JSON.stringify([
+            M.mentionAt("hey @no", 7), M.mentionAt("@", 1), M.mentionAt("mail me@home", 12),
+            M.mentionAt("hey @noa and", 12), M.mentionAt("hey @noa and", 8),
+        ]))"""), [{"start": 4, "end": 7, "word": "no"}, {"start": 0, "end": 1, "word": ""}, None, None,
+                  {"start": 4, "end": 8, "word": "noa"}])
+
+    def test_hashbrown_and_the_people_in_this_room_but_not_you(self):
+        self.assertEqual(run("""console.log(JSON.stringify(M.mentionNames({room: "#Potatoes", nick: "Adi", knownNames: [],
+            online: [{name: "Adi", room: "#Potatoes"}, {name: "Noa", room: "#Potatoes"}, {name: "Ben", room: "🏠 Lobby"}]})))"""),
+            ["hashbrown", "Noa"])
+
+    def test_before_the_online_list_arrives_everyone_seen_counts(self):
+        self.assertEqual(run("""console.log(JSON.stringify(M.matchingNames(
+            M.mentionNames({room: "x", nick: "Adi", online: null, knownNames: ["Noa", "Nir", "Adi"]}), "N")))"""),
+            ["Noa", "Nir"])
 
 
 if __name__ == "__main__":

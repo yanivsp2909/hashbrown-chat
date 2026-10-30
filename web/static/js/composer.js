@@ -3,6 +3,7 @@
 import { $, clear, el } from "./dom.js";
 import { getState } from "./store.js";
 import { stopMyTyping } from "./typing.js";
+import { matchingNames, mentionAt, mentionNames } from "./mentions.js";
 
 const MAX_HISTORY = 50;
 const MAX_SUGGESTIONS = 8;
@@ -23,21 +24,44 @@ function closeSuggestions() {
   matches = [];
 }
 
+function commandMatches(text) {
+  if (!text.startsWith("/") || text.includes(" ")) return [];
+  return getState().commands.filter((c) => c.name.startsWith(text.toLowerCase())).slice(0, MAX_SUGGESTIONS)
+    .map((c) => ({
+      label: c.usage, desc: c.description, done: () => input.value === c.name,   // typed it all: Enter sends it
+      apply: () => { input.value = c.name + (c.usage.includes(" ") ? " " : ""); },
+    }));
+}
+
+function mentionMatches() {
+  const mention = mentionAt(input.value, input.selectionStart ?? input.value.length);
+  if (!mention || input.value.startsWith("/")) return [];
+  return matchingNames(mentionNames(getState()), mention.word).slice(0, MAX_SUGGESTIONS)
+    .map((name) => ({
+      label: `@${name}`, desc: name === "hashbrown" ? "ask Hashbrown 🥔" : "",
+      done: () => mention.word === name,
+      apply: () => {
+        const after = input.value.slice(mention.end).replace(/^\s*/u, " ");
+        input.value = `${input.value.slice(0, mention.start)}@${name}${after}`;
+        const caret = mention.start + name.length + 2;
+        input.setSelectionRange(caret, caret);
+      },
+    }));
+}
+
 function renderSuggestions() {
-  const text = input.value;
-  const typingCommand = text.startsWith("/") && !text.includes(" ");
-  const commands = getState().commands;
-  matches = typingCommand
-    ? commands.filter((c) => c.name.startsWith(text.toLowerCase())).slice(0, MAX_SUGGESTIONS)
-    : [];
+  const commands = commandMatches(input.value);
+  matches = commands.length ? commands : mentionMatches();
   if (!matches.length) return closeSuggestions();
   selected = Math.min(selected, matches.length - 1);
+  box.setAttribute("aria-label", commands.length ? "Commands" : "People to mention");
   clear(box);
-  matches.forEach((command, i) => {
+  matches.forEach((match, i) => {
     box.append(el("li", {
       id: `suggestion-${i}`, role: "option", "aria-selected": String(i === selected),
       onmousedown: (event) => { event.preventDefault(); pick(i); },
-    }, el("span", { class: "usage", text: command.usage }), el("span", { class: "desc", text: command.description })));
+    }, el("span", { class: "usage", dir: "auto", text: match.label }),
+    match.desc ? el("span", { class: "desc", text: match.desc }) : null));
   });
   box.hidden = false;
   input.setAttribute("aria-expanded", "true");
@@ -45,10 +69,9 @@ function renderSuggestions() {
 }
 
 function pick(i) {
-  const command = matches[i];
-  if (!command) return;
-  const takesArgs = command.usage.includes(" ");
-  input.value = command.name + (takesArgs ? " " : "");
+  const match = matches[i];
+  if (!match) return;
+  match.apply();
   closeSuggestions();
   input.focus();
 }
@@ -76,7 +99,7 @@ export function initComposer({ onSubmit }) {
         selected = (selected + (event.key === "ArrowDown" ? 1 : -1) + matches.length) % matches.length;
         return renderSuggestions();
       }
-      if (event.key === "Tab" || (event.key === "Enter" && input.value !== matches[selected].name)) {
+      if (event.key === "Tab" || (event.key === "Enter" && !matches[selected].done())) {
         event.preventDefault();
         return pick(selected);
       }
