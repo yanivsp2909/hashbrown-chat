@@ -35,10 +35,17 @@ function addRow(list, row) {
   $("xray-count").textContent = `${lists.packets.childElementCount} packets · ${lists.tcp.childElementCount} TCP chunks`;
 }
 
+/** "⬇ in  chat  42 B  19:26" on screen; "received, chat, 42 B, 19:26" for screen readers. */
 function head(dir, ...parts) {
   return el("p", { class: "xray-row-head" },
-    el("span", { class: `xray-dir xray-${dir}`, text: dir === "in" ? "⬇ in" : "⬆ out" }),
-    ...parts.map((text) => el("span", { text })));
+    el("span", { class: `xray-dir xray-${dir}` },
+      el("span", { "aria-hidden": "true", text: dir === "in" ? "⬇ in" : "⬆ out" }),
+      el("span", { class: "visually-hidden", text: dir === "in" ? "received" : "sent" })),
+    ...parts.map((text) => el("span", {}, el("span", { class: "visually-hidden", text: ", " }), text)));
+}
+
+function announce(text) {
+  $("xray-status").textContent = text;
 }
 
 function packetRow(dir, packet, wireText) {
@@ -101,13 +108,15 @@ export function initXray() {
   });
   $("xray-pause").addEventListener("click", (event) => {
     paused = !paused;
-    event.currentTarget.setAttribute("aria-pressed", String(paused));
-    event.currentTarget.textContent = paused ? "▶ Resume" : "⏸ Pause";
+    clear(event.currentTarget).append(el("span", { "aria-hidden": "true", text: paused ? "▶ " : "⏸ " }),
+      paused ? "Resume" : "Pause");
+    announce(paused ? "Capture paused" : "Capture resumed");
   });
   $("xray-clear").addEventListener("click", () => {
     clear(lists.packets);
     clear(lists.tcp);
     recvCount = 0;
     $("xray-count").textContent = "";
+    announce("Cleared");
   });
 }
