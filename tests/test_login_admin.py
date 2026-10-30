@@ -4,7 +4,7 @@ import time
 import pytest
 
 from chatserver import config, connections, state
-from chatserver import auth as server_auth
+from chatserver import auth as server_auth   # 'auth' is already helpers.auth (logs a fake client in)
 from helpers import auth
 from test_smoke import start_game
 

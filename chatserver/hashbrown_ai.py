@@ -11,7 +11,6 @@ import urllib.request
 from chatserver import achievements, config, rooms, state, storage, textutil
 
 
-# ----- 🥔 Hashbrown (GPT on Microsoft Foundry)
 
 def is_placeholder(value):
     """True if a setting is missing, empty, or still the template text (like PASTE-YOUR-KEY-HERE)."""

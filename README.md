@@ -161,7 +161,13 @@ Type these in the server window:
   - `state.py`: what the server keeps in memory (accounts, groups, who's online).
   - `connections.py`: accepting connections and talking to each client.
   - `cmd_*.py`: the /commands, one file per section of /help (`cmd_chat.py`, `cmd_games.py`...).
-  - The rest: `storage.py` (saving), `auth.py` (logins), `rooms.py` (sending to people), `matches.py`, `hashbrown_ai.py`, `background.py`.
+  - `chat.py`: what happens with each line someone types (a chat message, a /command or a game move).
+  - `registry.py` + `commands.py`: how a /command registers itself, and the order of the /help sections.
+  - The rest: `storage.py` (saving), `auth.py` (logins), `rooms.py` (sending to people), `matches.py` (two-player matches and bets), `hashbrown_ai.py`, `background.py` (income, quiz, console).
+- **Adding things**:
+  - a /command: a function with `@registry.command(...)` in the right `cmd_*.py` (example in `registry.py`).
+  - a setting: a line in `config.py`, read it as `config.NAME`.
+  - a game: its class in `games.py`, then one line in the `GAMES` table in `cmd_games.py`.
 
 ## Known limits
 

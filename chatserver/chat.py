@@ -46,7 +46,7 @@ def check_quiz(client, text):
             and client.key not in state.matches):
         state.accounts[client.key]["tokens"] += state.quiz["reward"]
         rooms.notify_room("lobby", f"🎉 {rooms.shown(client.key)} got it first! {state.quiz['answer']} is right, "
-                             f"+{state.quiz['reward']} 🪙", kind="event")
+                                    f"+{state.quiz['reward']} 🪙", kind="event")
         state.quiz = None
         storage.save_data()
 

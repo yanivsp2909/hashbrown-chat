@@ -111,7 +111,7 @@ def spam_ok(client):
     return True
 
 
-# ----- 👥 Groups
+# ----- 👥 Group helpers and chat lines
 
 def current_group(client):
     if client.room == "lobby":

@@ -108,7 +108,7 @@ def parse_message(raw):
     return msg if isinstance(msg, dict) else None
 
 
-# ---------------------------------------------------------------- chat lines
+# ---------------------------------------------------------------- hanging up
 
 def hang_up(client):
     try:

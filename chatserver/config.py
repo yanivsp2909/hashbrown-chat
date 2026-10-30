@@ -1,10 +1,13 @@
 """
 ⚙️ Every setting you can change: ports, prices, limits, the admin password, Hashbrown's prompt.
 Edit them here, then restart the server (python server.py).
+Other files read them as config.NAME (never `from chatserver.config import NAME`: tests and the
+server change some of them while running, and a copied value wouldn't see the change).
 """
 import os
 
 
+# Keep these two lines exactly like this: the website tests look for them to run a copy on another port
 HOST = "0.0.0.0"
 PORT = 8820
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # the folder with server.py
@@ -20,6 +23,7 @@ TOKENS_PER_MINUTE = 5        # every logged-in user
 GROUP_INCOME = 10            # every group bank, while at least one member is online
 GROUP_COST = 50
 DAILY_BONUS, STREAK_BONUS, DAILY_MAX = 150, 50, 500   # day 1: 150, day 2: 200 ... up to 500
+ROB_COOLDOWN = 300           # seconds between two /rob tries by the same person
 WIN_REWARD, MAX_REWARDED_WINS = 25, 10                # +25 per win, for the first 10 wins a day
 SOLO_MAX_REWARDS = 5                                  # rewarded Wordle wins per day
 HISTORY_SIZE, BIG_HISTORY_SIZE = 15, 50
@@ -84,5 +88,5 @@ SLOT_SYMBOLS = ["🍒", "🍋", "🍇", "🔔", "⭐", "💎"]
 # ----- 🛠️ Admin
 
 def admin_password():
-    """HASHBROWN_ADMIN_PASSWORD wins, otherwise ADMIN_PASSWORD above. Never print this."""
+    """HASHBROWN_ADMIN_PASSWORD wins, otherwise ADMIN_PASSWORD. Never print this."""
     return os.environ.get("HASHBROWN_ADMIN_PASSWORD", "").strip() or ADMIN_PASSWORD

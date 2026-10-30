@@ -6,7 +6,6 @@ import random
 from chatserver import achievements, config, rooms, state, storage, textutil
 
 
-# ----- 🎮 Games
 
 class Match:
     def __init__(self, game_class, p1, p2, bet):
@@ -39,7 +38,7 @@ def start_match(game_class, p1, p2, bet):
     pot = f"   💰 pot: {bet * 2} 🪙" if bet else ""
     for p in match.players:
         rooms.tell(p, f"🎮 {game_class.title}: {rooms.shown(p1)} vs {rooms.shown(p2)}{pot}\n"
-                f"📜 {game_class.help}\n🏳️ /resign to give up", "game")
+                      f"📜 {game_class.help}\n🏳️ /resign to give up", "game")
     push_board(match)
 
 

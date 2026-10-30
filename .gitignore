@@ -15,3 +15,6 @@ __pycache__/
 
 # Screenshots for checking the website by eye
 screenshots/
+.coverage
+.coverage.*
+htmlcov/

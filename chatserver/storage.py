@@ -63,7 +63,7 @@ def save_data():
             return False
 
 
-# ---------------------------------------------------------------- login / register
+# ---------------------------------------------------------------- new accounts and groups
 
 def new_account(username, salt, digest):
     return {"login": username, "nick": username, "salt": salt, "hash": digest,

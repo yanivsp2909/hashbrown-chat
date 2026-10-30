@@ -80,7 +80,7 @@ def cmd_rob(client, args):
     if target == client.key:
         client.say("🙃 Robbing yourself? Bold.", "error")
         return
-    wait = state.last_rob.get(client.key, 0) + 300 - time.time()
+    wait = state.last_rob.get(client.key, 0) + config.ROB_COOLDOWN - time.time()
     if wait > 0:
         client.say(f"🚓 Lay low for {int(wait // 60)}m {int(wait % 60)}s before robbing again.", "error")
         return

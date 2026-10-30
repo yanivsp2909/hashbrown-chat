@@ -1,5 +1,11 @@
 """
 🎮 Game commands (and 🟩 Wordle).
+
+Three files work together on games:
+  games.py (next to server.py)  the rules and the board of each game, no networking
+  chatserver/matches.py         a match between two people: turns, bets, paying the winner
+  chatserver/cmd_games.py       this file: the /commands players type
+To add a game: write its class in games.py, then add it to GAMES below.
 """
 import time
 
@@ -55,7 +61,7 @@ def cmd_challenge(client, args):
     state.invites[target] = waiting
     stake = f" for {bet} 🪙" if bet else ""
     rooms.tell(target, f"⚔️ {rooms.shown(client.key)} challenges you to {game_class.title}{stake}!  "
-                 f"/accept {rooms.nick(client.key)}  or  /decline {rooms.nick(client.key)}", "event")
+                       f"/accept {rooms.nick(client.key)}  or  /decline {rooms.nick(client.key)}", "event")
     client.say(f"⚔️ Challenge sent to {rooms.shown(target)}. Waiting for them...")
 
 
