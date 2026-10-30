@@ -170,8 +170,8 @@ Decision: group commands work on the room you're in, so a button for a group you
 | N6 | 🧾 Taxes into a public fund that pays prizes | done: public fund (saved): trading fees + 10% tax on casino wins of 200+ go in; quest, question-of-the-day and drawing prizes come out of it first (only what it can't cover is new tokens) |
 | N7 | 👥 Group stocks with dividends | done: every group is a stock "#name" (/buy #Potatoes 3); each market tick its price moves GROUP_STOCK_FOLLOW_PERCENT 20% toward GROUP_STOCK_BASE 10 + bank/25 + 3 x members + 1 x chat lines in the last hour; a group that grew since yesterday (members or bank) pays GROUP_DIVIDEND_PERCENT 2% of its price per share a day from its bank (at most 10% of the bank); disbanding pays shareholders the last price (from the fund first); shown in /stocks and the website market screen |
 | N8 | 📰 Hashbrown market news | done: when a company stock is MARKET_NEWS_MOVE_PERCENT 15% up or down from the day's open, Hashbrown posts one funny "📰 ..." line in the Lobby (AI, once per stock per day, MARKET_NEWS_PER_DAY 3, counted in the server-wide cap; nothing without Hashbrown); tested with the fake AI only |
-| N9 | 🏦 Savings with interest | not started |
-| N10 | 💳 Loans | not started |
+| N9 | 🏦 Savings with interest | done: /save, /withdraw, /savings; SAVINGS_MAX 5000; once a day +SAVINGS_INTEREST_PERCENT 1% (at most SAVINGS_INTEREST_MAX 50), paid only by the public fund (empty fund: no interest) |
+| N10 | 💳 Loans | done: /loan N (LOAN_MAX 500, one at a time, accounts older than 24 h), you owe LOAN_INTEREST_PERCENT 10% more, due in LOAN_DAYS 3; /repay [N|all] into the fund; late: the per-minute income repays it first; loans come from the fund first (new tokens if short) |
 | N11 | 🛒 Player marketplace | not started |
 | N12 | 🔨 Auctions | not started |
 | N13 | 📊 Economy dashboard (website) | not started |

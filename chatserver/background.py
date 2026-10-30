@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, bank_log, config, drawing, economy, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
+from chatserver import achievements, bank_log, config, drawing, economy, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
 
 
 # ---------------------------------------------------------------- background threads
@@ -30,7 +30,8 @@ def income_tick():
         for key, c in state.online.items():
             group = state.groups.get(c.room)
             bonus = 2 if group and "income" in group["upgrades"] else 0
-            state.accounts[key]["tokens"] += config.TOKENS_PER_MINUTE + bonus
+            # 💳 a late loan takes the income first
+            state.accounts[key]["tokens"] += savings.take_income(key, config.TOKENS_PER_MINUTE + bonus)
             achievements.check_rich(key)
         for group in state.groups.values():
             if any(member in state.online for member in group["members"]):

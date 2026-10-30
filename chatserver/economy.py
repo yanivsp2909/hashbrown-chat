@@ -5,13 +5,13 @@
 """
 from collections import deque
 
-from chatserver import config, group_stocks, market, market_news, state, textutil  # noqa: F401 (news listens to ticks)
+from chatserver import config, group_stocks, market, market_news, savings, state, textutil  # noqa: F401 (news listens to ticks)
 
 _daily_jobs = []   # functions run once a day (dividends, interest, loans...), in the order they were added
 
 
 def account_defaults():
-    return {"portfolio": {}, "spent": {}}
+    return {"portfolio": {}, "spent": {}, **savings.account_defaults()}
 
 
 def total_supply():
@@ -54,6 +54,7 @@ def on_new_day(job):
 
 
 on_new_day(group_stocks.pay_dividends)   # 👥 growing groups pay their shareholders
+on_new_day(savings.pay_interest)          # 🏦 savings earn interest (from the fund)
 
 
 def daily_tick():
