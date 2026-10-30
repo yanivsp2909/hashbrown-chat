@@ -51,6 +51,22 @@ def cmd_answer(client, args):
         client.say("💡 Your answer is in! Friends vote with reactions; the best one wins when the next question comes.")
 
 
+@registry.command("/hbstats", "/hbstats", "admin: Hashbrown's questions, tokens and cost today 📊", "🛠️ Admin")
+def cmd_hbstats(client, args):
+    if not state.accounts[client.key]["admin"]:
+        client.say("📊 Only server admins can see Hashbrown's stats.", "error")
+        return
+    usage = hashbrown_ai.todays_usage()
+    day, asked = state.hashbrown_all_today
+    asked = asked if day == textutil.today() else 0
+    cost = usage["in"] * config.HASHBROWN_PRICE_IN / 1e6 + usage["out"] * config.HASHBROWN_PRICE_OUT / 1e6
+    client.say("🥔📊 Hashbrown today\n"
+               f"  Questions today: {usage['questions']}\n"
+               f"  Daily cap: {asked}/{config.HASHBROWN_DAILY_CAP}\n"
+               f"  Used: {usage['in'] + usage['out']} tokens ({usage['in']} in, {usage['out']} out)\n"
+               f"  Cost: about ${cost:.4f} (prices from HASHBROWN_PRICE_IN / OUT in config.py)")
+
+
 @registry.command("/trivia", "/trivia", f"Hashbrown asks the room a trivia question ({config.HASHBROWN_COST} 🪙)",
                   "🥔 Hashbrown")
 def cmd_trivia(client, args):

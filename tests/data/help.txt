@@ -82,6 +82,7 @@
 🛠️ Admin
   /admin password                  become a server admin
   /admintokens [name]              admin: +1000 🪙
+  /hbstats                         admin: Hashbrown's questions, tokens and cost today 📊
 
 📁 Files
   /sendfile name path              send a file (up to 2 MB) 📁

@@ -134,6 +134,24 @@ def max_raw_length():
     return RAW_LENGTH_FACTOR * config.HASHBROWN_MAX_CHARS + config.HASHBROWN_MAX_CODE_LINES * CODE_LINE_CHARS
 
 
+def todays_usage():
+    """📊 {"day", "questions", "in", "out"} for today (yesterday's starts again from zero)."""
+    if state.hashbrown_usage.get("day") != textutil.today():
+        state.hashbrown_usage = {"day": textutil.today(), "questions": 0, "in": 0, "out": 0}
+    return state.hashbrown_usage
+
+
+def record_usage(usage):
+    """📊 One finished answer, with the token counts the API sent back (if it sent them)."""
+    def count(name):
+        value = getattr(usage, name, 0)
+        return value if isinstance(value, int) and value > 0 else 0
+    with state.lock:
+        today = todays_usage()
+        state.hashbrown_usage = {**today, "questions": today["questions"] + 1,
+                                 "in": today["in"] + count("input_tokens"), "out": today["out"] + count("output_tokens")}
+
+
 def read_stream(client, request, on_text):
     """Send one request and read the answer piece by piece. on_text(piece) gets each new piece of text.
     Returns the whole raw text. Raises if the stream breaks before the end."""
@@ -150,6 +168,7 @@ def read_stream(client, request, on_text):
                     break
             elif event.type == "response.completed":
                 finished = True
+                record_usage(getattr(event.response, "usage", None))
                 break
             elif event.type in ("response.failed", "response.incomplete", "error"):
                 raise RuntimeError(f"the AI ended the answer early ({event.type})")

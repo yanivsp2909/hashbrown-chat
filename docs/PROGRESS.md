@@ -138,7 +138,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | # | Item | Status |
 |---|---|---|
 | R18 | Tip Hashbrown | done: /give hashbrown N (any case, @ ok): the usual /give limits, tokens go to state.hashbrown_tokens (saved as "hashbrown_tokens"), "🥔 Hashbrown" in /top, a canned thanks from Hashbrown in your room (random of 3, no AI) |
-| R19 | `/hbstats` | not started |
+| R19 | `/hbstats` | done: /hbstats (server admins): answers today, the server-wide cap used, tokens from the API's own usage numbers (read on response.completed), cost = in x HASHBROWN_PRICE_IN + out x HASHBROWN_PRICE_OUT per million (example prices 0.25 / 2.00 $: set your deployment's). Counted in memory per day (a restart starts from zero); the fake test AI now sends usage too |
 
 ## Decisions made on the way
 

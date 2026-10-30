@@ -127,6 +127,10 @@ HASHBROWN_COST = 20          # tokens per question
 HASHBROWN_COOLDOWN = 15      # seconds between questions, per person
 HASHBROWN_DAILY_LIMIT = 30   # questions per person per day
 HASHBROWN_DAILY_CAP = 100    # questions for EVERYONE together per day (each one costs real money)
+# 📊 /hbstats estimates the cost from these: US dollars per million tokens. Example numbers: put in your
+# deployment's real prices from the Azure pricing page.
+HASHBROWN_PRICE_IN = 0.25
+HASHBROWN_PRICE_OUT = 2.00
 HASHBROWN_MAX_BUSY = 3       # questions being answered at the same time
 
 

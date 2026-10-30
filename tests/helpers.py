@@ -139,7 +139,10 @@ class FakeFoundry:
             return {"id": "resp_1", "object": "response", "created_at": 0, "model": "fake-model", "status": status,
                     "output": [{"id": "msg_1", "type": "message", "role": "assistant", "status": status,
                                 "content": [{"type": "output_text", "text": text, "annotations": []}]}],
-                    "parallel_tool_calls": False, "tool_choice": "auto", "tools": []}
+                    "parallel_tool_calls": False, "tool_choice": "auto", "tools": [],
+                    "usage": {"input_tokens": 100, "output_tokens": 20, "total_tokens": 120,
+                              "input_tokens_details": {"cached_tokens": 0},
+                              "output_tokens_details": {"reasoning_tokens": 0}}}
 
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
