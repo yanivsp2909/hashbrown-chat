@@ -110,6 +110,8 @@ If you'd rather not keep the key in the file, set the environment variable `HASH
 | Wordle (`/wordle`) | 60 🪙 for 1 try down to 10 🪙 for 6 tries, 5 rewarded games a day |
 | Achievements (`/achievements`) | 25 to 300 🪙 each |
 | Quick math in the lobby | 30-50 🪙 for the first right answer |
+| Daily quests (`/quests`) | three small tasks a day (like "send 10 messages"), 15-40 🪙 each |
+| Best answer to the question of the day (`/answer`) | 50 🪙 for the most reactions, paid when the next question comes |
 | Casino and `/rob` | risky 😈 |
 
 **Group bank:** every group earns 10 🪙 per minute while at least one member is online. Anyone can `/donate`, and admins spend the bank with `/upgrade`:
@@ -123,21 +125,23 @@ If you'd rather not keep the key in the file, set the environment variable `HASH
 
 If an owner disbands a group, whatever is left in the bank goes to them.
 
+**`/give` limits** (against making extra accounts to farm tokens): an account can't give in its first 24 hours, and nobody gives more than 500 🪙 a day in total. Tipping Hashbrown (`/give hashbrown 10`) counts too; Hashbrown keeps its tips and shows up in `/top`.
+
 ## Commands
 
 | | |
 |---|---|
-| 💬 Chat | `/help` `/users` `/send name msg` `/me action` `/nick name` `/whois name` `/quit` |
+| 💬 Chat | `/help` `/users` `/send name msg` `/me action` `/nick name` `/whois name` `/pin text` (the room's topic; `/pin` shows it, `/pin clear`) `/search word` `/remind 10m text` (`/remind` lists yours) `/quit` |
 | 📊 Polls | `/poll question \| option \| option` (2-6 options) `/vote 2` `/poll` (see the votes) `/endpoll` |
-| 🥔 Hashbrown | `@hashbrown question` (everyone sees the answer) or `/ask question` (only you see it, you pay), `/tldr` (a summary of the chat, only for you), `/judge` (Hashbrown settles the argument, everyone sees it), `/tr text` (Hebrew ↔ English, only you), `/qotd` (today's question of the day), `/hint` in a Wordle (one per game) |
+| 🥔 Hashbrown | `@hashbrown question` (everyone sees the answer) or `/ask question` (only you see it, you pay), `/tldr` (a summary of the chat, only for you), `/judge` (Hashbrown settles the argument, everyone sees it), `/tr text` (Hebrew ↔ English, only you), `/qotd` (today's question of the day), `/answer text` (your answer to it), `/hint` in a Wordle (one per game) |
 | 👥 Groups | `/groups` `/create name [private]` `/join name` `/lobby` `/leave` `/members` `/requests` `/approve name` `/reject name` |
 | 🛡️ Admin | `/kick` `/ban` `/unban` `/mute name [min]` `/unmute` `/promote` `/demote` `/disband` |
 | 🏦 Group bank | `/bank` `/donate amount` `/upgrade name` `/groupemoji 🍟` `/topgroups` |
 | 🪙 Tokens | `/balance` `/top` `/give name amount` `/daily` `/rob name` `/shop` `/buy 🔥` `/badge 🔥` `/achievements` |
 | 🎰 Casino | `/coinflip amount heads` `/dice amount` `/slots amount` |
-| 🎮 Games | `/games` `/challenge name ttt\|damka\|math [bet]` `/accept` `/decline` `/board` `/resign` `/wordle` `/g word` `/giveup` `/rematch` (same person, game and bet) `/claim` (win if they stopped moving for 2 min) `/watch name` (spectate; `/watch` stops) `/leaderboard [elo\|wins\|tokens]` |
+| 🎮 Games | `/games` `/quests` `/challenge name ttt\|damka\|math [bet]` `/accept` `/decline` (a challenge, or a file: `/accept file`) `/board` `/resign` `/wordle` `/g word` `/giveup` `/rematch` (same person, game and bet) `/claim` (win if they stopped moving for 2 min) `/watch name` (spectate; `/watch` stops) `/leaderboard [elo\|wins\|tokens]` |
 | ⚔️ Group wars | `/war group` (an admin declares) `/war accept group` (their admin, within 10 min) `/war` (the score) |
-| 🛠️ Admin | `/admin password` `/admintokens [name]` |
+| 🛠️ Admin | `/admin password` `/admintokens [name]` `/hbstats` (Hashbrown's questions, tokens and cost today) |
 | 📁 Files | `/sendfile name path/to/file` |
 
 **During a game**, just type your move:
@@ -145,7 +149,9 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 - Damka: `c3 d4`
 - Math Duel: the number, like `42`
 
-The admin password is `ADMIN_PASSWORD` in `chatserver/config.py`. **Change it from 123**, or your friends will guess it.
+The admin password is never in the code (the repo is public). Save it in the Mac Keychain as `hashbrown-admin` and `start.sh` loads it into `HASHBROWN_ADMIN_PASSWORD`; no password means `/admin` is off. **Don't use 123**: it used to be the built-in one, so everyone who read the code knows it.
+
+**New accounts** need a username of 3-16 English *or* Hebrew letters, digits or `_` (not both alphabets, so nobody can hide a look-alike letter in a name) and a password of at least 6 characters. Older accounts keep their names and passwords.
 
 ## New games and more 🎲
 
@@ -159,21 +165,28 @@ The admin password is `ADMIN_PASSWORD` in `chatserver/config.py`. **Change it fr
 - 🧠 **Trivia**: `/trivia` (costs like `/ask`): Hashbrown asks the room a question; the first right answer in 60 seconds wins 40 🪙.
 - ⚔️ **Group wars**: for 30 minutes, every game a member wins against the other group is a point; the winner takes 300 🪙 from the loser's bank.
 - 📦 **Big files** (website): up to 15 MB, sent in 1 MB pieces with a progress bar. Each piece waits for the server's "got it" before the next one goes (flow control). The terminal client still sends up to 2 MB.
+- 📎 **Files are offered first**: the receiver sees "📎 Dana wants to send you photo.jpg (2.3 MB)" with Accept and Decline (or types `/accept file` / `/decline file`); nothing arrives before Accept, and an offer expires after 2 minutes. An old `client.py` that doesn't know about offers still gets files straight away.
+- ✓✓ **Read receipts** (website): your private message shows ✓ when it reached them and ✓✓ when it was on their screen.
+- ⏰ **Reminders**: `/remind 10m take the fries out` (or `2h`, `1h30m`; up to 24 hours, 5 at a time). They survive a server restart; if you're away when one is due, you get it when you log in.
+- 📌 **Topics**: `/pin Movie night at 8` puts a topic at the top of the room (group admins in a group, a server admin in the lobby); people see it when they come in.
+- 🔎 **Search**: `/search pizza` finds it in the chat of the rooms you're in, newest first (20 at most).
+- 🎯 **Daily quests**: `/quests` shows today's three tasks (the same for everyone), each pays once.
 
 ## Hashbrown extras 🥔
 
 - 🎙️ **Commentator:** after every match, Hashbrown sends both players one funny line about it.
-- ❓ **Question of the day:** once a day (after 10:00 Israel time, when at least two people are online) Hashbrown asks the lobby a fun question. `/qotd` shows it again.
+- ❓ **Question of the day:** once a day (after 10:00 Israel time, when at least two people are online) Hashbrown asks the lobby a fun question. `/qotd` shows it again. Answer with `/answer ...` (or the 💡 Answer button): one answer each, people vote with reactions, and when the next question comes the answer with the most reactions wins 50 🪙.
+- 💸 **Tips:** `/give hashbrown 10` and Hashbrown says thanks. 📊 `/hbstats` (server admins) shows today's questions, tokens and an estimated cost (set your prices in `HASHBROWN_PRICE_IN` / `HASHBROWN_PRICE_OUT` in `config.py`).
 - 🎭 **Group personality:** buy the 🎭 upgrade for your group (`/upgrade personality`), then a group admin types `/personality a pirate who loves potatoes`. Hashbrown plays that role in your group (all its rules still apply). `/personality` with nothing turns it off.
 - These cost the server, not you, and count toward the server's daily Hashbrown limit.
 
 ## On the website: reactions and typing 😂
 
-Hover (or tab to) a message and press **☺︎+** to react with 👍 ❤️ 😂 😮 😢 or 🥔. Click a reaction under a message to add or take back yours. While someone in your room types, you see *Noa is typing…* above the message box. A poll shows a button for each option.
+Hover (or tab to) a message and press **☺︎+** to react with 👍 ❤️ 😂 😮 😢 or 🥔. Click a reaction under a message to add or take back yours. While someone in your room types, you see *Noa is typing…* above the message box (right away, and it goes when they send or clear the box). Type `@` for a list of the people in this chat and @hashbrown. A poll shows a button for each option.
 
 ## Chat switcher 💬 (website)
 
-The **💬 Chats** list in the sidebar shows 🌍 the Lobby and every group you're in. Messages from a room you're not looking at don't fill your screen: that room gets an unread count and a preview of its last message. Click a room to open it (the same as `/join name` or `/lobby`): its recent history loads. The terminal client keeps working the old way (you only get the room you're in).
+The **💬 Chats** list in the sidebar shows 🌍 the Lobby and every group you're in. Messages from a room you're not looking at don't fill your screen: that room gets an unread count and a preview of its last message. Click a room to open it (the same as `/join name` or `/lobby`): you see only that room's messages, and its topic at the top. The terminal client keeps working the old way (you only get the room you're in).
 
 ## For the networking class 🔬
 
@@ -182,7 +195,7 @@ The **💬 Chats** list in the sidebar shows 🌍 the Lobby and every group you'
 - **UDP auto-discovery**: `python client.py` with no IP broadcasts `{"type": "discover"}` to UDP port 8821. Every server on the Wi-Fi answers; you confirm the one you want (anyone can answer a broadcast).
 - **`/ping`**: a `ping` packet goes to the server and comes straight back as `pong`: the time it took is the round trip.
 - **`/netstats`**: how many packets and bytes the server got from you and sent you.
-- **Network lab** (type these in the server window): `lag 300` delays every packet the server sends by 300 ms; `loss 10` makes 10% of them "get lost". TCP never really loses data: it sends a lost packet again, so it arrives late and everything after it waits too (head-of-line blocking). `lab` shows the settings, `lab off` turns it off.
+- **Network lab** (type these in the server window): `lag 300` delays every packet the server sends by 300 ms; `loss 10` makes 10% of them "get lost". TCP never really loses data: it sends a lost packet again, so it arrives late and everything after it waits too (head-of-line blocking). `lab` shows the settings, `lab off` turns it off. While it's on, everyone on the website sees a 🧪 banner saying what it does.
 
 ## Server console
 

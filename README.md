@@ -21,17 +21,17 @@
 
 ## ✨ Features
 
-- 💬 **Chat**: a lobby, group rooms, private messages (`/send`), `/me` actions, nicknames, Hebrew (right-to-left) text, reactions, "is typing…" and `/poll`.
+- 💬 **Chat**: a lobby, group rooms, private messages (`/send`, with ✓ delivered and ✓✓ seen on the website), `/me` actions, nicknames, Hebrew (right-to-left) text, reactions, "is typing…", `/poll`, `@` autocomplete, a pinned room topic (`/pin`), `/search` in your rooms' history and private reminders (`/remind 10m text`).
 - 👥 **Groups**: public groups, or 🔒 private groups where an admin approves you. Admins can kick, ban, mute, promote and demote.
-- 💬 **Chat switcher** (website): 🌍 the Lobby and all your groups in one list, with unread counts and the last message, like a messaging app.
+- 💬 **Chat switcher** (website): 🌍 the Lobby and all your groups in one list, each its own conversation with its own messages, unread count and last message, like a messaging app.
 - 🏦 **Group bank**: every group earns its own tokens and spends them on upgrades; ⚔️ group wars for the bank.
-- 🪙 **Tokens**: earn them by being online, with a `/daily` streak, winning games and achievements. Spend them in the badge shop or the casino (fake tokens only).
+- 🪙 **Tokens**: earn them by being online, with a `/daily` streak, three daily `/quests`, winning games and achievements. Spend them in the badge shop or the casino (fake tokens only). `/give` has limits against farming with extra accounts (not in an account's first 24 hours, at most 500 a day).
 - 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel, Connect 4, Battleship and solo Wordle; ELO ratings and `/leaderboard`, `/watch` someone's game. Challenge a friend, with an optional token bet; `/rematch`, and `/claim` if they stop moving.
-- 🥔 **Hashbrown**: an AI member. Type `@hashbrown` in chat, or `/ask` for a private answer; it also comments on your games, judges arguments (`/judge`), translates (`/tr`), gives Wordle hints and asks a question of the day. Each question costs tokens. Without an API key, Hashbrown is simply off.
+- 🥔 **Hashbrown**: an AI member. Type `@hashbrown` in chat, or `/ask` for a private answer; it also comments on your games, judges arguments (`/judge`), translates (`/tr`), gives Wordle hints and asks a question of the day (answer it with `/answer`: the answer with the most reactions wins 50 🪙). Each question costs tokens; you can tip Hashbrown with `/give hashbrown 10`. Without an API key, Hashbrown is simply off.
 - 🌐 **Website**: chat from any phone or laptop on the same Wi-Fi. Light and dark mode, clickable game boards, file sharing.
 - ⌨️ **Terminal client**: `client.py` works in Terminal, Windows CMD and PyCharm.
-- 📁 **Files**: send a file of up to 15 MB (in 1 MB chunks with a progress bar on the website).
-- 🔬 **For the networking class**: a Packet X-ray window on the website (every packet, and the raw TCP chunks `recv()` got), `client.py --packets`, UDP auto-discovery, `/ping`, `/netstats`, and a network lab (the host types `lag 300` or `loss 10` in the server window to make the network worse on purpose).
+- 📁 **Files**: send a file of up to 15 MB (in 1 MB chunks with a progress bar on the website). The receiver is asked first (📎 Accept / Decline, or `/accept file`), and an offer expires after 2 minutes.
+- 🔬 **For the networking class**: a Packet X-ray window on the website (every packet, and the raw TCP chunks `recv()` got), `client.py --packets`, UDP auto-discovery, `/ping`, `/netstats`, and a network lab (the host types `lag 300` or `loss 10` in the server window to make the network worse on purpose; the website shows everyone a 🧪 banner while it's on).
 
 ## 🚀 Quick start
 
@@ -115,7 +115,13 @@ When Hashbrown is awake, the server log says `🥔 Awake!`.
 
 ## 🔐 Admin
 
-Type `/admin <password>` in chat to get admin powers (for example `/admintokens`). The password is `ADMIN_PASSWORD` in `chatserver/config.py`, which is set to `123` by default. **Change it before you share the server.** The `HASHBROWN_ADMIN_PASSWORD` environment variable overrides the file. An empty password turns `/admin` off.
+Type `/admin <password>` in chat to get admin powers (for example `/admintokens`, `/hbstats`, or `/pin` in the lobby). The password is **never in the code** (this repo is public). It comes from the `HASHBROWN_ADMIN_PASSWORD` environment variable. On a Mac, save it in the Keychain as an item called `hashbrown-admin` and `start.sh` loads it:
+
+```bash
+security add-generic-password -a "$USER" -s hashbrown-admin -w
+```
+
+(It asks for the password, so it never shows up in your shell history.) A password shorter than 8 characters works, but the server prints one warning line. With no password, `/admin` is off.
 
 ## 🧠 How it works
 
@@ -138,18 +144,22 @@ Every packet is **one JSON object on one line**, ending with `\n`. That's called
 | client → server | `line` | `text` (a chat message or a `/command`) |
 | client → server | `file` | `to`, `filename`, `data` (base64) |
 | server → client | `auth_result` | `ok`, `text` |
-| server → client | `msg` | `kind`, `text` (board messages also have a `state` object) |
+| server → client | `msg` | `kind`, `text` (board messages also have a `state` object; a file offer has `offer`: `id`, `from`, `filename`, `size`, only for clients with the `offers` feature) |
 | server → client | `chat` | `time`, `name`, `badge`, `text`, `action`, `id`, and `room` (its key) for clients with the `rooms` feature |
 | server → client | `stream` | `stream_id`, `append` (a piece of Hashbrown's answer, only for clients with the `stream` feature) |
 | client → server | `ping` | `t` (any number; it comes straight back) |
-| client → server | `typing` | (none): passed on as `typing` + `name` to clients with the `typing` feature |
+| client → server | `typing` / `typing_stop` | (none): passed on with `name` to clients with the `typing` feature (start at once, a refresh every 2 s, stop on send) |
+| client → server | `seen` | `id` (a private message's `pm_id`): its sender gets `receipt` |
+| server → client | `receipt` | `id`, `status` (`delivered` or `seen`); the sender's copy of a `/send` has `pm` (`id`, `status`), the receiver's has `pm_id` |
+| server → client | `topic` | `room`, `text` (the pinned topic; empty = none), on every room switch and when it changes |
+| server → client | `lab` | `lag_ms`, `loss_percent` (the network lab changed; 0 and 0 = off) |
 | client → server | `react` | `id` (a chat message), `emoji`: the room gets `reactions` with `id` and `counts` |
 | client → server | `edit` / `delete` | `id` (your own message, for 10 min), `text`: the room gets `edited` / `deleted` |
 | both ways | `file_start`, `file_chunk`, `file_ack`, `file_end`, `file_cancel` | big files in 1 MB chunks; the next chunk only after its `file_ack` (flow control) |
 | server → client | `pong` | `t` (the same number: now minus `t` is the round trip) |
 | UDP, client → everyone | `discover` | (none) — broadcast to port 8821 |
 | UDP, server → client | `server` | `name`, `port`, `web_port` — the client uses the IP the answer came from |
-| server → client | `history` | `room`, `messages` |
+| server → client | `history` | `room` (its title), `key` (which room), `messages` |
 | server → client | `file` | `from`, `filename`, `data` |
 
 The `kind` of a `msg` is one of `system`, `error`, `event`, `money`, `game`, `private`, `help` or `board`. New things are only ever *added* (new optional fields or packet types), so an old `client.py` keeps working: it ignores what it doesn't know. Here's what a chat line looks like on the wire:
@@ -166,7 +176,7 @@ The `kind` of a `msg` is one of `system`, `error`, `event`, `money`, `game`, `pr
 hashbrown-chat/
 ├── server.py           starts the chat server
 ├── chatserver/         the server code, one topic per file
-│   ├── config.py       every setting: ports, prices, ADMIN_PASSWORD
+│   ├── config.py       every setting: ports, prices, limits (never the passwords)
 │   ├── connections.py  accepts connections, one thread per person
 │   ├── history.py      chat history in history.db (SQLite), every message has an id
 │   ├── chat.py         what happens with each line someone types
