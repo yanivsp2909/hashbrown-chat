@@ -72,3 +72,14 @@ def handle_line(client, text):
     if text.lower().startswith("@hashbrown"):
         hashbrown_ai.ask_hashbrown(client, text[len("@hashbrown"):].lstrip(" ,:"))
     check_quiz(client, text)
+
+
+def react(client, msg):
+    """😂 {"type": "react", "id": message id, "emoji": "👍"}: toggle your reaction, and tell the room."""
+    message_id, emoji = msg.get("id"), msg.get("emoji")
+    room = history.room_of(message_id) if isinstance(message_id, int) and not isinstance(message_id, bool) else None
+    if emoji not in config.REACTIONS or room is None or not rooms.is_member(client.key, room):
+        client.say("😶 Can't react to that.", "error")
+        return
+    counts = history.toggle_reaction(message_id, client.key, emoji)
+    rooms.send_room(room, {"type": "reactions", "id": message_id, "counts": counts})

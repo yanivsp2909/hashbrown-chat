@@ -41,6 +41,9 @@ def _open():
                            "id INTEGER PRIMARY KEY AUTOINCREMENT, room TEXT, time TEXT, name TEXT, "
                            "badge TEXT, text TEXT, action INTEGER, created REAL)")
         connection.execute("CREATE INDEX IF NOT EXISTS messages_room ON messages (room, id)")
+        # 😂 one row per (message, person, emoji): reacting again deletes the row
+        connection.execute("CREATE TABLE IF NOT EXISTS reactions (message_id INTEGER, login TEXT, emoji TEXT, "
+                           "PRIMARY KEY (message_id, login, emoji))")
         connection.commit()
     except sqlite3.Error as e:
         _failed_path = path
@@ -112,8 +115,10 @@ def recent(room, count=None):
         except sqlite3.Error as e:
             textutil.log(f"[SERVER] ⚠️ Couldn't read history.db ({e})")
             return list(_memory.get(room, ()))[-count:]
-    return [{"type": "chat", "id": row[0], "time": row[1], "name": row[2], "badge": row[3],
-             "text": row[4], "action": bool(row[5])} for row in reversed(rows)]
+        counts = reaction_counts([row[0] for row in rows])
+    messages = [{"type": "chat", "id": row[0], "time": row[1], "name": row[2], "badge": row[3],
+                 "text": row[4], "action": bool(row[5])} for row in reversed(rows)]
+    return [{**m, "reactions": counts[m["id"]]} if m["id"] in counts else m for m in messages]
 
 
 def delete_room(room):
@@ -123,7 +128,52 @@ def delete_room(room):
         connection = _open()
         if connection is not None:
             try:
+                connection.execute("DELETE FROM reactions WHERE message_id IN "
+                                   "(SELECT id FROM messages WHERE room = ?)", (room,))
                 connection.execute("DELETE FROM messages WHERE room = ?", (room,))
                 connection.commit()
             except sqlite3.Error as e:
                 textutil.log(f"[SERVER] ⚠️ Couldn't clear a room in history.db ({e})")
+
+
+# ---------------------------------------------------------------- 😂 reactions
+
+def room_of(message_id):
+    """Which room a message was posted in, or None if there's no such message (or no database)."""
+    with _lock:
+        connection = _open()
+        if connection is None:
+            return None
+        row = connection.execute("SELECT room FROM messages WHERE id = ?", (message_id,)).fetchone()
+    return row[0] if row else None
+
+
+def reaction_counts(message_ids):
+    """{message id: {emoji: how many}} for the messages that have reactions."""
+    if not message_ids:
+        return {}
+    marks = ", ".join("?" * len(message_ids))
+    with _lock:
+        connection = _open()
+        if connection is None:
+            return {}
+        rows = connection.execute(f"SELECT message_id, emoji, COUNT(*) FROM reactions WHERE message_id IN ({marks}) "
+                                  "GROUP BY message_id, emoji ORDER BY MIN(rowid)", list(message_ids)).fetchall()
+    counts = {}
+    for message_id, emoji, count in rows:
+        counts.setdefault(message_id, {})[emoji] = count
+    return counts
+
+
+def toggle_reaction(message_id, login, emoji):
+    """Add this person's emoji to the message, or take it back if it's already there. Returns the new counts."""
+    with _lock:
+        connection = _open()
+        key = (message_id, login, emoji)
+        if connection.execute("SELECT 1 FROM reactions WHERE message_id = ? AND login = ? AND emoji = ?",
+                              key).fetchone():
+            connection.execute("DELETE FROM reactions WHERE message_id = ? AND login = ? AND emoji = ?", key)
+        else:
+            connection.execute("INSERT INTO reactions (message_id, login, emoji) VALUES (?, ?, ?)", key)
+        connection.commit()
+    return reaction_counts([message_id]).get(message_id, {})

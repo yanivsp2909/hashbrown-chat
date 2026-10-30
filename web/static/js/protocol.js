@@ -12,6 +12,7 @@ import { noteTarget } from "./games/panel.js";
 import * as online from "./online.js";
 import * as rooms from "./rooms.js";
 import * as typing from "./typing.js";
+import { updateReactions } from "./reactions.js";
 
 const MAX_NAMES = 60;
 const NICK_KEY = "hashbrown.nick";
@@ -168,6 +169,8 @@ export function handleMessage(msg, live, sendLine) {
   switch (msg.type) {
     case "rooms":
       return rooms.setRooms(msg);
+    case "reactions":
+      return Number.isInteger(msg.id) ? updateReactions(msg) : undefined;
     case "typing":
       return live ? typing.someoneTyping(str(msg.name)) : undefined;
     case "stream":

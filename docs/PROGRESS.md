@@ -61,7 +61,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | # | Feature | Status |
 |---|---|---|
 | 9 | Typing indicator (exempt from the spam limit) | done: `typing` packet, own limit (TYPING_EVERY), only to clients with the \"typing\" feature in your room |
-| 10 | Reactions | not started |
+| 10 | Reactions | done: `react` toggles one of config.REACTIONS on a message id (reactions table in history.db), room gets `reactions` counts, history carries them; website chips + picker |
 | 11 | Rematch + `/claim` | done: /rematch (same opponent, game, bet), /claim after CLAIM_AFTER s on the other's turn (not Math Duel: no turns) |
 | 12 | `/tldr` | done: private, paid like /ask, reads TLDR_HISTORY (50) lines |
 | 13 | `/poll` | done: one poll per room, /vote (can change), /poll shows counts, /endpoll (creator or group admin); website vote buttons from the optional `poll` field |

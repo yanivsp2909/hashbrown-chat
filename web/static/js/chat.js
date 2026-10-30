@@ -9,6 +9,7 @@
 
 import { $, clear, el, initial, nameClass, str } from "./dom.js";
 import { hashbrownPrivate, isHashbrown, parsePrivate } from "./patterns.js";
+import { reactionRow } from "./reactions.js";
 
 const MAX_MESSAGES = 500;
 const NEAR_BOTTOM = 80;     // px: closer than this to the bottom counts as "reading the latest"
@@ -157,7 +158,8 @@ function chatNode(msg, { mine = false, old = false } = {}) {
   const classes = ["msg", "chat", mine && "mine", bot && "bot", old && "old", msg.action && "action", grouped && "cont"];
   return el("li", { class: classes.filter(Boolean).join(" ") },
     mine ? null : grouped ? el("span", { class: "avatar-gap" }) : avatar(name, bot),
-    el("div", { class: "bubble" }, head, text));
+    el("div", { class: "bubble" }, head, text,
+      Number.isInteger(msg.id) ? reactionRow(msg.id, msg.reactions) : null));   // 😂 only stored messages have an id
 }
 
 export function addChat(msg, { live, mine }) {

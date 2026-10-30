@@ -99,6 +99,10 @@ def handle_message(client, msg):
             pass_on_typing(client)
             return
         text = textutil.clean_text(msg.get("text", ""))[:config.MAX_TEXT]
+        if msg.get("type") == "react":
+            if rooms.spam_ok(client):
+                chat.react(client, msg)
+            return
         if not matches.is_game_move(client, text) and not rooms.spam_ok(client):
             return  # game moves don't count as spam
         if msg.get("type") == "line":

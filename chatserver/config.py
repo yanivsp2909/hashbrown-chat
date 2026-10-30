@@ -40,6 +40,7 @@ WEB_PORT = 8080
 SERVER_NAME = "Hashbrown Chat"   # what clients see when they search the Wi-Fi for servers
 DISCOVERY_PORT = 8821             # UDP: clients broadcast {"type": "discover"} here to find the server
 DISCOVERY_MAX_PER_SECOND = 20
+REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🥔"]   # the emojis people can react with
 TYPING_EVERY = 2                 # ⌨️ seconds: at most one "is typing" a person is passed on in this time
 PINGS_PER_SECOND = 5             # 🏓 more pings than this a second are ignored (they skip the spam limit)
 LAB_RESEND_MS = 300              # 🧪 network lab: how late a "lost" packet arrives (TCP resends it)

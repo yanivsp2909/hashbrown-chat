@@ -97,12 +97,17 @@ def validate(msg, logged_in):
         if "features" in msg:   # optional: what this browser understands, like ["stream"]
             auth["features"] = clean_features(msg["features"])
         return auth
-    if kind not in ("line", "file", "ping", "typing"):
+    if kind not in ("line", "file", "ping", "typing", "react"):
         raise BridgeError(400, "Unknown message type.")
     if not logged_in:
         raise BridgeError(403, "Log in first.")
     if kind == "typing":   # ⌨️ no fields at all
         return {"type": "typing"}
+    if kind == "react":    # 😂 a message id and one short emoji (the server checks it's an allowed one)
+        message_id = msg.get("id")
+        if not isinstance(message_id, int) or isinstance(message_id, bool):
+            raise BridgeError(400, "Bad reaction.")
+        return {"type": "react", "id": message_id, "emoji": clean(msg.get("emoji"), 8, "Emoji")}
     if kind == "ping":   # 🏓 only a number travels with it
         t = msg.get("t")
         return {"type": "ping", **({"t": t} if isinstance(t, (int, float)) and not isinstance(t, bool) else {})}

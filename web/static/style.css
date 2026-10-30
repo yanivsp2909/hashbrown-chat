@@ -554,3 +554,16 @@ a { color: var(--gold); text-underline-offset: 3px; }
 
 /* ----- ⌨️ "Noa is typing…" just above the message box */
 .typing-line { margin: 0; padding: 2px var(--chat-pad) 4px; color: var(--muted); font-size: 13px; font-style: italic; }
+
+/* ----- 😂 Reactions under a bubble */
+.reactions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; }
+.reaction-chips { display: contents; }
+.reaction, .reaction-add, .reaction-pick {
+  min-height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); color: var(--text); font-size: 13px; cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.reaction-add { color: var(--muted); opacity: 0.75; }
+.msg.chat:hover .reaction-add, .reaction-add:focus-visible, .reaction-add[aria-expanded="true"] { opacity: 1; }
+.reaction-picker { display: inline-flex; gap: 2px; }
+.reaction-picker[hidden] { display: none; }
+.reaction-pick { padding: 0 6px; font-size: 16px; }
