@@ -48,16 +48,12 @@ cd hashbrown-chat
 python server.py
 ```
 
-For the website, open a second window and run:
-
-```bash
-python web/web_server.py
-```
+It also starts the website on port 8080 (set `START_WEBSITE = False` in `chatserver/config.py` to run `python web/web_server.py` yourself).
 
 **3. Join**
 
 - 🌐 **Website**: open the link that `web_server.py` prints, for example `http://192.168.1.20:8080`.
-- ⌨️ **Terminal**: run `python client.py <host IP>` with the host's IP address, then choose **2** to create an account or **1** to log in.
+- ⌨️ **Terminal**: run `python client.py <host IP>` with the host's IP address. Press Enter to play in the terminal (or **2** to open the website; `--web` skips the question), then choose **2** to create an account or **1** to log in.
 
 Type `/help` once you're in to see every command. The full list is in the [user guide](docs/GUIDE.md).
 
@@ -135,16 +131,17 @@ Every packet is **one JSON object on one line**, ending with `\n`. That's called
 
 | Direction | Type | Fields |
 |---|---|---|
-| client → server | `auth` | `action` (`login` or `register`), `username`, `password` |
+| client → server | `auth` | `action` (`login` or `register`), `username`, `password`, optional `features` (e.g. `["stream"]`) |
 | client → server | `line` | `text` (a chat message or a `/command`) |
 | client → server | `file` | `to`, `filename`, `data` (base64) |
 | server → client | `auth_result` | `ok`, `text` |
 | server → client | `msg` | `kind`, `text` (board messages also have a `state` object) |
-| server → client | `chat` | `time`, `name`, `badge`, `text`, `action` |
+| server → client | `chat` | `time`, `name`, `badge`, `text`, `action`, `id` |
+| server → client | `stream` | `stream_id`, `append` (a piece of Hashbrown's answer, only for clients with the `stream` feature) |
 | server → client | `history` | `room`, `messages` |
 | server → client | `file` | `from`, `filename`, `data` |
 
-The `kind` of a `msg` is one of `system`, `error`, `event`, `money`, `game`, `private`, `help` or `board`. Here's what a chat line looks like on the wire:
+The `kind` of a `msg` is one of `system`, `error`, `event`, `money`, `game`, `private`, `help` or `board`. New things are only ever *added* (new optional fields or packet types), so an old `client.py` keeps working: it ignores what it doesn't know. Here's what a chat line looks like on the wire:
 
 ```json
 {"type": "line", "text": "hi everyone"}

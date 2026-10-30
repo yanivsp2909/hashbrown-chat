@@ -47,13 +47,13 @@ Allow incoming connections if your computer asks. Find your IP address (Mac: `ip
 ```
 python client.py 192.168.1.20
 ```
-Use the host's IP address. With no IP, the client uses the default written at the top of `client.py`. Then pick **2** to create an account, or **1** to log in. Type `/help` once you're in.
+Use the host's IP address (with no IP it connects to this computer, 127.0.0.1). It asks **1) terminal 2) website**: Enter plays in the terminal, **2** opens the host's website in your browser (add `--web` to skip the question). Then pick **2** to create an account, or **1** to log in. Type `/help` once you're in.
 
 ## Website 🌐
 
 Friends can also use the chat from a browser instead of `client.py`, on a phone or a laptop. Nothing to install.
 
-**Host:** keep `server.py` running, then in a second window:
+**Host:** `python server.py` starts the website too (on port 8080). If you turned that off (`START_WEBSITE = False` in `chatserver/config.py`), keep `server.py` running and in a second window run:
 ```
 python web/web_server.py
 ```
@@ -128,7 +128,7 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 | | |
 |---|---|
 | 💬 Chat | `/help` `/users` `/send name msg` `/me action` `/nick name` `/whois name` `/quit` |
-| 🥔 Hashbrown | `@hashbrown question` or `/ask question` |
+| 🥔 Hashbrown | `@hashbrown question` (everyone sees the answer) or `/ask question` (only you see it, you pay) |
 | 👥 Groups | `/groups` `/create name [private]` `/join name` `/lobby` `/leave` `/members` `/requests` `/approve name` `/reject name` |
 | 🛡️ Admin | `/kick` `/ban` `/unban` `/mute name [min]` `/unmute` `/promote` `/demote` `/disband` |
 | 🏦 Group bank | `/bank` `/donate amount` `/upgrade name` `/groupemoji 🍟` `/topgroups` |
