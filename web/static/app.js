@@ -140,7 +140,9 @@ api.setHandlers({
     }
     if (getState().screen === "chat") return showClosed(reason);
     resetChat();
-    connect(reason);  // still on the login screen: quietly start a fresh connection
+    // Still on the login screen: quietly start a fresh connection. Don't show why the old one
+    // closed (e.g. the server's login time limit); nobody was logged in to lose anything.
+    connect();
   },
   onGap: () => chat.addNotice("system", "✂️ Some older messages were skipped."),
   onReplaced: () => showClosed("This chat is open in another tab. Close that tab, then come back here."),

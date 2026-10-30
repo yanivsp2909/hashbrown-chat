@@ -12,3 +12,6 @@ __pycache__/
 .venv/
 .idea/
 .DS_Store
+
+# Screenshots for checking the website by eye
+screenshots/

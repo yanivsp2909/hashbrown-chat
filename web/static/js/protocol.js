@@ -6,7 +6,7 @@ import { getState, setState } from "./store.js";
 import * as chat from "./chat.js";
 import { receive } from "./files.js";
 import { addInvite } from "./rail.js";
-import { inviteFrom, isAlreadyOnline, isWordleOver, matchResult, parseHelp, renamed, welcomeNick } from "./patterns.js";
+import { inviteFrom, isWordleOver, matchResult, parseHelp, renamed, welcomeNick } from "./patterns.js";
 import { clearPasswords, showLoginError } from "./login.js";
 import { noteTarget } from "./games/panel.js";
 
@@ -57,8 +57,7 @@ function onAuthResult(msg, live, sendLine) {
   const text = str(msg.text);
   if (!msg.ok) {
     if (!live) return;
-    const hint = isAlreadyOnline(text) ? " If you just closed a tab, log out there or wait about 90 seconds." : "";
-    showLoginError(text + hint);
+    showLoginError(text);
     return;
   }
   clearPasswords();

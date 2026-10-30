@@ -177,6 +177,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .loading-text { color: var(--muted); font-size: 17px; }
 .spud { display: inline-block; animation: sizzle 900ms var(--ease-in-out) infinite alternate; }
 @keyframes sizzle { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+.spud-logo { width: 26px; height: 26px; margin-right: 6px; vertical-align: middle; }
 
 .login-ticket {  /* the login card is the first order ticket you see */
   position: relative; width: min(420px, 100%); padding: 34px 30px 22px;
@@ -196,7 +197,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .login-ticket .segmented button[aria-selected="true"] { background: var(--paper); color: var(--paper-ink); }
 .login-ticket :focus-visible { outline-color: #8a5600; }
 .login-head { text-align: center; display: grid; gap: 6px; justify-items: center; }
-.login-spud { font-size: 52px; line-height: 1; filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.35)); }
+.login-logo { width: 64px; height: 64px; filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.35)); }
 .login-head h1, .closed-card h1 { font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
 .login-sub { color: var(--text-2); text-wrap: balance; }
 .segmented {
@@ -229,6 +230,8 @@ a { color: var(--gold); text-underline-offset: 3px; }
 }
 .side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .brand { font-weight: 800; font-size: 19px; letter-spacing: -0.01em; }
+.side-head .brand { display: inline-flex; align-items: center; gap: 9px; }
+.brand-logo { width: 28px; height: 28px; flex: none; }
 .side-card {
   padding: 14px; border-radius: var(--radius);
   background: var(--crust); border: 1px solid var(--crust-line);

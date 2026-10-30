@@ -6,7 +6,9 @@
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#1a120c">
   <title>Hashbrown Chat 🥔</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/games.css">
   <script type="module" src="/app.js"></script>
@@ -14,14 +16,14 @@
 <body>
   <!-- Loading -->
   <main id="screen-loading" class="screen screen-center">
-    <p class="loading-text"><span class="spud" aria-hidden="true">🥔</span> Heating up the fryer…</p>
+    <p class="loading-text"><img class="spud spud-logo" src="/logo.svg" alt="" width="26" height="26"> Heating up the fryer…</p>
   </main>
 
   <!-- Login / create account -->
   <main id="screen-login" class="screen screen-center" hidden>
     <section class="login-ticket" aria-labelledby="login-title">
       <header class="login-head">
-        <span class="login-spud" aria-hidden="true">🥔</span>
+        <img class="login-logo" src="/logo.svg" alt="" width="64" height="64">
         <h1 id="login-title">Hashbrown Chat</h1>
         <p class="login-sub">Order up! Log in to chat, play and bug Hashbrown.</p>
       </header>
@@ -55,7 +57,7 @@
     <a class="skip-link" href="#input">Skip to the message box</a>
     <aside id="sidebar" class="sidebar" aria-label="Room and quick actions">
       <div class="side-head">
-        <span class="brand"><span aria-hidden="true">🥔</span> Hashbrown</span>
+        <span class="brand"><img class="brand-logo" src="/logo.svg" alt="" width="28" height="28">Hashbrown</span>
         <button id="close-sidebar" class="icon-btn only-narrow" type="button" aria-label="Close menu"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <section class="side-card">

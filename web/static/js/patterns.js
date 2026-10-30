@@ -4,7 +4,6 @@
 // exact wording. These are the server strings (from server.py) this file depends on:
 //
 //   welcome        auth_result: "✅ Welcome back, {nick}!"  /  "✅ Account created! Welcome, {nick}!"
-//   alreadyOnline  auth_result: "⚠️ That account is already logged in somewhere else."
 //   renamed        msg:         "✏️ {old} is now called {badge} {nick}"   (badge is optional)
 //   invite         msg event:   "⚔️ {who} challenges you to {game}{ for N 🪙}!  /accept {nick}  or  /decline {nick}"
 //   won            msg money:   "🏆 YOU WON!..."      (also sent on resign / disconnect, with no board)
@@ -22,7 +21,6 @@ const P = (source) => new RegExp(source, "u");
 
 export const PATTERNS = Object.freeze({
   welcome: P(String.raw`^✅ (?:Welcome back|Account created! Welcome), (\S+)!$`),
-  alreadyOnline: P(String.raw`already logged in somewhere else`),
   renamed: P(String.raw`^✏️ (\S+) is now called (?:\S+ )?(\S+)$`),
   invite: P(String.raw`^⚔️ .+ challenges you to .+!\s+/accept (\S+)\s+or\s+/decline \S+$`),
   won: P(String.raw`^🏆 YOU WON!`),
@@ -62,10 +60,6 @@ export function matchResult(kind, text) {
 
 export function isWordleOver(text) {
   return PATTERNS.wordleOver.test(text);
-}
-
-export function isAlreadyOnline(text) {
-  return PATTERNS.alreadyOnline.test(text);
 }
 
 /** The /help reply as [{name, usage, description}], one per command line. */

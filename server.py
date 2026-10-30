@@ -68,6 +68,7 @@ ADMIN_TOKENS = 1000              # what /admintokens gives
 HASHBROWN_COST = 20          # tokens per question
 HASHBROWN_COOLDOWN = 15      # seconds between questions, per person
 HASHBROWN_DAILY_LIMIT = 30   # questions per person per day
+HASHBROWN_DAILY_CAP = 100    # questions for EVERYONE together per day (each one costs real money)
 HASHBROWN_MAX_BUSY = 3       # questions being answered at the same time
 HASHBROWN_PROMPT = (
     "You are Hashbrown 🥔, a friendly, funny AI living in a terminal group chat of teenagers in Israel. "
@@ -123,6 +124,7 @@ hashbrown = None        # Foundry settings, or None if Hashbrown isn't set up
 hashbrown_busy = 0      # questions being answered right now
 hashbrown_last = {}     # login -> time of their last question
 hashbrown_today = {}    # login -> (date, questions asked that day)
+hashbrown_all_today = ("", 0)  # (date, questions asked by everyone that day)
 
 
 # ---------------------------------------------------------------- logging
@@ -1781,7 +1783,7 @@ def call_hashbrown(messages):
 
 
 def ask_hashbrown(client, question):
-    global hashbrown_busy
+    global hashbrown_busy, hashbrown_all_today
     if hashbrown is None:
         client.say("🥔💤 Hashbrown is asleep (the server owner hasn't set it up yet).", "error")
         return
@@ -1798,6 +1800,13 @@ def ask_hashbrown(client, question):
         day, asked = today(), 0
     if asked >= HASHBROWN_DAILY_LIMIT:
         client.say(f"🥔 You've asked {HASHBROWN_DAILY_LIMIT} questions today. Come back tomorrow!", "error")
+        return
+    all_day, all_asked = hashbrown_all_today
+    if all_day != today():
+        all_day, all_asked = today(), 0
+    if all_asked >= HASHBROWN_DAILY_CAP:
+        client.say(f"🥔😴 Hashbrown already answered {HASHBROWN_DAILY_CAP} questions today and is taking "
+                   f"a nap. Ask again tomorrow!", "error")
         return
     if hashbrown_busy >= HASHBROWN_MAX_BUSY:
         client.say("🥔 Hashbrown is busy answering others. Try again in a few seconds.", "error")
@@ -1824,6 +1833,7 @@ def ask_hashbrown(client, question):
 
     hashbrown_last[key] = time.time()
     hashbrown_today[key] = (day, asked + 1)
+    hashbrown_all_today = (all_day, all_asked + 1)
     hashbrown_busy += 1
     notify_room(room, "🥔 Hashbrown is thinking...", kind="event")
     threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer), daemon=True).start()
@@ -1831,6 +1841,7 @@ def ask_hashbrown(client, question):
 
 def refund_hashbrown(asker, payer):
     """The question failed: give the tokens back and don't count it as one of today's questions."""
+    global hashbrown_all_today
     kind, who = payer
     if kind == "user" and who in accounts:
         accounts[who]["tokens"] += HASHBROWN_COST
@@ -1841,6 +1852,9 @@ def refund_hashbrown(asker, payer):
     day, asked = hashbrown_today.get(asker, ("", 0))
     if day == today() and asked > 0:
         hashbrown_today[asker] = (day, asked - 1)
+    all_day, all_asked = hashbrown_all_today
+    if all_day == today() and all_asked > 0:
+        hashbrown_all_today = (all_day, all_asked - 1)
 
 
 def hashbrown_worker(asker, room, group, messages, payer):
@@ -2182,13 +2196,13 @@ def is_game_move(client, text):
 
 def reset_state():
     """Forget everything in memory (the tests use this to start each test from zero)."""
-    global quiz, hashbrown, hashbrown_busy
+    global quiz, hashbrown, hashbrown_busy, hashbrown_all_today
     with lock:
         for table in (accounts, groups, online, mutes, invites, matches, last_rob, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today, history):
             table.clear()
         history["lobby"] = deque(maxlen=HISTORY_SIZE)
-        quiz, hashbrown, hashbrown_busy = None, None, 0
+        quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)
 
 
 def start_server(host=HOST, port=PORT, run_loops=True, run_console=True):

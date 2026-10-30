@@ -153,7 +153,9 @@ class TestServerStrings(BridgeTestCase):
         a = self.tab()
         samples["welcome"].append(a.auth(a_name, PASSWORD)["text"])
         b.auth(b_name, PASSWORD, "register")
-        samples["alreadyOnline"] = [self.tab().auth(b_name, PASSWORD)["text"]]
+        old_b, b = b, self.tab()  # logging in again from a new tab takes over the old one
+        self.assertTrue(b.auth(b_name, PASSWORD)["ok"])
+        old_b.wait(is_msg("🔁", "error"), what="the 'logged in from another window' notice")
 
         a.line("/help")
         help_text = a.wait(is_msg(kind="help"), what="the /help reply")["text"]
@@ -195,6 +197,16 @@ class TestSecurity(BridgeTestCase):
         self.assertEqual(headers["referrer-policy"], "no-referrer")
         status, headers, _ = request(stack.web_port, "GET", "/app.js")
         self.assertEqual((status, headers["content-type"].split(";")[0]), (200, "text/javascript"))
+
+    def test_logo_files_load(self):
+        _, _, page = request(stack.web_port, "GET", "/")
+        for path, kind in (("/logo.svg", "image/svg+xml"), ("/favicon-32.png", "image/png"),
+                           ("/apple-touch-icon.png", "image/png")):
+            status, headers, body = request(stack.web_port, "GET", path)
+            self.assertEqual((status, headers["content-type"]), (200, kind), path)
+            self.assertGreater(len(body), 100, path)
+            self.assertIn(f'href="{path}"'.encode() if path != "/logo.svg" else b'src="/logo.svg"', page, path)
+        self.assertEqual(request(stack.web_port, "GET", "/favicon.svg")[0], 404)  # the old emoji icon is gone
 
     def test_path_traversal_is_blocked(self):
         for path in ("/../server.py", "/%2e%2e/server.py", "/js/../../web_server.py",
