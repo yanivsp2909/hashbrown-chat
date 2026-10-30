@@ -21,6 +21,8 @@ MAX_FEATURES, MAX_FEATURE_LENGTH = 8, 20   # the optional "features" list in the
 LOG_MAX_EVENTS = 1000        # events kept per session for replay after a reload
 LOG_MAX_BYTES = 6 * 1024 * 1024
 XRAY_MAX_TEXT = 2000           # 🔬 bytes of each raw chunk shown in the Packet X-ray (big files are cut)
+CHUNK_B64 = 1_400_000          # 📦 one chunk of a big file, after base64 (as in the chat server)
+LIVE_ONLY_MAX_BYTES = 24 * 1024 * 1024   # 📦 big file chunks waiting for a tab (never replayed)
 XRAY_KEEP = 100                # 🔬 X-ray events kept in the replay log, so chat messages aren't pushed out
 DETACHED_GRACE = 90          # seconds a session lives with no tab attached (reload / phone in pocket)
 LOGIN_GRACE = 120            # seconds to log in before an unused session is closed
@@ -97,7 +99,7 @@ def validate(msg, logged_in):
         if "features" in msg:   # optional: what this browser understands, like ["stream"]
             auth["features"] = clean_features(msg["features"])
         return auth
-    if kind not in ("line", "file", "ping", "typing", "react"):
+    if kind not in ("line", "file", "ping", "typing", "react", "file_start", "file_chunk", "file_cancel"):
         raise BridgeError(400, "Unknown message type.")
     if not logged_in:
         raise BridgeError(403, "Log in first.")
@@ -113,6 +115,8 @@ def validate(msg, logged_in):
         return {"type": "ping", **({"t": t} if isinstance(t, (int, float)) and not isinstance(t, bool) else {})}
     if kind == "line":
         return {"type": "line", "text": clean(msg.get("text"), MAX_TEXT, "Message")}
+    if kind in ("file_start", "file_chunk", "file_cancel"):
+        return big_file_packet(kind, msg)
     data = msg.get("data")
     if not isinstance(data, str) or len(data) > MAX_FILE_B64:
         raise BridgeError(413, "Files must be 2 MB or less.")
@@ -120,6 +124,26 @@ def validate(msg, logged_in):
         raise BridgeError(400, "That file didn't encode properly.")
     return {"type": "file", "to": clean(msg.get("to"), 32, "Name"),
             "filename": clean(msg.get("filename"), 255, "File name"), "data": data}
+
+
+def whole_number(value, what):
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise BridgeError(400, f"Bad {what}.")
+    return value
+
+
+def big_file_packet(kind, msg):
+    """📦 A big file in chunks (the chat server checks the sizes and the order)."""
+    packet = {"type": kind, "id": clean(msg.get("id"), 40, "Transfer id")}
+    if kind == "file_start":
+        packet.update(to=clean(msg.get("to"), 32, "Name"), filename=clean(msg.get("filename"), 255, "File name"),
+                      size=whole_number(msg.get("size"), "size"), chunks=whole_number(msg.get("chunks"), "chunk count"))
+    elif kind == "file_chunk":
+        data = msg.get("data")
+        if not isinstance(data, str) or len(data) > CHUNK_B64 or len(data) % 4 or not BASE64.fullmatch(data):
+            raise BridgeError(400, "That piece of the file didn't encode properly.")
+        packet.update(index=whole_number(msg.get("index"), "chunk number"), data=data)
+    return packet
 
 
 def read_lines(sock, on_chunk=None):
@@ -169,6 +193,9 @@ class Session:
         self.sends = deque()
         self.xray = False            # 🔬 the tab's Packet X-ray is open: show it the raw TCP traffic too
         self.xray_ids = deque()      # 🔬 ids of the x-ray events still in the replay log
+        self.live_only = deque()     # 📦 (id, json text) sent once to the tab, never replayed: big file chunks
+        self.live_only_size = 0
+        self.trimmed_upto = 0        # the newest event id the replay log had to drop (0 = none)
         self.auth_pending = False    # one login attempt at a time, so guesses can't be pipelined
         threading.Thread(target=self._read_loop, daemon=True).start()
 
@@ -190,7 +217,11 @@ class Session:
                         self.logged_in = True
                     elif self.on_login_fail:
                         self.on_login_fail(self.ip)
-                self._append(json.dumps(msg, ensure_ascii=False, separators=(",", ":")))
+                text = json.dumps(msg, ensure_ascii=False, separators=(",", ":"))
+                if msg.get("type") == "file_chunk":   # 📦 1 MB each: kept out of the replay log
+                    self._append_live_only(text)
+                else:
+                    self._append(text)
         except OSError:
             reason = "Lost the connection to the chat server."
         self.end(reason)
@@ -201,13 +232,29 @@ class Session:
             self.events.append((self.last_id, text))
             self.size += len(text)
             while len(self.events) > 1 and (len(self.events) > LOG_MAX_EVENTS or self.size > LOG_MAX_BYTES):
-                self.size -= len(self.events.popleft()[1])
+                dropped_id, dropped_text = self.events.popleft()
+                self.size -= len(dropped_text)
+                self.trimmed_upto = dropped_id
             self.cond.notify_all()
+
+    def _append_live_only(self, text):
+        with self.cond:
+            self.last_id += 1
+            self.live_only.append((self.last_id, text))
+            self.live_only_size += len(text)
+            while self.live_only and self.live_only_size > LIVE_ONLY_MAX_BYTES:   # nobody's reading: give up
+                self.live_only_size -= len(self.live_only.popleft()[1])
+            self.cond.notify_all()
+
+    def forget_sent(self, last_id):
+        """The tab got everything up to last_id: live-only events are done. Call while holding cond."""
+        while self.live_only and self.live_only[0][0] <= last_id:
+            self.live_only_size -= len(self.live_only.popleft()[1])
 
     def since(self, last_id):
         """Events after last_id, and whether some were already dropped. Call while holding cond."""
-        missed = [e for e in self.events if e[0] > last_id]
-        gap = bool(self.events) and self.events[0][0] > last_id + 1
+        missed = sorted([e for e in self.events if e[0] > last_id] + [e for e in self.live_only if e[0] > last_id])
+        gap = self.trimmed_upto > last_id   # (ids also skip for x-ray and live-only events: that's no gap)
         return missed, gap
 
     # ----- the attached /api/events stream (newest one wins)

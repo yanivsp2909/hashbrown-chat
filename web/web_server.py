@@ -269,6 +269,8 @@ class Handler(BaseHTTPRequestHandler):
                 last = missed[-1][0]
             if chunk or not live_sent:
                 self.write_sse(chunk)
+                with session.cond:
+                    session.forget_sent(last)   # 📦 live-only events (big file chunks) are delivered: done
             if not live_sent:  # everything before this was replay, everything after is live
                 self.write_bridge("live", logged_in=session.logged_in)
                 live_sent = True

@@ -357,3 +357,30 @@ class TestChatSwitcher(BridgeTestCase):
         rooms = browser.wait(lambda e: e["data"].get("type") == "rooms", what="the room list")
         self.assertEqual(rooms["current"], "lobby")
         self.assertEqual([r["key"] for r in rooms["rooms"]], ["lobby"])
+
+
+class TestBigFiles(BridgeTestCase):
+    """📦 A big file through the website: chunks with acks, and the chunks never go into the reload replay."""
+
+    def test_a_chunked_file_arrives_and_its_chunks_arent_replayed(self):
+        from harness import Stream
+        a, b = self.tab(), self.tab()
+        a_name, b_name = next(names), next(names)
+        self.assertTrue(a.auth(a_name, PASSWORD, "register", ["chunks"])["ok"])
+        self.assertTrue(b.auth(b_name, PASSWORD, "register", ["chunks"])["ok"])
+        piece = base64.b64encode(b"x" * 10).decode()
+        a.send({"type": "file_start", "id": "t1", "to": b_name, "filename": "big.bin", "size": 10, "chunks": 1})
+        a.wait(lambda e: e["data"].get("type") == "file_ack" and e["data"].get("next") == 0, what="the first ack")
+        a.send({"type": "file_chunk", "id": "t1", "index": 0, "data": piece})
+        chunk = b.wait(lambda e: e["data"].get("type") == "file_chunk", what="the chunk")
+        self.assertEqual(chunk["data"], piece)
+        b.wait(lambda e: e["data"].get("type") == "file_end", what="the end")
+        replay = Stream(stack.web_port, b.sid, last=0)   # what a reloaded tab gets
+        self.addCleanup(replay.close)
+        replay.wait_for(lambda e: e["data"].get("type") == "file_end", what="the replayed end")
+        self.assertFalse(any(e["data"].get("type") == "file_chunk" for e in replay.seen))
+
+    def test_a_bad_chunk_is_refused_by_the_bridge(self):
+        a, _ = self.user()
+        status, _ = a.send({"type": "file_chunk", "id": "t1", "index": 0, "data": "not base64!"})
+        self.assertEqual(status, 400)

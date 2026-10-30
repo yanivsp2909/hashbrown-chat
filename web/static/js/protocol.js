@@ -13,6 +13,7 @@ import * as online from "./online.js";
 import * as rooms from "./rooms.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
+import * as bigfiles from "./bigfiles.js";
 
 const MAX_NAMES = 60;
 const NICK_KEY = "hashbrown.nick";
@@ -169,6 +170,14 @@ export function handleMessage(msg, live, sendLine) {
   switch (msg.type) {
     case "rooms":
       return rooms.setRooms(msg);
+    case "file_start":   // 📦 big files: only live (a reload can't bring back the pieces)
+    case "file_chunk":
+    case "file_end":
+    case "file_cancel":
+    case "file_ack":
+      if (live) ({ file_start: bigfiles.onStart, file_chunk: bigfiles.onChunk, file_end: bigfiles.onEnd,
+        file_cancel: bigfiles.onCancel, file_ack: bigfiles.onAck })[msg.type](msg);
+      return undefined;
     case "reactions":
       return Number.isInteger(msg.id) ? updateReactions(msg) : undefined;
     case "typing":

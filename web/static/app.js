@@ -195,7 +195,7 @@ initLogin({
     }
     await api.whenLive();  // otherwise the reply could arrive mixed into the replay and get lost
     setPendingUsername(username);
-    const error = await api.send({ type: "auth", action, username, password, features: ["stream", "rooms", "typing"] });
+    const error = await api.send({ type: "auth", action, username, password, features: ["stream", "rooms", "typing", "chunks"] });
     if (error) showLoginError(error);
   },
 });

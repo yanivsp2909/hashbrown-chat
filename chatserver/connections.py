@@ -9,7 +9,7 @@ import time
 import traceback
 
 from chatserver import (auth, background, chat, config, discovery, hashbrown_ai, matches, rooms, session, state,
-                        storage, textutil, website)
+                        storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
 
 
@@ -25,6 +25,7 @@ def disconnect(client):
                 if match:
                     matches.finish_match(match, match.opponent(key), f"{rooms.nick(key)} disconnected")
                 state.invites.pop(key, None)
+                transfers.drop_all_of(key)
                 state.solo.pop(key, None)
                 for waiting in state.invites.values():
                     waiting[:] = [i for i in waiting if i["from"] != key]
@@ -89,6 +90,9 @@ def pass_on_typing(client):
             other.send({**note, "room": client.room} if "rooms" in other.features else note)
 
 
+BIG_FILE_PACKETS = {"file_start": transfers.start, "file_chunk": transfers.chunk, "file_cancel": transfers.cancel}
+
+
 def handle_message(client, msg):
     """A message from someone who is logged in. Called while holding the lock."""
     try:
@@ -98,6 +102,9 @@ def handle_message(client, msg):
             return
         if kind == "typing":     # ⌨️ the same: its own small limit
             pass_on_typing(client)
+            return
+        if kind in BIG_FILE_PACKETS:   # 📦 big files: not counted as spam, the acks slow them down
+            BIG_FILE_PACKETS[kind](client, msg)
             return
         if kind == "react":      # 😂 counts toward the spam limit like a message
             if rooms.spam_ok(client):
@@ -210,7 +217,7 @@ def serve_forever(server_socket):
 
 
 def stop_on_sigterm(*_):
-    """Closing the window or a "stop" button sends SIGTERM: shut down like Ctrl+C (saves, refunds, stops the website)."""
+    """Closing the window or a "stop" button sends SIGTERM: shut down like Ctrl+C (save, refund, stop the website)."""
     raise KeyboardInterrupt
 
 

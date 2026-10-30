@@ -81,7 +81,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 | # | Feature | Status |
 |---|---|---|
-| 20 | Chunked files up to 15 MB with a progress bar | not started |
+| 20 | Chunked files up to 15 MB with a progress bar | done: file_start/file_chunk/file_ack/file_end/file_cancel, 1 MB chunks, one in flight (acks = flow control), receiver needs the \"chunks\" feature; ≤2 MB still the old packet; bridge keeps chunks out of the replay log |
 | 21 | Connect 4 | done: games.Connect4 (columns 1-7, gravity, 4 in a row, draw when full), /challenge name connect4 (or c4), website column buttons |
 | 22 | Battleship | done: 6x6 seas, ships 3-2-2-1 placed for you, fire like c3; each player's state hides the other's ships; website: their sea = buttons |
 | 23 | Spectating | not started |

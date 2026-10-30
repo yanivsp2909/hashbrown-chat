@@ -59,6 +59,9 @@ HISTORY_DB = os.path.join(BASE_DIR, "history.db")  # chat history (SQLite), see 
 
 MAX_LINE = 4 * 1024 * 1024   # biggest single message in bytes (room for a 2 MB file)
 MAX_FILE_B64 = 2_800_000     # a 2 MB file is about 2.7 MB after base64
+MAX_BIG_FILE = 15 * 1024 * 1024   # 📦 big files are sent in chunks (only to clients that can)
+CHUNK_SIZE = 1024 * 1024        # bytes of file in one chunk
+CHUNK_B64 = 1_400_000           # a chunk after base64
 MAX_TEXT = 500               # longest chat message, in characters
 RESERVED_NAMES = {"hashbrown", "server", "admin", "lobby"}
 START_TOKENS = 100

@@ -287,15 +287,46 @@ export function addHistory(room, messages, { live, isMine }) {
   addOther(el("li", { class: "msg room-divider", text: "now" }), { live: false });
 }
 
-export function addFile({ from, filename, size, url }, { live }) {
+function fileCard({ from, filename, size, url }, live) {
   const kb = `${Math.max(1, Math.round(size / 1024))} KB`;
-  addOther(el("li", { class: "msg card kind-file" },
+  return el("li", { class: "msg card kind-file" },
     cardHead("📥 File", live ? nowTime() : ""),
     el("div", { class: "file-row-msg" },
       el("div", { class: "file-meta" },
         el("p", {}, el("strong", { text: from }), " sent you a file"),
         el("p", { class: "file-size" }, el("span", { dir: "auto", text: filename }), " · ", kb)),
-      el("a", { class: "btn btn-primary", href: url, download: filename, text: "Download" }))), { live });
+      el("a", { class: "btn btn-primary", href: url, download: filename, text: "Download" })));
+}
+
+export function addFile(file, { live }) {
+  addOther(fileCard(file, live), { live });
+}
+
+// ----- 📦 big files: a card with a progress bar while the pieces come and go
+
+const transferCard = (id) => list.querySelector(`[data-transfer="${CSS.escape(id)}"]`);
+
+export function addTransferCard(id, label, total) {
+  addOther(el("li", { class: "msg card kind-file", "data-transfer": id },
+    cardHead("📦 File", nowTime()),
+    el("p", { class: "transfer-label", dir: "auto", text: label }),
+    el("progress", { class: "transfer-bar", max: String(total), value: "0", "aria-label": label })));
+}
+
+export function setTransferProgress(id, done, total) {
+  const bar = transferCard(id)?.querySelector("progress");
+  if (bar) {
+    bar.value = done;
+    bar.setAttribute("aria-valuetext", `${Math.round((done / total) * 100)}%`);
+  }
+}
+
+/** Finished: the card becomes a normal file card (file) or says what happened (text). */
+export function endTransferCard(id, { file = null, text = "" } = {}) {
+  const card = transferCard(id);
+  if (!card) return;
+  if (file) card.replaceWith(fileCard(file, true));
+  else clear(card).append(cardHead("📦 File", nowTime()), textPara("card-text", text));
 }
 
 /** Lit private messages stay highlighted until you send something. */

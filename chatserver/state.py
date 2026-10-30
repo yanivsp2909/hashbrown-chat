@@ -21,6 +21,7 @@ matches = {}    # login -> the Match they're playing
 last_rob = {}   # login -> time of their last /rob
 qotd = None      # ❓ (day, question) of the question of the day
 commentator_today = ("", 0)   # 🎙️ (day, how many comments)
+transfers = {}  # 📦 big file transfers on their way: their key -> details
 polls = {}      # room -> its poll: {by, question, options, votes: {login: option index}}
 last_match = {}  # login -> (opponent, game class, bet) of their last finished match, for /rematch
 solo = {}       # login -> their Wordle game
@@ -48,7 +49,7 @@ def reset_state():
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
     global lab_lag_ms, lab_loss_percent, qotd, commentator_today
     with lock:
-        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, solo, login_fails,
+        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)

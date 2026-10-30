@@ -2,6 +2,7 @@
 
 import { $, str } from "./dom.js";
 import { send } from "./api.js";
+import { MAX_BIG_FILE, sendBig } from "./bigfiles.js";
 
 export const MAX_FILE = 2 * 1024 * 1024;
 const MAX_B64 = 2_800_000;
@@ -42,11 +43,16 @@ export function receive(msg) {
   return { from: str(msg.from, "Someone"), filename: sanitizeFilename(msg.filename || "file"), size: bytes.length, url };
 }
 
+/** A download link made somewhere else (a big file): free it with the others when you log out. */
+export function keepUrl(url) {
+  objectUrls.push(url);
+}
+
 export function revokeFiles() {
   while (objectUrls.length) URL.revokeObjectURL(objectUrls.pop());
 }
 
-function readAsBase64(file) {
+export function readAsBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(",", 2)[1] || "");
@@ -73,7 +79,7 @@ function showError(text) {
 function choose(file) {
   chosen = file || null;
   fileName.textContent = chosen ? chosen.name : "Choose file…";
-  showError(chosen && chosen.size > MAX_FILE ? `That file is ${(chosen.size / 1048576).toFixed(1)} MB. The limit is 2 MB.` : "");
+  showError(chosen && chosen.size > MAX_BIG_FILE ? `That file is ${(chosen.size / 1048576).toFixed(1)} MB. The limit is 15 MB.` : "");
 }
 
 export function openFilePanel({ to = "", file = null } = {}) {
@@ -100,7 +106,14 @@ export function initFiles({ onSent }) {
     const to = toInput.value.trim().replace(/^@/, "");
     if (!to) return showError("Who should get it? Type their name.");
     if (!chosen) return showError("Pick a file first.");
-    if (chosen.size > MAX_FILE) return showError("Files must be 2 MB or less.");
+    if (chosen.size > MAX_BIG_FILE) return showError("Files must be 15 MB or less.");
+    if (chosen.size > MAX_FILE) {   // 📦 over 2 MB: in chunks, with a progress bar in the chat
+      const file = chosen;
+      closeFilePanel();
+      const error = await sendBig(file, to);
+      if (!error) onSent(file.name, to);
+      return undefined;
+    }
     sendButton.disabled = true;
     sendButton.textContent = "Sending…";
     try {
