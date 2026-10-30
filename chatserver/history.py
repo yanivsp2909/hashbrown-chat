@@ -175,6 +175,22 @@ def reaction_counts(message_ids):
     return counts
 
 
+def search(rooms, word, limit):
+    """🔎 Messages in these rooms whose text contains `word` (any case), newest first: [(room, time, name, text)].
+    % and _ in the word are plain letters (LIKE would read them as wildcards)."""
+    if not rooms:
+        return []
+    escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    marks = ", ".join("?" * len(rooms))
+    with _lock:
+        connection = _open()
+        if connection is None:
+            return []
+        return connection.execute(f"SELECT room, time, name, text FROM messages WHERE room IN ({marks}) "
+                                  "AND text LIKE ? ESCAPE '\\' ORDER BY id DESC LIMIT ?",
+                                  [*rooms, f"%{escaped}%", limit]).fetchall()
+
+
 def reactors(message_ids):
     """{message id: set of the logins who reacted to it} (any emoji), for the question of the day's votes."""
     if not message_ids:

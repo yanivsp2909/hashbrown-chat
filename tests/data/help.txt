@@ -6,6 +6,7 @@
   /send name message               private message 💌
   /remind 10m text                 a private reminder later ⏰ (/remind alone: yours)
   /pin text                        pin this room's topic 📌 (/pin alone: see it, /pin clear)
+  /search word                     find it in your rooms' chat 🔎
   /me action                       act it out: * Yaniv dances
   /nick newname                    change your display name
   /whois name                      someone's profile

@@ -3,7 +3,7 @@
 """
 from datetime import datetime
 
-from chatserver import chat, config, receipts, registry, reminders, rooms, state, storage
+from chatserver import chat, config, history, receipts, registry, reminders, rooms, state, storage
 
 
 # ----- 💬 Chat
@@ -98,6 +98,21 @@ def cmd_pin(client, args):
     rooms.send_room(room, rooms.topic_packet(room))
     rooms.notify_room(room, f"📌 {rooms.nick(client.key)} pinned: {topic}" if topic
                       else f"📌 {rooms.nick(client.key)} took the topic down.")
+
+
+@registry.command("/search", "/search word", "find it in your rooms' chat 🔎", "💬 Chat")
+def cmd_search(client, args):
+    word = args.strip()
+    if not 2 <= len(word) <= 50:
+        client.say("🔎 Use: /search word  (2 to 50 characters)", "error")
+        return
+    mine = ["lobby"] + [key for key, g in state.groups.items() if client.key in g["members"]]
+    found = history.search(mine, word, config.SEARCH_MAX)
+    if not found:
+        client.say(f"🔎 No messages with \"{word}\" in your rooms.")
+        return
+    rows = [f"  {rooms.room_title(room)}  {time} {name}: {text[:80]}" for room, time, name, text in found]
+    client.say(f"🔎 {len(found)} result{'s' if len(found) != 1 else ''} for \"{word}\" (newest first):\n" + "\n".join(rows))
 
 
 @registry.command("/me", "/me action", "act it out: * Yaniv dances", "💬 Chat")
