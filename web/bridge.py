@@ -24,7 +24,7 @@ XRAY_MAX_TEXT = 2000           # 🔬 bytes of each raw chunk shown in the Packe
 CHUNK_B64 = 1_400_000          # 📦 one chunk of a big file, after base64 (as in the chat server)
 LIVE_ONLY_MAX_BYTES = 8 * 1024 * 1024    # 📦 big file chunks waiting for a tab (never replayed)
 RESUME_TOKEN = re.compile(rb'"resume_token":\s*"[^"]*"')
-LIVE_ONLY_TYPES = ("file_chunk", "stroke", "netmap", "probe", "draw_round")   # sent to the tab once, never in a reload's replay
+LIVE_ONLY_TYPES = ("file_chunk", "stroke", "netmap", "probe", "draw_round", "market", "market_info")   # sent to the tab once, never in a reload's replay
 XRAY_KEEP = 100                # 🔬 X-ray events kept in the replay log, so chat messages aren't pushed out
 DETACHED_GRACE = 90          # seconds a session lives with no tab attached (reload / phone in pocket)
 LOGIN_GRACE = 120            # seconds to log in before an unused session is closed
@@ -87,7 +87,7 @@ def clean_features(value):
 
 # What a browser may send (everything else is refused before it reaches the chat server)
 BROWSER_PACKETS = ("line", "file", "ping", "typing", "typing_stop", "seen", "get_groups", "get_group", "groups_closed",
-                   "get_profile", "change_password", "get_netmap", "netmap_closed", "probe_back", "stroke",
+                   "get_profile", "change_password", "get_netmap", "netmap_closed", "probe_back", "stroke", "get_market",
                    "react", "edit", "delete",
                    "file_start", "file_chunk", "file_cancel")
 
@@ -126,7 +126,7 @@ def validate(msg, logged_in):
             raise BridgeError(400, "Bad stroke.")
         return {"type": "stroke", "points": points, "color": whole_number(msg.get("color"), "colour"),
                 "size": whole_number(msg.get("size"), "size")}
-    if kind in ("get_netmap", "netmap_closed"):   # 🗺️ the network map page opens / closes
+    if kind in ("get_netmap", "netmap_closed", "get_market"):   # 🗺️ the network map / 📈 the market screen
         return {"type": kind}
     if kind == "probe_back":   # 🗺️ the answer to the server's ping probe
         return {"type": "probe_back", "id": whole_number(msg.get("id"), "probe id")}

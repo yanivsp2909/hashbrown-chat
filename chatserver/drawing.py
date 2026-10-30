@@ -14,7 +14,7 @@ posted. The first one wins DRAW_GUESS_PRIZE, the drawer DRAW_DRAWER_PRIZE. Old c
 import random
 import time
 
-from chatserver import achievements, config, rooms, state, storage
+from chatserver import achievements, config, fund, rooms, state, storage
 
 WORDS = ("cat", "dog", "pizza", "house", "tree", "sun", "fish", "car", "robot", "potato", "fries", "rocket",
          "guitar", "snake", "apple", "phone", "ghost", "crown", "cake", "boat", "bird", "flower", "train", "moon",
@@ -137,9 +137,9 @@ def check_guess(client, text):
 
 
 def economy_pay(guesser, drawer):
-    """The prizes (see N6: they come out of the public fund when there is one)."""
-    state.accounts[guesser]["tokens"] += config.DRAW_GUESS_PRIZE
-    state.accounts[drawer]["tokens"] += config.DRAW_DRAWER_PRIZE
+    """The prizes, from the public fund first (🧾 only what it can't cover is new tokens)."""
+    fund.pay_prize(guesser, config.DRAW_GUESS_PRIZE)
+    fund.pay_prize(drawer, config.DRAW_DRAWER_PRIZE)
     return config.DRAW_GUESS_PRIZE, config.DRAW_DRAWER_PRIZE
 
 

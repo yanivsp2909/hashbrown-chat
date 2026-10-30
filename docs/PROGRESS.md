@@ -166,8 +166,8 @@ Decision: group commands work on the room you're in, so a button for a group you
 
 | # | Feature | Status |
 |---|---|---|
-| N5 | 📈 Stock market (FRY, SPUD, SALT, KTCH) | not started |
-| N6 | 🧾 Taxes into a public fund that pays prizes | not started |
+| N5 | 📈 Stock market (FRY, SPUD, SALT, KTCH) | in progress: server done (FRY/SPUD/SALT/KTCH random walk each 60 s, max 6%/tick, pull 2% to the start, min 1; /stocks, /buy FRY 5, /sell FRY 5, /portfolio, 1% fee to the fund; one "market" packet per tick to everyone; get_market -> market_info for a website screen; saved under "economy"). NOT done yet: the website market screen with charts |
+| N6 | 🧾 Taxes into a public fund that pays prizes | done: public fund (saved): trading fees + 10% tax on casino wins of 200+ go in; quest, question-of-the-day and drawing prizes come out of it first (only what it can't cover is new tokens) |
 | N7 | 👥 Group stocks with dividends | not started |
 | N8 | 📰 Hashbrown market news | not started |
 | N9 | 🏦 Savings with interest | not started |

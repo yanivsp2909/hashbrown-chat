@@ -12,7 +12,7 @@ from chatserver import (auth, background, chat, config, discovery, group_view, h
                         resume, rooms,
                         session, state, storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
-from chatserver import cmd_profile, drawing, netmap, profiles
+from chatserver import cmd_profile, drawing, market, netmap, profiles
 
 
 # ---------------------------------------------------------------- connections
@@ -133,6 +133,10 @@ def handle_message(client, msg):
             keep_typing(client)
             return
         client.types_in[str(kind)[:20]] += 1   # 🗺️ (the network map counts types, never content)
+        if kind == "get_market":   # 📈 the website's market screen
+            if rooms.spam_ok(client):
+                client.send(market.info_packet(client.key))
+            return
         if kind == "stroke":     # 🎨 a brush stroke: no spam limit (its own limit, in drawing.py)
             drawing.stroke(client, msg)
             return
@@ -231,7 +235,8 @@ def start_server(host=config.HOST, port=config.PORT, run_loops=True, run_console
         textutil.log(f"[SERVER] ⚠️ The admin password is shorter than {config.ADMIN_PASSWORD_WARN_UNDER} characters. "
                      "It works, but a longer one is much harder to guess.")
     loops = (([background.income_loop, background.quiz_loop, background.qotd_loop,
-                background.offers_loop, background.groups_loop, background.netmap_loop] if run_loops else [])
+                background.offers_loop, background.groups_loop, background.netmap_loop,
+                background.market_loop] if run_loops else [])
              + ([background.console_loop] if run_console else []))
     for loop in loops:
         threading.Thread(target=loop, daemon=True).start()

@@ -176,6 +176,24 @@ ACHIEVEMENTS = {  # id: (icon, title, how to get it, reward)
     "wordsmith": ("🟩", "Wordsmith", "solve a Wordle", 50),
     "genius": ("🧠", "Genius", "solve a Wordle in 3 tries or less", 150),
 }
+# ---------------------------------------------------------------- 💹 the economy (all the numbers in one place)
+# 📈 Stocks: symbol -> (icon, company, starting price). Prices move every STOCK_TICK_SECONDS: a random step of about
+# STOCK_VOLATILITY_PERCENT, a pull of STOCK_PULL_PERCENT of the gap back to the start (no runaway prices), at most
+# STOCK_MAX_MOVE_PERCENT a tick, never below STOCK_MIN_PRICE.
+STOCKS = {"FRY": ("🍟", "Golden Fry Co.", 100), "SPUD": ("🥔", "Spud Farms", 50),
+          "SALT": ("🧂", "Salt & Sons", 20), "KTCH": ("🥫", "Ketchup Kings", 75)}
+STOCK_TICK_SECONDS = 60
+STOCK_VOLATILITY_PERCENT = 2
+STOCK_PULL_PERCENT = 2
+STOCK_MAX_MOVE_PERCENT = 6
+STOCK_MIN_PRICE = 1
+STOCK_HISTORY_POINTS = 1440     # one a minute: a day of prices for the charts
+MARKET_CHART_POINTS = 180       # 📈 minutes of prices the website's chart starts with
+MAX_SHARES = 10000              # of one stock, per person
+TRADE_FEE_PERCENT = 1           # 🧾 of every buy and sell (at least 1 🪙), into the public fund
+CASINO_TAX_PERCENT = 10         # 🧾 of a casino win...
+CASINO_TAX_FROM = 200           # 🧾 ...of at least this many tokens (small wins aren't taxed)
+SUPPLY_DAYS_KEPT = 30           # 📊 days of "all the tokens in the game" for the dashboard
 SHOP = {"🔥": 100, "😎": 250, "🎮": 400, "💎": 1000, "👑": 5000, "🐐": 10000}
 JACKPOT_SHARE = 10   # 💰 % of every casino loss that goes into the jackpot pot
 SLOT_SYMBOLS = ["🍒", "🍋", "🍇", "🔔", "⭐", "💎"]

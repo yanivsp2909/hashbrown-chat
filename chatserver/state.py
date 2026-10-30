@@ -33,6 +33,12 @@ bank_snapshots = {}   # 🏦 group key -> when its balance was last saved as a c
 groups_dirty = False  # 👥 something changed: the open Groups screens get fresh data (group_view.py)
 hashbrown_usage = {"day": "", "questions": 0, "in": 0, "out": 0}   # 📊 today's AI answers and tokens (/hbstats)
 hashbrown_tokens = 0   # 🥔 tips people gave Hashbrown with /give hashbrown (saved in chat_data.json)
+stocks = {}        # 📈 symbol -> {price, open, history (deque of (time, price))}  (saved: "economy")
+public_fund = 0    # 🧾 taxes and fees in, prizes out (saved: "economy")
+fund_today = {}    # 🧾 {"in", "out"} today
+supply_history = []   # 📊 [[day, every token in the game]] one a day, for the dashboard
+economy_day = ""   # 💹 the day the daily jobs last ran
+economy_extra = {}    # 💹 small saved things the economy features add (auctions, market listings...)
 draw_last = {}     # 🎨 login -> when they last started a drawing round (DRAW_COOLDOWN)
 drawings = {}      # 🎨 room -> its drawing round: {drawer, word, until, strokes, stroke_times}
 lobby_topic = ""   # 📌 the lobby's pinned topic (saved in chat_data.json; groups keep theirs in "topic")
@@ -69,8 +75,9 @@ def reset_state():
     """Forget everything in memory (the tests use this to start each test from zero)."""
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
     global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers, offer_count, pm_count, reminders, lobby_topic, hashbrown_tokens, hashbrown_usage, groups_dirty
+    global public_fund, fund_today, supply_history, economy_day, economy_extra
     with lock:
-        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, drawings, draw_last, bank_snapshots, replays, resume_tokens, resume_fails, away, trivia, war_invites, solo, login_fails,
+        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, drawings, draw_last, stocks, bank_snapshots, replays, resume_tokens, resume_fails, away, trivia, war_invites, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)
@@ -81,3 +88,4 @@ def reset_state():
         offer_count, pm_count, reminders, lobby_topic, hashbrown_tokens = 0, 0, [], "", 0
         hashbrown_usage = {"day": "", "questions": 0, "in": 0, "out": 0}
         groups_dirty = False
+        public_fund, fund_today, supply_history, economy_day, economy_extra = 0, {}, [], "", {}

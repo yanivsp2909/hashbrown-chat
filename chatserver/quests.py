@@ -4,7 +4,7 @@ paying tokens once. Progress lives in the account: "quests": {"day", "progress":
 """
 import random
 
-from chatserver import achievements, matches, rooms, state, textutil
+from chatserver import achievements, fund, matches, rooms, state, textutil
 
 # id: (what to do, how many times, reward)
 QUESTS = {
@@ -48,7 +48,7 @@ def bump(key, quest, amount=1):
     saved["progress"] = {**saved["progress"], quest: count}
     if count >= goal:
         saved["done"] = saved["done"] + [quest]
-        state.accounts[key]["tokens"] += reward
+        fund.pay_prize(key, reward)   # 🧾 from the public fund first
         rooms.tell(key, f"🎯 Quest done: {what}! +{reward} 🪙", "money")
         achievements.check_rich(key)
 

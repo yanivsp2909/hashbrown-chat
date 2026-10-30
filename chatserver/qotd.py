@@ -5,7 +5,7 @@ reactions, and when the next question comes the answer with the most votes wins 
 """
 import time
 
-from chatserver import config, history, rooms, state, storage, textutil
+from chatserver import config, fund, history, rooms, state, storage, textutil
 
 
 def empty():
@@ -59,7 +59,7 @@ def settle():
     if best is None or best_votes == 0:
         return
     account = state.accounts[best["login"]]
-    account["tokens"] += config.QOTD_PRIZE
+    fund.pay_prize(best["login"], config.QOTD_PRIZE)   # 🧾 from the public fund first
     text = best["text"].split(": ", 1)[-1]
     msg = rooms.chat_message("Hashbrown", "🥔",
                              f"🏆 Yesterday's best answer: {account['nick']} with \"{text}\" "

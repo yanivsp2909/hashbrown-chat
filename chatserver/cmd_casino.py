@@ -3,7 +3,7 @@
 """
 import random
 
-from chatserver import achievements, config, registry, rooms, state, storage
+from chatserver import achievements, config, fund, registry, rooms, state, storage
 
 
 # ----- 🎰 Casino
@@ -11,10 +11,12 @@ from chatserver import achievements, config, registry, rooms, state, storage
 def gamble_result(client, bet, payout, text, game):
     """payout = total tokens returned (0 = lost the bet)."""
     account = state.accounts[client.key]
-    account["tokens"] += payout - bet
     net = payout - bet
+    tax = fund.casino_tax(net)   # 🧾 a big win pays a little tax into the public fund
+    account["tokens"] += net - tax
+    fund.collect(tax, "casino tax")
     if net > 0:
-        outcome = f"🎉 You won {net} 🪙!"
+        outcome = f"🎉 You won {net} 🪙!" + (f" (🧾 {tax} 🪙 tax to the public fund)" if tax else "")
     elif net == 0:
         outcome = "😐 You got your bet back."
     else:

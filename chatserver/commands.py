@@ -12,6 +12,7 @@ from chatserver import (  # noqa: F401  (importing them is what registers the co
     cmd_bank,
     cmd_tokens,
     cmd_casino,
+    cmd_market,
     cmd_games,
     cmd_admin,
     cmd_files,

@@ -160,8 +160,13 @@ def cmd_shop(client, args):
     client.say("\n".join(lines), "money")
 
 
-@registry.command("/buy", "/buy badge", "buy a badge from /shop", "🪙 Tokens")
+@registry.command("/buy", "/buy badge", "buy a badge from /shop (or shares: /buy FRY 5)", "🪙 Tokens")
 def cmd_buy(client, args):
+    from chatserver import cmd_market, market   # (📈 /buy FRY 5 buys shares)
+    words = args.split()
+    if words and (market.symbol(words[0]) or (len(words) == 2 and words[1].isdecimal())):   # 📈 "SYM 5": shares
+        cmd_market.buy_stock(client, args)
+        return
     badge = args.strip()
     account = state.accounts[client.key]
     if badge not in config.SHOP:

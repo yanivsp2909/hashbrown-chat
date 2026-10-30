@@ -5,7 +5,7 @@ import json
 import os
 import time
 
-from chatserver import config, profiles, qotd, reminders, state, textutil
+from chatserver import config, economy, profiles, qotd, reminders, state, textutil
 
 
 # ---------------------------------------------------------------- saving / loading
@@ -22,6 +22,7 @@ def load_data():
             state.jackpot = pot if isinstance(pot, int) and pot >= 0 else 0
             qotd.load_saved(data.get("qotd"))   # ❓💡 added later too
             reminders.load_saved(data.get("reminders", []))   # ⏰ and this
+            economy.load_saved(data.get("economy"))   # 💹 stocks and the public fund
             topic = data.get("lobby_topic", "")   # 📌 and this
             state.lobby_topic = topic[:config.TOPIC_MAX] if isinstance(topic, str) else ""
             tips = data.get("hashbrown_tokens", 0)   # 🥔 and this
@@ -33,7 +34,7 @@ def load_data():
     # Files saved by an older version are missing the newer fields: fill them in
     for account in state.accounts.values():
         account.setdefault("created", 0)   # made before we kept the time: certainly older than a day
-        for field, default in profiles.defaults().items():   # 👤 profiles came later too
+        for field, default in {**profiles.defaults(), **economy.account_defaults()}.items():   # 👤 💹 came later too
             account.setdefault(field, default)
         for field, default in new_account("", "", "").items():
             account.setdefault(field, default)
@@ -53,7 +54,8 @@ def save_data():
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump({"accounts": state.accounts, "groups": state.groups, "jackpot": state.jackpot,
                            "qotd": qotd.to_saved(), "reminders": state.reminders,
-                           "lobby_topic": state.lobby_topic, "hashbrown_tokens": state.hashbrown_tokens},
+                           "lobby_topic": state.lobby_topic, "hashbrown_tokens": state.hashbrown_tokens,
+                           "economy": economy.to_saved()},
                           f, ensure_ascii=False, indent=1)
                 f.flush()
                 os.fsync(f.fileno())  # really on the disk, even if the power goes out right after
@@ -82,7 +84,8 @@ def new_account(username, salt, digest):
             "inbox": [],   # 📬 private messages that came while they were offline
             "created": time.time(),   # 🎁 when it was made: new accounts can't /give yet
             "given": ["", 0],         # 🎁 [day, tokens given with /give that day]
-            **profiles.defaults()}    # 👤 avatar, bio, status, colour, favourite game, theme, privacy
+            **profiles.defaults(),    # 👤 avatar, bio, status, colour, favourite game, theme, privacy
+            **economy.account_defaults()}   # 💹 shares, savings, loans
 
 
 def new_group(name, owner, private):

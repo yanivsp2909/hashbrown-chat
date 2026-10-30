@@ -56,7 +56,7 @@
   /daily                           free tokens every day, more for streaks 🔥
   /rob name                        40% chance to steal, or pay a fine 🦹
   /shop                            badges for your name
-  /buy badge                       buy a badge from /shop
+  /buy badge                       buy a badge from /shop (or shares: /buy FRY 5)
   /badge emoji|off                 wear a badge you own
   /achievements                    your trophies and how to get the rest
 
@@ -65,6 +65,11 @@
   /dice amount                     2 dice vs the house 🎲
   /slots amount                    3 same = x10, 💎💎💎 = x25
   /jackpot                         the pot that three 💎 on /slots wins 💰
+
+📈 Market
+  /stocks                          stock prices 📈 (/buy FRY 5, /sell FRY 5)
+  /sell FRY 5                      sell shares
+  /portfolio                       your shares and what they're worth
 
 🎮 Games
   /games                           what you can play

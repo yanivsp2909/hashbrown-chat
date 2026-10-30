@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, bank_log, config, drawing, group_view, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
+from chatserver import achievements, bank_log, config, drawing, economy, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
 
 
 # ---------------------------------------------------------------- background threads
@@ -41,6 +41,15 @@ def income_tick():
             del state.login_fails[key]  # old wrong-password records: forget them
         if state.online:
             storage.save_data()
+
+
+def market_loop():
+    """📈 Every STOCK_TICK_SECONDS: the prices move (one packet to everyone); 💹 a new day runs the daily jobs."""
+    while True:
+        time.sleep(config.STOCK_TICK_SECONDS)
+        with state.lock:
+            run_safely(economy.daily_tick)
+            run_safely(market.tick)
 
 
 def income_loop():
