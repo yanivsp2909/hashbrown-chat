@@ -127,14 +127,15 @@ def cmd_hint(client, args):
     if getattr(game, "hinted", False):
         client.say("🟩 Only one hint per game!", "error")
         return
-    game.hinted = True
     if state.hashbrown is None:   # no AI: show one letter that isn't green yet
+        game.hinted = True
         found = {i for word, colors in game.guesses for i, color in enumerate(colors) if color == "🟩"}
         place = next((i for i in range(len(game.answer)) if i not in found), 0)
         client.say(f"💡 Hint: letter {place + 1} is {game.answer[place].upper()}")
         return
-    hashbrown_ai.ask_hashbrown(client, config.HINT_QUESTION.format(word=game.answer), private=True,
-                               forbidden=game.answer)
+    # Only used up once Hashbrown takes the question (not on a cooldown, no tokens...)
+    game.hinted = hashbrown_ai.ask_hashbrown(client, config.HINT_QUESTION.format(word=game.answer), private=True,
+                                             forbidden=game.answer)
 
 
 @registry.command("/rematch", "/rematch", "challenge your last opponent again 🔁", "🎮 Games")

@@ -68,7 +68,9 @@ def test_only_group_admins_set_the_personality(user):
 def test_judge_reads_the_debate_and_answers_the_room(user, fake_hashbrown):
     adi, ben = user("Adi"), user("Ben")
     adi.line("pizza is the best")
+    adi.expect(lambda m: m.get("text") == "pizza is the best")
     ben.line("no, falafel is")
+    adi.expect(lambda m: m.get("text") == "no, falafel is")   # both are in the history before /judge reads it
     adi.line("/judge")
     verdict = ben.expect(lambda m: m.get("type") == "chat" and m.get("name") == "Hashbrown")
     assert verdict["text"] == fake_hashbrown.answer
@@ -146,3 +148,21 @@ def test_no_question_of_the_day_when_alone_or_hashbrown_is_off(user, monkeypatch
     hashbrown_extras.question_of_the_day_tick()
     adi.line("/qotd")
     adi.expect_text("No question of the day yet")
+
+
+
+def test_a_hint_hides_the_word_even_spelled_out(user, fake_hashbrown):
+    fake_hashbrown.answer = "It's C r-a n e, a bird"
+    adi = user("Adi")
+    start_wordle(adi)
+    adi.line("/hint")
+    assert "•••••" in adi.expect(lambda m: m.get("kind") == "private")["text"]
+
+
+def test_a_refused_hint_isnt_used_up(user, fake_hashbrown):
+    adi = user("Adi")
+    start_wordle(adi)
+    state.accounts["adi"]["tokens"] = 0          # can't pay: Hashbrown refuses
+    adi.line("/hint")
+    adi.expect_text("costs", kind="error")
+    assert not getattr(state.solo["adi"], "hinted", False)

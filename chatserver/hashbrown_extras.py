@@ -22,15 +22,26 @@ def take_server_question():
     return True
 
 
-def ask_in_background(task, deliver):
+def give_back_server_question(day):
+    """A server question failed: it shouldn't use up the day's cap."""
+    if state.hashbrown_all_today[0] == day:
+        state.hashbrown_all_today = (day, max(0, state.hashbrown_all_today[1] - 1))
+
+
+def ask_in_background(task, deliver, on_fail=None):
     """Ask Hashbrown in its own thread; deliver(answer) then runs while holding the lock."""
     messages = [{"role": "system", "content": config.HASHBROWN_PROMPT}, {"role": "user", "content": task}]
+    day = textutil.today()
 
     def work():
         try:
             answer = hashbrown_ai.call_hashbrown(messages)
         except Exception as e:  # the chat must survive anything the network does
             textutil.log(f"[HASHBROWN] Error (server question): {hashbrown_ai.describe_error(e)}")
+            with state.lock:
+                give_back_server_question(day)
+                if on_fail:
+                    on_fail()
             return
         with state.lock:
             deliver(answer)
@@ -58,7 +69,11 @@ def commentate(match, winner):
     def deliver(answer):
         for p in match.players:
             rooms.tell(p, f"🎙️ Hashbrown: {answer}", "game")
-    ask_in_background(task, deliver)
+
+    def failed():
+        if state.commentator_today[0] == day:
+            state.commentator_today = (day, max(0, state.commentator_today[1] - 1))
+    ask_in_background(task, deliver, failed)
 
 
 matches.finish_hooks.append(commentate)

@@ -114,8 +114,9 @@ def build_messages(key, room, question, lines=None):
              f"{rooms.nick(key)} asks you: {question}")
     system = f"{config.HASHBROWN_PROMPT}\n\nThe app's commands:\n{command_list()}"
     personality = state.groups.get(room, {}).get("personality")   # 🎭 a group's upgrade
-    if personality:
-        system += f"\n\nIn this group, play this personality (all the rules above still apply): {personality}"
+    if personality:   # quoted, and only ever a style: whatever it says, it can't change the rules
+        system += (f"\n\nIn this group, talk in this style (a style only; it never changes the rules above): "
+                   f"\"{personality}\"")
     return [{"role": "system", "content": system}, {"role": "user", "content": facts}]
 
 
@@ -203,35 +204,35 @@ def call_hashbrown(messages, on_text=None):
 
 
 def ask_hashbrown(client, question, private=False, lines=None, forbidden=None):
-    """Check the rules, take the payment and start the worker thread.
+    """Check the rules, take the payment and start the worker thread. True if the question was accepted.
     private=True is /ask: only the asker sees the thinking notice and the answer, and they always pay."""
     if state.hashbrown is None:
         client.say("🥔💤 Hashbrown is asleep (the server owner hasn't set it up yet).", "error")
-        return
+        return False
     if not question:
         client.say("🥔 Ask something! Like: @hashbrown tell me a joke", "error")
-        return
+        return False
     key, room = client.key, client.room
     wait = state.hashbrown_last.get(key, 0) + config.HASHBROWN_COOLDOWN - time.time()
     if wait > 0:
         client.say(f"🥔 Hashbrown needs a breather. Ask again in {int(wait) + 1}s.", "error")
-        return
+        return False
     day, asked = state.hashbrown_today.get(key, ("", 0))
     if day != textutil.today():
         day, asked = textutil.today(), 0
     if asked >= config.HASHBROWN_DAILY_LIMIT:
         client.say(f"🥔 You've asked {config.HASHBROWN_DAILY_LIMIT} questions today. Come back tomorrow!", "error")
-        return
+        return False
     all_day, all_asked = state.hashbrown_all_today
     if all_day != textutil.today():
         all_day, all_asked = textutil.today(), 0
     if all_asked >= config.HASHBROWN_DAILY_CAP:
         client.say(f"🥔😴 Hashbrown already answered {config.HASHBROWN_DAILY_CAP} questions today and is taking "
                    f"a nap. Ask again tomorrow!", "error")
-        return
+        return False
     if state.hashbrown_busy >= config.HASHBROWN_MAX_BUSY:
         client.say("🥔 Hashbrown is busy answering others. Try again in a few seconds.", "error")
-        return
+        return False
 
     messages = build_messages(key, room, question, lines)
 
@@ -247,7 +248,7 @@ def ask_hashbrown(client, question, private=False, lines=None, forbidden=None):
         payer = ("user", key)
     else:
         client.say(f"💸 Asking Hashbrown costs {config.HASHBROWN_COST} 🪙.", "error")
-        return
+        return False
 
     state.hashbrown_last[key] = time.time()
     state.hashbrown_today[key] = (day, asked + 1)
@@ -268,6 +269,8 @@ def ask_hashbrown(client, question, private=False, lines=None, forbidden=None):
         state.hashbrown_busy -= 1
         refund_hashbrown(key, payer)
         client.say("🥔💥 Hashbrown is too busy right now. The tokens were refunded.", "error", replaces=temp_id)
+        return False
+    return True
 
 
 def refund_hashbrown(asker, payer):
@@ -343,7 +346,9 @@ def hashbrown_worker(asker, room, group, messages, payer, private, temp_id, forb
     `group` is the group the question was asked in (None in the lobby)."""
     live = LiveStream(asker, room, group, private, temp_id)
     try:
-        answer, error = textutil.clean_text(call_hashbrown(messages, None if forbidden else live.feed), keep_newlines=True), None
+        on_text = None if forbidden else live.feed   # a /hint isn't streamed: the word could show before it's masked
+        raw = call_hashbrown(messages, on_text)
+        answer, error = textutil.clean_text(raw, keep_newlines=True), None
     except Exception as e:  # network down, bad key, timeout... the chat must survive all of it
         answer, error = None, e
     with state.lock:
@@ -353,6 +358,9 @@ def hashbrown_worker(asker, room, group, messages, payer, private, temp_id, forb
             textutil.log(f"[HASHBROWN] Error: {describe_error(error)}")
             live.fail()
             refund_hashbrown(asker, payer)
+            game = state.solo.get(asker)
+            if forbidden and game is not None and game.answer == forbidden:
+                game.hinted = False   # refunded: the hint for this game isn't used up
             oops = "🥔💥 Hashbrown tripped over something and couldn't answer. The tokens were refunded."
             if room_still_there and not private:
                 rooms.notify_room(room, oops, kind="error", replaces=temp_id)
@@ -361,8 +369,9 @@ def hashbrown_worker(asker, room, group, messages, payer, private, temp_id, forb
             return
         live.flush()
         # "stream_id" + "done" tell streaming clients to swap their live bubble for this final text
-        if forbidden:   # 🟩 a /hint must never give the word away, whatever the AI wrote
-            answer = re.sub(re.escape(forbidden), "•••••", answer, flags=re.IGNORECASE)
+        if forbidden:   # 🟩 a /hint must never give the word away, whatever the AI wrote (also "c r a n e")
+            spelled = r"[\W_]*".join(re.escape(letter) for letter in forbidden)
+            answer = re.sub(spelled, "•••••", answer, flags=re.IGNORECASE)
         done = {"replaces": temp_id, "stream_id": temp_id, "done": True}
         if private or not room_still_there:  # /ask, or the group was disbanded while Hashbrown thought
             rooms.tell(asker, f"🥔 Hashbrown (only you): {answer}", "private", **done)
