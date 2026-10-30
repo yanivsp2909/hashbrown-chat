@@ -154,7 +154,7 @@ def cmd_disband(client, args):
     for c in list(state.online.values()):
         if c.room == key:
             c.room = "lobby"
-            c.send({"type": "history", "room": rooms.room_title("lobby"), "messages": history.recent("lobby")})
+            rooms.send_history(c, "lobby")
     members = list(group["members"])
     del state.groups[key]
     history.delete_room(key)

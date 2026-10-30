@@ -94,6 +94,52 @@ If you're picking this up after a break: read the rules, then continue from the 
 | 28 | Hashbrown trivia | done: /trivia (asker pays), reply parsed by regex QUESTION:/ANSWER: (refund if it doesn't fit), first right answer in TRIVIA_SECONDS wins TRIVIA_REWARD |
 | 29 | Group wars | done: /war group, /war accept group (admins, 10 min), WAR_MINUTES of match wins between the groups, the winner takes WAR_PRIZE from the loser's bank; /war shows the score |
 
+## Round 3 (after the hand test)
+
+### Part A: fixes from the hand test
+
+| # | Item | Status |
+|---|---|---|
+| R1 | Chats switcher: each chat its own conversation | done: root cause: the website had ONE message list and a room switch added the new history under the old room's messages; now a switch starts a fresh list, history packets carry an optional `key`, previews per room (roomlogic.js, tested in Node) |
+| R2 | Sidebar scrolls on its own | not started |
+| R3 | Faster "is typing…" | not started |
+| R4 | @ autocomplete | not started |
+| R5 | `/answer` for the question of the day | not started |
+| R6 | Network lab banner + reliable lab test | not started |
+| R7 | start.sh uses .venv/bin/python | done (by the owner, 7d1fa8f): checked, `.venv/bin/python` if it exists, else `python3` |
+
+### Part B: admin password
+
+| # | Item | Status |
+|---|---|---|
+| R8 | Admin password from the Keychain | not started |
+
+### Part C: bug-hunt items
+
+| # | Item | Status |
+|---|---|---|
+| R9 | /give limits for new accounts | not started |
+| R10 | Look-alike names | not started |
+| R11 | File offers (Accept/Decline) | not started |
+| R12 | Minimum password length | not started |
+
+### Part D: chat features
+
+| # | Item | Status |
+|---|---|---|
+| R13 | Read receipts for private messages | not started |
+| R14 | `/remind` | not started |
+| R15 | `/pin` room topic | not started |
+| R16 | `/search` | not started |
+| R17 | Daily quests | not started |
+
+### Part E: Hashbrown extras
+
+| # | Item | Status |
+|---|---|---|
+| R18 | Tip Hashbrown | not started |
+| R19 | `/hbstats` | not started |
+
 ## Decisions made on the way
 
 (Choices made without asking, so the owner can review them.)

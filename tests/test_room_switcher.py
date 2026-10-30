@@ -105,3 +105,13 @@ def test_being_approved_or_kicked_updates_the_list_without_moving_you(switcher_u
     ben.line("/kick Adi")
     assert [r["key"] for r in last_room_list(adi)["rooms"]] == ["lobby"]
     assert state.online["adi"].room == "lobby"
+
+
+def test_a_rooms_history_says_which_room_it_is(switcher_user):
+    """The website keeps one message list per room: the history packet's "key" says whose list it is
+    (its "room" is only the title, for showing)."""
+    adi = switcher_user("Adi")
+    group_with(adi)
+    assert adi.expect(lambda m: m.get("type") == "history" and m.get("key") == "potatoes")["room"] == "#Potatoes"
+    adi.line("/lobby")
+    assert adi.expect(lambda m: m.get("type") == "history")["key"] == "lobby"

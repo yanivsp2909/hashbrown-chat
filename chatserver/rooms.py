@@ -115,6 +115,12 @@ def parse_amount(client, text):
     return amount
 
 
+def send_history(client, room):
+    """The room's last messages. "room" is its title (to show); "key" says which room it is, so the website
+    can keep one message list per room."""
+    client.send({"type": "history", "room": room_title(room), "key": room, "messages": history.recent(room)})
+
+
 def move_to_room(client, room):
     old = client.room
     client.room = room
@@ -123,7 +129,7 @@ def move_to_room(client, room):
             notify_room(old, f"🚪 {shown(client.key)} left the room")
         if room != "lobby":
             notify_room(room, f"➡️ {shown(client.key)} entered", exclude=client)
-    client.send({"type": "history", "room": room_title(room), "messages": history.recent(room)})
+    send_history(client, room)
     send_room_list(client.key)
 
 

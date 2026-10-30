@@ -3,15 +3,16 @@
 // At login we tell the server we understand "rooms". Then it sends the list of our rooms
 // ({"type": "rooms"}) and the chat of ALL of them, each message tagged with its room. Messages from
 // the room you're looking at are shown as usual; the others only count as unread (and give a preview).
-// Clicking a room sends /join (or /lobby): the server moves you and sends that room's history.
+// Clicking a room sends /join (or /lobby): the server moves you and sends that room's history, which
+// starts a fresh message list (each chat is its own conversation; the rules are in roomlogic.js).
 
 import { $, clear, el, str } from "./dom.js";
 import { removeStream, removeTemp } from "./chat.js";
 import { sendLine } from "./api.js";
 import { getState, setState, subscribe } from "./store.js";
 import { refresh } from "./online.js";
+import { previewOf, roomOf, withPreview } from "./roomlogic.js";
 
-const PREVIEW = 60;   // characters of the last message shown under a room's name
 const ANNOUNCE_AFTER = 2000;   // ms: new messages in other rooms are announced together, not one by one
 let waiting = {};               // room title -> new messages not announced yet
 let announceTimer = null;
@@ -32,14 +33,12 @@ function announceLater(roomKey) {
   }, ANNOUNCE_AFTER);
 }
 
-const previewOf = (msg) => `${String(msg.name ?? "")}: ${String(msg.text ?? "")}`.slice(0, PREVIEW);
-
 /** A packet from the server. Returns true if it belongs to another room: then it's only counted as unread
  *  (and it still clears that room's "thinking..." card or live answer if you were there when it started). */
 export function fromOtherRoom(msg, live) {
   const { currentRoom } = getState();
   // (a "history" packet's "room" is the room's title, not its key: it's always for the room you're in)
-  if (msg.type === "history" || typeof msg.room !== "string" || !currentRoom || msg.room === currentRoom) return false;
+  if (msg.type === "history" || !currentRoom || roomOf(msg, currentRoom) === currentRoom) return false;
   if (msg.replaces) removeTemp(str(msg.replaces));
   if (msg.stream_id) removeStream(str(msg.stream_id));
   if (msg.type === "chat" && live) {   // a replay after a reload doesn't count twice
@@ -68,12 +67,11 @@ export function setRooms(msg) {
   setState({ rooms, currentRoom: current, unread: { ...keep(unread), [current]: 0 }, previews: keep(previews) });
 }
 
-/** A message from the room you're in: remember it as that room's preview. */
+/** A message (or a history) from the room you're in: remember it as that room's preview. */
 export function notePreview(msg) {
   const { currentRoom, previews } = getState();
-  if (msg.type === "chat" && currentRoom) {
-    setState({ previews: { ...previews, [currentRoom]: previewOf(msg) } });
-  }
+  const next = currentRoom || msg.type === "history" ? withPreview(previews, msg, currentRoom) : previews;
+  if (next !== previews) setState({ previews: next });
 }
 
 function roomRow(room, state, onPick) {

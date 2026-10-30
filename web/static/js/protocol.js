@@ -11,6 +11,7 @@ import { clearPasswords, showLoginError } from "./login.js";
 import { noteTarget } from "./games/panel.js";
 import * as online from "./online.js";
 import * as rooms from "./rooms.js";
+import { startsNewList } from "./roomlogic.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
 import * as bigfiles from "./bigfiles.js";
@@ -204,6 +205,8 @@ export function handleMessage(msg, live, sendLine) {
       return undefined;
     case "history":
       chat.removeAllStreams();
+      if (startsNewList(msg, getState().currentRoom)) chat.clearMessages();   // 💬 each room has its own list
+      rooms.notePreview(msg);
       setState({ room: str(msg.room, "🏠 Lobby") });
       for (const old of Array.isArray(msg.messages) ? msg.messages : []) remember(str(old?.name));
       return chat.addHistory(str(msg.room), msg.messages, { live, isMine: (n) => n === getState().nick });
