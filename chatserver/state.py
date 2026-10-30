@@ -19,6 +19,7 @@ mutes = {}      # (group, login) -> time the mute ends
 invites = {}    # login -> game challenges waiting for that person
 matches = {}    # login -> the Match they're playing
 last_rob = {}   # login -> time of their last /rob
+last_match = {}  # login -> (opponent, game class, bet) of their last finished match, for /rematch
 solo = {}       # login -> their Wordle game
 login_fails = {}         # login -> times of recent wrong passwords
 admin_fail_times = []    # times of recent wrong /admin passwords, from anyone
@@ -44,7 +45,7 @@ def reset_state():
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
     global lab_lag_ms, lab_loss_percent
     with lock:
-        for table in (accounts, groups, online, mutes, invites, matches, last_rob, solo, login_fails,
+        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)

@@ -113,6 +113,38 @@ def cmd_move(client, args):
     matches.do_move(client, args)
 
 
+@registry.command("/rematch", "/rematch", "challenge your last opponent again 🔁", "🎮 Games")
+def cmd_rematch(client, args):
+    last = state.last_match.get(client.key)
+    if last is None:
+        client.say("🔁 No game to rematch yet. /challenge someone!", "error")
+        return
+    opponent, game_class, bet = last
+    game_name = next(name for name, cls in GAMES.items() if cls is game_class)
+    cmd_challenge(client, f"{rooms.nick(opponent)} {game_name} {bet}" if bet else f"{rooms.nick(opponent)} {game_name}")
+
+
+@registry.command("/claim", "/claim", f"win if the other player hasn't moved for {config.CLAIM_AFTER // 60} min ⏰",
+                  "🎮 Games")
+def cmd_claim(client, args):
+    match = state.matches.get(client.key)
+    if match is None:
+        client.say("🎮 You're not in a game.", "error")
+        return
+    turn = getattr(match.game, "turn", None)
+    if turn is None:
+        client.say("⏰ This game has no turns to wait for (you both play at once).", "error")
+        return
+    if turn == client.key:
+        client.say("⏰ It's your turn! You can only claim while the other player is thinking.", "error")
+        return
+    wait = int(config.CLAIM_AFTER - (time.monotonic() - match.last_move)) + 1
+    if wait > 0:
+        client.say(f"⏰ You can /claim in {wait} s if {rooms.nick(turn)} still hasn't moved.", "error")
+        return
+    matches.finish_match(match, client.key, f"{rooms.nick(turn)} didn't move for {config.CLAIM_AFTER // 60} min ⏰")
+
+
 @registry.command("/board", "/board", "show the board again", "🎮 Games")
 def cmd_board(client, args):
     match = state.matches.get(client.key)

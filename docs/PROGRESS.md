@@ -62,7 +62,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 |---|---|---|
 | 9 | Typing indicator (exempt from the spam limit) | not started |
 | 10 | Reactions | not started |
-| 11 | Rematch + `/claim` | not started |
+| 11 | Rematch + `/claim` | done: /rematch (same opponent, game, bet), /claim after CLAIM_AFTER s on the other's turn (not Math Duel: no turns) |
 | 12 | `/tldr` | not started |
 | 13 | `/poll` | not started |
 

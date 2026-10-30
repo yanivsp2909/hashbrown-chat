@@ -2,6 +2,7 @@
 🎮 Two-player matches: starting, moving, finishing and paying out.
 """
 import random
+import time
 
 from chatserver import achievements, config, rooms, state, storage, textutil
 
@@ -15,6 +16,7 @@ class Match:
         self.bet = bet
         self.over = False
         self.moves = {first: 0, second: 0}  # accepted moves per player
+        self.last_move = time.monotonic()    # for /claim: when the last move (or the start) happened
 
     def opponent(self, key):
         return self.players[1] if key == self.players[0] else self.players[0]
@@ -48,6 +50,7 @@ def finish_match(match, winner, reason=""):
     match.over = True
     for p in match.players:
         state.matches.pop(p, None)
+        state.last_match[p] = (match.opponent(p), type(match.game), match.bet)   # for /rematch
     p1, p2 = match.players
     title = match.game.title
     reason = f" ({reason})" if reason else ""
@@ -106,6 +109,7 @@ def do_move(client, text):
         client.say(info, "error")
         return
     match.moves[client.key] += 1
+    match.last_move = time.monotonic()
     push_board(match, info)
     if match.game.finished:
         finish_match(match, match.game.winner)

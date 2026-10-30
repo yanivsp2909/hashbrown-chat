@@ -59,6 +59,8 @@
   /accept [name]                   accept a challenge
   /decline [name]                  say no to a challenge
   /move ...                        a move (or just type it)
+  /rematch                         challenge your last opponent again 🔁
+  /claim                           win if the other player hasn't moved for 2 min ⏰
   /board                           show the board again
   /resign                          give up the game 🏳️
   /wordle                          solo word game, win tokens 🟩
