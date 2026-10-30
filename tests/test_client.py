@@ -345,3 +345,44 @@ def test_sendfile_commands_go_to_send_file(monkeypatch, line):
     calls, sent = run_chat_loop(monkeypatch, [line, "/quit"])
     assert calls == [line]
     assert len(sent) == 1  # only the /quit line went to the server
+
+
+# ---------------------------------------------------------------- 🌐 terminal or website?
+
+def test_the_ip_is_the_first_argument_that_isnt_a_flag():
+    assert client.parse_args([]) == ("127.0.0.1", set())
+    assert client.parse_args(["192.168.1.20"]) == ("192.168.1.20", set())
+    assert client.parse_args(["--web", "192.168.1.20"]) == ("192.168.1.20", {"--web"})
+
+
+def test_enter_picks_the_terminal_and_2_picks_the_website(monkeypatch):
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True, raising=False)
+    answers = iter(["", "2", "1"])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
+    assert [client.ask_terminal_or_web() for _ in range(3)] == ["terminal", "web", "terminal"]
+
+
+def test_no_question_when_the_input_is_not_a_keyboard(monkeypatch):
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: False, raising=False)
+    monkeypatch.setattr("builtins.input", lambda prompt="": pytest.fail("asked a question"))
+    assert client.ask_terminal_or_web() == "terminal"
+
+
+def test_opening_the_website_checks_it_is_running_first(monkeypatch):
+    opened = []
+    monkeypatch.setattr(client.webbrowser, "open", opened.append)
+    with socket.socket() as website:
+        website.bind(("127.0.0.1", 0))
+        website.listen()
+        monkeypatch.setattr(client, "WEB_PORT", website.getsockname()[1])
+        assert client.open_website("127.0.0.1") is True
+    assert opened == [f"http://127.0.0.1:{client.WEB_PORT}"]
+
+
+def test_a_website_that_isnt_running_falls_back_to_the_terminal(monkeypatch, capsys):
+    monkeypatch.setattr(client.webbrowser, "open", lambda url: pytest.fail("opened a dead link"))
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        monkeypatch.setattr(client, "WEB_PORT", s.getsockname()[1])  # nothing listens there
+    assert client.open_website("127.0.0.1") is False
+    assert "isn't running" in capsys.readouterr().out

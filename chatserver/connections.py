@@ -2,12 +2,14 @@
 🌐 Accepting connections and talking to each client, from login to goodbye.
 """
 import os
+import signal
 import socket
 import threading
 import time
 import traceback
 
-from chatserver import auth, background, chat, config, hashbrown_ai, matches, rooms, session, state, storage, textutil
+from chatserver import (auth, background, chat, config, hashbrown_ai, matches, rooms, session, state, storage,
+                        textutil, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
 
 
@@ -171,7 +173,18 @@ def serve_forever(server_socket):
         server_socket.close()
 
 
+def stop_on_sigterm(*_):
+    """Closing the window or a "stop" button sends SIGTERM: shut down like Ctrl+C (saves, refunds, stops the website)."""
+    raise KeyboardInterrupt
+
+
 def main():
+    signal.signal(signal.SIGTERM, stop_on_sigterm)
     server_socket = start_server()
-    if server_socket is not None:
+    if server_socket is None:
+        return
+    web = website.start_website(config.PORT)
+    try:
         serve_forever(server_socket)
+    finally:
+        website.stop_website(web)

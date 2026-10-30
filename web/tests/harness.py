@@ -56,6 +56,7 @@ class Stack:
                 "api_key": "test-key"}), encoding="utf-8")
         env = {k: v for k, v in os.environ.items() if k != "HASHBROWN_API_KEY"}
         env["PYTHONIOENCODING"] = "utf-8"
+        env["HASHBROWN_START_WEBSITE"] = "0"   # the test starts its own website on a free port
         self.chat_log = open(self.tmp / "chat_server.log", "w", encoding="utf-8")
         self.chat = subprocess.Popen([sys.executable, "server.py"], cwd=self.tmp, env=env,
                                      stdin=subprocess.DEVNULL, stdout=self.chat_log, stderr=subprocess.STDOUT)

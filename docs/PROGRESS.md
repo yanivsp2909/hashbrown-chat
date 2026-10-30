@@ -40,7 +40,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | 1 | SQLite chat history (`history.db`, message ids, survives restarts, room history + history upgrade keep working) | done |
 | 2 | Private `/ask`, "thinking" notice replaced by the answer (`temp_id` / `replaces`), Hashbrown prompt upgrade | done (`3003112` private /ask, `1cee762` temp_id/replaces, `cd6ee20` prompt upgrade) |
 | 3 | Streaming with the `openai` package (`requirements.txt`); old clients get one full message | done (`4b29931`) |
-| 4 | `server.py` starts the website; `client.py` asks terminal or website (`--web`) | not started |
+| 4 | `server.py` starts the website; `client.py` asks terminal or website (`--web`) | done: chatserver/website.py (no secrets passed, busy port/missing web/ handled, stops on Ctrl+C or SIGTERM); client asks only at a keyboard |
 
 ## Group 2: for the teacher
 

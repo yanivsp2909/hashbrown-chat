@@ -3,6 +3,7 @@
 
 Run:   python client.py 192.168.1.20  -> connects to the server at that IP (ask the host for it)
        python client.py               -> connects to a server on this same computer (127.0.0.1)
+       python client.py IP --web      -> opens the host's website in your browser instead
 Files people send you are saved in a folder called received_files.
 """
 import base64
@@ -15,9 +16,20 @@ import sys
 import threading
 import unicodedata
 import warnings
+import webbrowser
 
-SERVER_IP = sys.argv[1] if len(sys.argv) > 1 else "127.0.0.1"
 PORT = 8820
+WEB_PORT = 8080   # where the host's website runs (server.py starts it)
+
+
+def parse_args(args):
+    """python client.py [IP] [--web]  ->  (the IP, the set of --flags)."""
+    flags = {a for a in args if a.startswith("--")}
+    others = [a for a in args if not a.startswith("-")]
+    return (others[0] if others else "127.0.0.1"), flags
+
+
+SERVER_IP, FLAGS = parse_args(sys.argv[1:])
 MAX_LINE = 4 * 1024 * 1024
 MAX_FILE_SIZE = 2 * 1024 * 1024
 DOWNLOAD_DIR = "received_files"
@@ -447,7 +459,31 @@ def chat_loop(sock):
             send(sock, {"type": "line", "text": text})
 
 
+def ask_terminal_or_web():
+    """Ask how to play. Enter means the terminal. Only asks when someone is typing at a keyboard."""
+    if not sys.stdin.isatty():
+        return "terminal"
+    answer = input("1) Play here in the terminal   2) Open the website\n> ").strip()
+    return "web" if answer == "2" else "terminal"
+
+
+def open_website(ip):
+    """Open the host's website in the browser. False if it isn't running (then we use the terminal)."""
+    url = f"http://{ip}:{WEB_PORT}"
+    try:
+        socket.create_connection((ip, WEB_PORT), timeout=2).close()
+    except OSError:
+        print(f"🌐 The website isn't running on {ip}:{WEB_PORT}. Using the terminal instead.")
+        return False
+    webbrowser.open(url)
+    print(f"🌐 Opened {url} in your browser. (If nothing opened, copy that link into it.)")
+    return True
+
+
 def main():
+    mode = "web" if "--web" in FLAGS else ask_terminal_or_web()
+    if mode == "web" and open_website(SERVER_IP):
+        return
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.connect((SERVER_IP, PORT))
