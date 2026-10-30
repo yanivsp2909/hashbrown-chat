@@ -27,6 +27,7 @@
 - 🏦 **Group bank**: every group earns its own tokens and spends them on upgrades; ⚔️ group wars for the bank.
 - 👥 **Groups screen** (website): every group by clicking. Join or ask to join, open a chat, and see each group's members (who's online), bank (history, top donors, a chart, donate) and every upgrade (owned, can buy, or how much is missing). A group's admins also get its join requests and buttons to kick, mute, ban, promote, set the topic, emoji and persona, or disband. Every button sends the normal command, so the server's rules still decide.
 - 🪙 **Tokens**: earn them by being online, with a `/daily` streak, three daily `/quests`, winning games and achievements. Spend them in the badge shop or the casino (fake tokens only). `/give` has limits against farming with extra accounts (not in an account's first 24 hours, at most 500 a day).
+- 📈 **Economy**: a stock market (🍟 FRY, 🥔 SPUD, 🧂 SALT, 🥫 KTCH, plus every group as a stock), savings with interest, loans, a player marketplace for badges, auctions of rare badges, and a public fund: trading fees and a tax on big casino wins go in, prizes come out, so tokens keep their value. Hashbrown posts funny market news, and the website has a 📈 Market screen with live charts and a 📊 Economy dashboard.
 - 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel, Connect 4, Battleship and solo Wordle; ELO ratings and `/leaderboard`, `/watch` someone's game. Challenge a friend, with an optional token bet; `/rematch`, and `/claim` if they stop moving.
 - 🥔 **Hashbrown**: an AI member. Type `@hashbrown` in chat, or `/ask` for a private answer; it also comments on your games, judges arguments (`/judge`), translates (`/tr`), gives Wordle hints and asks a question of the day (answer it with `/answer`: the answer with the most reactions wins 50 🪙). Each question costs tokens; you can tip Hashbrown with `/give hashbrown 10`. Without an API key, Hashbrown is simply off.
 - 🔁 **Reconnect and catch up**: if the Wi-Fi drops (or the website restarts), the website and `client.py` log back in by themselves and get exactly the messages they missed, once.
@@ -163,6 +164,8 @@ Every packet is **one JSON object on one line**, ending with `\n`. That's called
 | both ways | `stroke` | `points` (0-1000), `color`, `size`, or `clear`: the drawer's brush, passed to the room's `draw` clients; `draw_round` says when a round starts and ends |
 | client → server | `get_netmap` / `netmap_closed` | the network map opens/closes: the server sends `netmap` (`players`: room, ping, packets per type) once a second |
 | both ways | `probe` / `probe_back` | `id`: the server's ping probe, only to clients with the `probe` feature |
+| server → client | `market` | `prices`, `changes`, `time`: once a minute, one packet to everyone |
+| client → server | `get_market` / `get_economy` | the website's market screen (`market_info`: stocks with recent prices, your shares) and economy dashboard (`economy`) |
 | server → client | `lab` | `lag_ms`, `loss_percent` (the network lab changed; 0 and 0 = off) |
 | client → server | `react` | `id` (a chat message), `emoji`: the room gets `reactions` with `id` and `counts` |
 | client → server | `edit` / `delete` | `id` (your own message, for 10 min), `text`: the room gets `edited` / `deleted` |

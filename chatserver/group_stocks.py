@@ -17,21 +17,30 @@ def symbol_of(key):
     return f"#{key}"
 
 
-def note_message(room):
+def note_message(room, who=""):
     """A chat line in a group: it counts toward how busy the group is."""
     if room in state.groups:
         times = state.group_activity.setdefault(room, deque())
-        times.append(time.time())
-        while times and time.time() - times[0] > 3600:
+        times.append((time.time(), who))
+        while times and time.time() - times[0][0] > 3600:
             times.popleft()
+
+
+def busy(key):
+    """Chat lines in the last hour, but at most GROUP_STOCK_MSGS_PER_MEMBER from each person and
+    GROUP_STOCK_MAX_BUSY in all (one person spamming their own group can't pump its stock)."""
+    now = time.time()
+    per_person = {}
+    for when, who in state.group_activity.get(key, ()):
+        if now - when < 3600:
+            per_person[who] = per_person.get(who, 0) + 1
+    return min(config.GROUP_STOCK_MAX_BUSY, sum(min(n, config.GROUP_STOCK_MSGS_PER_MEMBER) for n in per_person.values()))
 
 
 def target(key):
     group = state.groups[key]
-    now = time.time()
-    busy = sum(1 for t in state.group_activity.get(key, ()) if now - t < 3600)
     return (config.GROUP_STOCK_BASE + group["bank"] // config.GROUP_STOCK_BANK_PER_POINT
-            + len(group["members"]) * config.GROUP_STOCK_PER_MEMBER + busy * config.GROUP_STOCK_PER_MESSAGE)
+            + len(group["members"]) * config.GROUP_STOCK_PER_MEMBER + busy(key) * config.GROUP_STOCK_PER_MESSAGE)
 
 
 def tick():
@@ -82,6 +91,7 @@ def pay_dividends():
 def forget(key):
     """The group was disbanded: its shareholders are paid the last price (from the fund first), the stock goes."""
     sym = symbol_of(key)
+    state.group_activity.pop(key, None)   # (a new group with this name starts quiet)
     stock = state.stocks.pop(sym, None)
     if stock is None:
         return

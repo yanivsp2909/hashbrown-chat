@@ -12,8 +12,11 @@ pytestmark = pytest.mark.integration
 
 
 def old(key, tokens=1000):
+    """An account that may borrow: older than a day, chatted enough; and a fund that can lend."""
     state.accounts[key]["created"] = 0
     state.accounts[key]["tokens"] = tokens
+    state.accounts[key]["messages"] = config.LOAN_MIN_MESSAGES
+    state.public_fund = max(state.public_fund, 1000)
 
 
 def test_save_withdraw_and_show(user):
@@ -65,8 +68,10 @@ def test_no_interest_when_the_fund_is_empty(user):
 def test_a_loan_with_interest_and_paying_it_back(user):
     adi = user("Adi")
     old("adi", 0)
+    fund_start = state.public_fund
     adi.line("/loan 200")
     adi.expect_text("You borrowed 200")
+    assert state.public_fund == fund_start - 200        # lent by the fund: no new tokens
     loan = state.accounts["adi"]["loan"]
     assert state.accounts["adi"]["tokens"] == 200 and loan["owed"] == 200 + 200 * config.LOAN_INTEREST_PERCENT // 100
     adi.line("/loan 50")
@@ -103,3 +108,35 @@ def test_a_late_loan_takes_your_income_first(user):
     background.income_tick()
     assert state.accounts["adi"]["tokens"] == 0
     assert state.accounts["adi"]["loan"]["owed"] == owed - config.TOKENS_PER_MINUTE
+
+
+
+# ---------------------------------------------------------------- security review
+
+def test_loans_only_lend_what_the_fund_has(user):
+    adi = user("Adi")
+    old("adi", 0)
+    state.public_fund = 50
+    adi.line("/loan 100")
+    adi.expect_text("can lend 50", kind="error")
+
+
+def test_quiet_accounts_cant_borrow(user):
+    adi = user("Adi")
+    old("adi", 0)
+    state.accounts["adi"]["messages"] = 0
+    adi.line("/loan 100")
+    adi.expect_text("Chat a bit first", kind="error")
+
+
+def test_a_late_loan_takes_tokens_and_savings_at_login(user):
+    adi = user("Adi")
+    old("adi", 0)
+    adi.line("/loan 100")
+    adi.expect_text("You borrowed")
+    state.accounts["adi"]["loan"]["due"] = time.time() - 1
+    state.accounts["adi"]["savings"] = 500
+    adi.close()
+    back = user("Adi", action="login")
+    back.expect_text("Your loan is late")
+    assert state.accounts["adi"]["loan"] is None

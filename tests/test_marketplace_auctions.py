@@ -21,6 +21,7 @@ def test_list_buy_with_a_fee(user):
     adi, ben = user("Adi"), user("Ben")
     owns("adi", "🔥")
     state.accounts["ben"]["tokens"] = 1000
+    state.accounts["ben"]["created"] = 0      # (buying from a player follows the /give rules)
     adi.line("/sell badge 🔥 300")
     adi.expect_text("listed 🔥 for 300")
     assert "🔥" not in state.accounts["adi"]["badges"] and state.accounts["adi"]["badge"] == ""
@@ -113,3 +114,39 @@ def test_a_bid_held_over_a_restart_is_given_back(user):
     with state.lock:
         auctions.refund_after_restart()
     assert state.accounts["adi"]["tokens"] == 1000 and "auction" not in state.economy_extra
+
+
+
+# ---------------------------------------------------------------- security review
+
+def test_new_accounts_cant_buy_from_players(user):
+    """A sale moves tokens to another player, so it follows the /give rules (no farming with extra accounts)."""
+    adi, ben = user("Adi"), user("Ben")
+    owns("adi", "🔥")
+    state.accounts["ben"]["tokens"] = 1000
+    adi.line("/sell badge 🔥 300")
+    adi.expect_text("listed")
+    ben.line("/market buy 1")
+    ben.expect_text("first 24 hours", kind="error")
+
+
+def test_a_late_bid_is_refused(user):
+    adi = user("Adi")
+    state.accounts["adi"]["tokens"] = 1000
+    start()
+    state.economy_extra["auction"]["until"] = time.time() - 1
+    adi.line("/bid 200")
+    adi.expect_text("No auction", kind="error")
+
+
+def test_a_winner_who_already_has_the_badge_gets_the_money_back(user):
+    adi = user("Adi")
+    state.accounts["adi"]["tokens"] = 1000
+    start("🦄")
+    adi.line("/bid 150")
+    adi.expect_text("top bid")
+    state.accounts["adi"]["badges"] = ["🦄"]
+    state.economy_extra["auction"]["until"] = time.time() - 1
+    with state.lock:
+        auctions.tick()
+    assert state.accounts["adi"]["tokens"] == 1000 and state.accounts["adi"]["badges"] == ["🦄"]

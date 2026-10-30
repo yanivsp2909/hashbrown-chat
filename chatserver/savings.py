@@ -68,6 +68,8 @@ def borrow(client, args):
     account = state.accounts[client.key]
     if time.time() - account.get("created", 0) < config.GIVE_MIN_AGE_HOURS * 3600:
         return client.say(f"💳 New accounts can't borrow in their first {config.GIVE_MIN_AGE_HOURS} hours.", "error")
+    if account.get("messages", 0) < config.LOAN_MIN_MESSAGES:   # (extra accounts made just to borrow: no)
+        return client.say(f"💳 Chat a bit first: you can borrow after {config.LOAN_MIN_MESSAGES} messages.", "error")
     if account["loan"]:
         return client.say(f"💳 You already have a loan: you owe {account['loan']['owed']} 🪙. /repay it first.", "error")
     text = args.strip()
@@ -76,9 +78,12 @@ def borrow(client, args):
     amount = int(text)
     if amount > config.LOAN_MAX:
         return client.say(f"💳 You can borrow at most {config.LOAN_MAX} 🪙.", "error")
+    if amount > state.public_fund:   # loans only lend what the fund has: they never make new tokens
+        return client.say(f"💳 The public fund can lend {state.public_fund} 🪙 right now.", "error")
     owed = amount + amount * config.LOAN_INTEREST_PERCENT // 100
     account["loan"] = {"owed": owed, "due": time.time() + config.LOAN_DAYS * 86400}
-    fund.pay_prize(client.key, amount)   # from the fund first
+    state.public_fund -= amount
+    account["tokens"] += amount
     storage.save_data()
     return client.say(f"💳 You borrowed {amount} 🪙. You owe {owed} 🪙 ({config.LOAN_INTEREST_PERCENT}% more) within "
                       f"{config.LOAN_DAYS} days. /repay all when you can.", "money")
@@ -102,13 +107,30 @@ def repay(client, args):
     return client.say(f"💳 You paid {amount} 🪙. You still owe {account['loan']['owed']} 🪙.", "money")
 
 
-def pay_off(key, amount):
+def pay_off(key, amount, save=True):
     """Tokens toward a loan go into the public fund."""
     account = state.accounts[key]
     owed = account["loan"]["owed"] - amount
     account["loan"] = None if owed <= 0 else {**account["loan"], "owed": owed}
     fund.collect(amount, "loan")
+    if save:
+        storage.save_data()
+
+
+def collect_late(key):
+    """At login: a late loan takes what it can from your wallet, then your savings."""
+    account = state.accounts[key]
+    loan = account.get("loan")
+    if not loan or loan["due"] > time.time():
+        return
+    for place in ("tokens", "savings"):
+        take = min(account.get(place, 0), (account["loan"] or {}).get("owed", 0))
+        if take > 0:
+            account[place] -= take
+            pay_off(key, take, save=False)
     storage.save_data()
+    rooms.tell(key, "💳 Your loan is late, so it took what it could from your tokens and savings."
+               + ("" if account["loan"] is None else f" You still owe {account['loan']['owed']} 🪙."), "error")
 
 
 def take_income(key, income):
@@ -117,7 +139,7 @@ def take_income(key, income):
     if not loan or loan["due"] > time.time():
         return income
     paid = min(income, loan["owed"])
-    pay_off(key, paid)
+    pay_off(key, paid, save=False)   # (the income tick saves once at the end)
     if state.accounts[key]["loan"] is None:
         rooms.tell(key, "💳 Your late loan is paid back now. 🙌", "money")
     return income - paid

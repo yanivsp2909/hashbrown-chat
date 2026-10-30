@@ -34,7 +34,7 @@ def start(badge=None):
 
 def bid(client, args):
     auction = current()
-    if not auction:
+    if not auction or time.time() >= auction["until"]:
         return client.say("🔨 No auction right now. One starts in the lobby every few hours.", "error")
     text = args.strip()
     lowest = max(config.AUCTION_START_PRICE, auction["bid"] + config.AUCTION_MIN_STEP if auction["by"] else 0)
@@ -64,7 +64,10 @@ def tick():
     now = time.time()
     if auction and now >= auction["until"]:
         set_current(None)
-        if auction["by"] in state.accounts:
+        if auction["by"] in state.accounts and auction["badge"] in state.accounts[auction["by"]]["badges"]:
+            state.accounts[auction["by"]]["tokens"] += auction["bid"]   # they got one meanwhile: money back
+            rooms.announce(f"🔨 The auction for {auction['badge']} ended without a sale.")
+        elif auction["by"] in state.accounts:
             winner = state.accounts[auction["by"]]
             winner["badges"] = winner["badges"] + [auction["badge"]]
             fund.collect(auction["bid"], "auction")
@@ -80,6 +83,7 @@ def refund_after_restart():
     """A server that restarted mid-auction: the held bid goes back, the auction is off."""
     auction = current()
     if auction:
-        if auction["by"] in state.accounts:
+        if isinstance(auction, dict) and auction.get("by") in state.accounts and isinstance(auction.get("bid"), int) \
+                and 0 < auction["bid"] <= 10 ** 9:
             state.accounts[auction["by"]]["tokens"] += auction["bid"]
         set_current(None)

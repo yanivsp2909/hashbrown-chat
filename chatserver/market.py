@@ -9,7 +9,7 @@ import random
 import time
 from collections import deque
 
-from chatserver import config, fund, rooms, state
+from chatserver import config, fund, rooms, state, textutil
 
 _listeners = []   # functions(old_prices, new_prices) run after every tick (market news uses this)
 
@@ -48,7 +48,10 @@ def tick(broadcast=True):
     from chatserver import group_stocks   # (group_stocks uses the fund and rooms: importing it at the top would loop)
     group_stocks.tick()
     for listener in list(_listeners):
-        listener(old, prices())
+        try:   # one broken listener (like the news) mustn't stop the minute's prices going out
+            listener(old, prices())
+        except Exception as error:
+            textutil.log(f"[MARKET] A tick listener failed: {type(error).__name__}")
     if broadcast:
         packet = {"type": "market", "prices": prices(), "changes": changes(), "time": int(now)}
         for c in list(state.online.values()):
@@ -95,9 +98,18 @@ def trade(client, sym, shares, buying):
     else:
         if held < shares:
             return f"📈 You only have {held} {shown(sym)}."
-        account["tokens"] += cost - charge
         left = held - shares
         spent = account["spent"].get(sym, 0)
+        proceeds = cost - charge
+        if sym.startswith("#"):   # 👥 a group stock's profit is paid by the public fund (its price can be pushed)
+            basis = spent * shares // held if held else 0
+            profit = max(0, proceeds - basis)
+            paid_profit = min(profit, state.public_fund)
+            state.public_fund -= paid_profit
+            if paid_profit < profit:
+                client.say(f"🧾 The public fund could only pay {paid_profit} 🪙 of your {profit} 🪙 profit.", "error")
+            proceeds = min(proceeds, basis) + paid_profit
+        account["tokens"] += proceeds
         account["portfolio"] = {k: v for k, v in {**account["portfolio"], sym: left}.items() if v}
         account["spent"] = {k: v for k, v in {**account["spent"], sym: spent * left // held if held else 0}.items() if v}
         verb = "sold"

@@ -24,8 +24,14 @@ def check(old, new):
         task = (f"You're the friend group's funny market reporter. {icon} {sym} ({name}) is {way} {abs(change):.0f}% "
                 f"today, now {stock['price']} tokens (fake money in a chat game). Write ONE short funny news line "
                 "about it, like a headline. No advice.")
-        hashbrown_extras.ask_in_background(task, post)
+        hashbrown_extras.ask_in_background(task, post, on_fail=lambda sym=sym: forget_news(sym))
     state.economy_extra = {**state.economy_extra, "news": told}
+
+
+def forget_news(sym):
+    """The AI call failed: this stock may get its news later today after all."""
+    news = state.economy_extra.get("news", {})
+    state.economy_extra = {**state.economy_extra, "news": {**news, "stocks": [s for s in news.get("stocks", []) if s != sym]}}
 
 
 def post(answer):

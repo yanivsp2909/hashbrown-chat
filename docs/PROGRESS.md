@@ -1,6 +1,6 @@
 # 🧭 Build progress
 
-**Status (2026-10-30): all 29 features and the 19 round-3 items done and pushed. 813 server tests + 39 website tests.**
+**Status (2026-10-31): rounds 1-5 done and pushed (Groups screen, group A, group B economy). 948 server tests + all website tests pass.**
 
 The checklist for the big build run. Each feature: **not started**, **in progress**, **done** (with the commit) or **skipped** (with the reason).
 If you're picking this up after a break: read the rules, then continue from the first item that isn't done or skipped.
@@ -175,6 +175,13 @@ Decision: group commands work on the room you're in, so a button for a group you
 | N11 | 🛒 Player marketplace | done: /sell badge 🔥 300 lists a badge you own (it leaves your badges while listed), /market, /market buy N (MARKETPLACE_FEE_PERCENT 5% to the fund, the rest to the seller), /market cancel N; at most MARKETPLACE_LISTINGS_MAX 5 each; saved. Only badges (they're the only items in the game) |
 | N12 | 🔨 Auctions | done: a rare badge (RARE_BADGES 🦄 🌈 🪐 🐉 🏆, not in the shop) is auctioned in the lobby every AUCTION_EVERY_HOURS 6 with 2+ online (admins: /auction); /bid (AUCTION_START_PRICE 100, +AUCTION_MIN_STEP 10), the bid is held and given back when outbid; after AUCTION_SECONDS 120 the top bid wins and the money goes to the fund; a held bid is given back after a restart |
 | N13 | 📊 Economy dashboard (website) | done: website 📊 Economy dialog: every token in the game (wallets + savings + group banks + fund + jackpot + Hashbrown's tips), the public fund (today in/out), today's hottest stock, inflation over the week (one total a day, saved), a chart of the total, the DASHBOARD_RICHEST 5 richest; get_economy -> economy |
+
+### Round 5, group B reviews
+
+- security-reviewer (marketplace, loans, savings, auctions): loans only lend what the public fund has (they never make new tokens) and need 20 messages first; a late loan also takes your tokens and savings at login; buying from a player follows the /give rules (24 h, 500 a day) and every sale pays at least 1 🪙 fee; bids after the end are refused; a winner who already owns the badge gets the money back; badges are never added twice; saved listings and auctions are checked when loading; late-loan income saves once per tick.
+- code-reviewer (market, fund, group stocks, news, dashboard): one person's chat counts at most 10 lines an hour toward a group stock (60 in all), and a group stock's profit is paid only by the fund; shares of stocks that vanished are refunded on load; a disbanded group's activity is forgotten; a failed news call frees that stock's news for the day; a broken tick listener can't stop the prices going out; the market screen keeps focus and refreshes the wallet each tick.
+- Chrome (two logins): market screen with live charts (incl. a group stock), buying, the marketplace (list + buy), the economy dashboard, and both pages reconnecting after the website restarted.
+- Two timing races found in tests (network map count, spectating disconnect) and fixed; 948 server tests pass.
 
 ### Round 5, group A reviews
 

@@ -58,8 +58,8 @@ function card(sym, stock) {
     el("div", { class: "mk-trade" },
       el("label", { class: "visually-hidden", for: `mk-n-${sym}`, text: `How many ${sym} shares` }),
       el("input", { id: `mk-n-${sym}`, class: "input mk-n", type: "number", min: "1", step: "1", inputmode: "numeric", placeholder: "Shares", value: typed }),
-      el("button", { class: "btn btn-primary", type: "button", text: "Buy", "aria-label": `Buy ${sym}`, onclick: () => trade("buy", sym) }),
-      el("button", { class: "btn btn-ghost", type: "button", text: "Sell", "aria-label": `Sell ${sym}`, disabled: !owned, onclick: () => trade("sell", sym) })));
+      el("button", { id: `mk-buy-${sym}`, class: "btn btn-primary", type: "button", text: "Buy", "aria-label": `Buy ${sym}`, onclick: () => trade("buy", sym) }),
+      el("button", { id: `mk-sell-${sym}`, class: "btn btn-ghost", type: "button", text: "Sell", "aria-label": `Sell ${sym}`, disabled: !owned, onclick: () => trade("sell", sym) })));
 }
 
 function draw() {
@@ -80,6 +80,7 @@ export function onInfo(msg) {
 /** {"type": "market"}: the minute's prices (one packet to everyone). */
 export function onTick(msg) {
   if (!info || !msg.prices) return;
+  if ($("market").open) send({ type: "get_market" });   // (and a fresh wallet: dividends, payouts...)
   const stocks = {};
   for (const [sym, stock] of Object.entries(info.stocks)) {
     const price = Number.isInteger(msg.prices[sym]) ? msg.prices[sym] : stock.price;

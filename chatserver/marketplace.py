@@ -13,6 +13,18 @@ def listings():
     return state.economy_extra.get("listings", [])
 
 
+def clean_saved(extra):
+    """Listings read back from chat_data.json: only well-formed ones, unique numbers, sellers that exist."""
+    rows, seen = [], set()
+    for row in extra.get("listings", []) if isinstance(extra.get("listings"), list) else []:
+        if (isinstance(row, dict) and isinstance(row.get("id"), int) and row["id"] not in seen
+                and isinstance(row.get("price"), int) and 0 < row["price"] <= config.MARKETPLACE_MAX_PRICE
+                and row.get("seller") in state.accounts and isinstance(row.get("badge"), str)):
+            seen.add(row["id"])
+            rows.append(row)
+    return {**extra, "listings": rows, "next_listing": max([extra.get("next_listing", 0) if isinstance(extra.get("next_listing"), int) else 0] + list(seen))}
+
+
 def set_listings(rows):
     state.economy_extra = {**state.economy_extra, "listings": rows}
 
@@ -67,10 +79,15 @@ def buy(client, text):
         return client.say(f"🛒 You already have {row['badge']}.", "error")
     if account["tokens"] < row["price"]:
         return client.say(f"💸 It costs {row['price']} 🪙, you have {account['tokens']}.", "error")
-    charge = row["price"] * config.MARKETPLACE_FEE_PERCENT // 100
+    from chatserver import cmd_tokens   # (the /give rules: a sale is tokens going to another player)
+    if not cmd_tokens.give_allowed(client, row["price"]):
+        return None
+    charge = fund.fee(row["price"], config.MARKETPLACE_FEE_PERCENT)
     account["tokens"] -= row["price"]
     account["badges"] = account["badges"] + [row["badge"]]
-    if row["seller"] in state.accounts:
+    if row["seller"] not in state.accounts:   # (a seller who's gone: the money goes to the fund)
+        fund.collect(row["price"] - charge, "marketplace")
+    else:
         state.accounts[row["seller"]]["tokens"] += row["price"] - charge
     fund.collect(charge, "marketplace fee")
     set_listings([r for r in listings() if r["id"] != row["id"]])
@@ -87,7 +104,8 @@ def cancel(client, text):
     if row["seller"] != client.key:
         return client.say("🛒 That's not yours.", "error")
     account = state.accounts[client.key]
-    account["badges"] = account["badges"] + [row["badge"]]
+    if row["badge"] not in account["badges"]:
+        account["badges"] = account["badges"] + [row["badge"]]
     set_listings([r for r in listings() if r["id"] != row["id"]])
     storage.save_data()
     return client.say(f"🛒 {row['badge']} is back with you.", "money")

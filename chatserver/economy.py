@@ -47,9 +47,17 @@ def load_saved(saved):
     state.supply_history = [list(p) for p in supply if isinstance(p, list) and len(p) == 2] if isinstance(supply, list) else []
     extra = saved.get("extra")
     state.economy_extra = extra if isinstance(extra, dict) else {}
-    from chatserver import auctions   # (auctions saves through storage: importing it at the top would loop)
+    from chatserver import auctions, marketplace   # (they save through storage: importing them at the top would loop)
+    state.economy_extra = marketplace.clean_saved(state.economy_extra)   # 🛒 only well-formed listings
     auctions.refund_after_restart()   # 🔨 a held bid goes back
     market.ensure()
+    for key, account in state.accounts.items():   # shares of stocks that don't exist any more: paid what they cost
+        lost = [sym for sym in account.get("portfolio", {}) if sym not in state.stocks]
+        for sym in lost:
+            refund = account.get("spent", {}).get(sym, 0)
+            account["portfolio"] = {k: v for k, v in account["portfolio"].items() if k != sym}
+            account["spent"] = {k: v for k, v in account.get("spent", {}).items() if k != sym}
+            account["tokens"] = account.get("tokens", 0) + refund
 
 
 def on_new_day(job):

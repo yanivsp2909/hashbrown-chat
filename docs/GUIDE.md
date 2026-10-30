@@ -127,6 +127,20 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 
 **`/give` limits** (against making extra accounts to farm tokens): an account can't give in its first 24 hours, and nobody gives more than 500 🪙 a day in total. Tipping Hashbrown (`/give hashbrown 10`) counts too; Hashbrown keeps its tips and shows up in `/top`.
 
+## The economy 📈
+
+All the numbers are at the top of the economy part of `chatserver/config.py` (search for "the economy").
+
+- **📈 Stocks:** `/stocks`, `/buy FRY 5`, `/sell FRY 5`, `/portfolio`. Four companies: 🍟 FRY (starts at 100), 🥔 SPUD (50), 🧂 SALT (20), 🥫 KTCH (75). Every minute each price takes a small random step (about 2%), with a gentle pull back toward where it started, at most 6% a minute and never below 1. Every buy and sell costs a 1% fee (at least 1 🪙). The website's **📈 Market** shows a live chart of each one.
+- **👥 Group stocks:** every group is a stock too: `/buy #Potatoes 3`. Its price follows the group's bank, members and how busy its chat was in the last hour. A group that grew since yesterday pays its shareholders 2% of the price per share a day, out of its own bank. If a group is disbanded, its shareholders are paid the last price.
+- **🧾 The public fund:** the trading fees, 5% of marketplace sales, a 10% tax on casino wins of 200 🪙 or more, loan repayments and auction money go into it. The quest, question-of-the-day and drawing prizes come out of it first, and savings interest only comes from it, so tokens go round instead of being printed.
+- **🏦 Savings:** `/save 100`, `/withdraw 100`, `/savings`. Up to 5000 🪙; +1% a day (at most 50 🪙), while the fund has it.
+- **💳 Loans:** `/loan 200` (up to 500, accounts older than a day, one at a time). You owe 10% more, within 3 days; `/repay all`. If you're late, your per-minute income pays it back first.
+- **🛒 Marketplace:** `/sell badge 🔥 300` puts a badge you own up for sale, `/market` shows what's for sale, `/market buy 2` buys number 2, `/market cancel 2` takes yours back. 5% of the price goes to the fund.
+- **🔨 Auctions:** every 6 hours (with 2+ people online) a rare badge (🦄 🌈 🪐 🐉 🏆, not in the shop) is auctioned in the lobby for 2 minutes. `/bid 150`: your tokens are held, and given back if someone bids more. The money goes to the fund. Admins can start one with `/auction`.
+- **📰 Market news:** when a stock is 15% up or down for the day, Hashbrown posts a funny headline in the lobby (at most 3 a day).
+- **📊 Economy dashboard** (website): every token in the game, the fund, the hottest stock, the week's inflation and the richest players.
+
 ## Commands
 
 | | |

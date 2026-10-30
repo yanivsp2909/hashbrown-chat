@@ -91,3 +91,32 @@ def test_disbanding_pays_shareholders_and_removes_the_stock(user):
     assert "#potatoes" not in state.stocks and state.accounts["ben"]["portfolio"] == {}
     assert state.accounts["ben"]["tokens"] == tokens + 4 * price
     assert market is not None and economy is not None
+
+
+# ---------------------------------------------------------------- code review: no pumping, no minted profit
+
+def test_one_person_spamming_their_group_counts_only_a_little(user):
+    adi = user("Adi")
+    group(adi)
+    for i in range(40):
+        adi.line(f"spam {i}")
+    adi.line("/users")
+    adi.expect_text("Online now")
+    assert group_stocks.busy("potatoes") == config.GROUP_STOCK_MSGS_PER_MEMBER
+
+
+def test_a_group_stocks_profit_comes_from_the_fund(user):
+    adi = user("Adi")
+    group(adi)
+    with state.lock:
+        group_stocks.tick()
+    state.accounts["adi"]["tokens"] = 1000
+    state.stocks["#potatoes"]["price"] = 10
+    adi.line("/buy #Potatoes 10")
+    adi.expect_text("You bought")
+    state.stocks["#potatoes"]["price"] = 50          # pushed up
+    state.public_fund = 0
+    before = state.accounts["adi"]["tokens"]
+    adi.line("/sell #Potatoes 10")
+    adi.expect_text("could only pay 0")
+    assert state.accounts["adi"]["tokens"] == before + 100   # only what it cost
