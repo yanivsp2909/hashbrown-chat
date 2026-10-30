@@ -97,11 +97,13 @@ def validate(msg, logged_in):
     if kind == "auth":
         if logged_in:
             raise BridgeError(400, "You're already logged in.")
-        if msg.get("action") not in ("login", "register"):
+        if msg.get("action") not in ("login", "register", "resume"):
             raise BridgeError(400, "Bad login request.")
-        auth = {"type": "auth", "action": msg["action"],
-                "username": clean(msg.get("username"), 64, "Username"),
-                "password": clean(msg.get("password"), 128, "Password")}
+        auth = {"type": "auth", "action": msg["action"], "username": clean(msg.get("username"), 64, "Username")}
+        if msg["action"] == "resume":   # 🔁 back after a drop: the secret token and the last seq it got, no password
+            auth.update({"token": clean(msg.get("token"), 64, "Token"), "seq": whole_number(msg.get("seq"), "seq")})
+        else:
+            auth["password"] = clean(msg.get("password"), 128, "Password")
         if "features" in msg:   # optional: what this browser understands, like ["stream"]
             auth["features"] = clean_features(msg["features"])
         return auth

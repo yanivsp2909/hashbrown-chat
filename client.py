@@ -61,6 +61,10 @@ ESC_WAIT = 0.05  # seconds to wait after Esc to see if it is the start of an arr
 TIMED_OUT = {"type": "timed_out"}  # made here (never sent by the server) when waiting took too long
 
 quitting = threading.Event()
+# 🔁 Reconnect and catch up: the connection we use now, the secret token the server gave at login, and the
+# last packet number we got. After a drop we log back in with them and get exactly what we missed.
+link = {"sock": None, "server": "", "username": "", "token": "", "seq": 0, "kicked": False}
+RECONNECT_WAITS = (1, 2, 4, 8, 15, 30)   # seconds between tries, then we give up
 
 
 # ---------------------------------------------------------------- the line you type on
@@ -256,7 +260,8 @@ def send(sock, obj):
     """Every message is one line of JSON, so the other side knows where it ends."""
     line = json.dumps(obj, ensure_ascii=False)
     if "--packets" in FLAGS:
-        shown = json.dumps({**obj, "password": "•••"}, ensure_ascii=False) if "password" in obj else line
+        hidden = {k: "•••" for k in ("password", "token") if k in obj}
+        shown = json.dumps({**obj, **hidden}, ensure_ascii=False) if hidden else line
         show_packet(f"⬆ {shown}")
     sock.sendall((line + "\n").encode())
 
@@ -457,6 +462,7 @@ def login(sock, messages):
         if choice == "2" and ask_password("Repeat password: ") != password:
             print(paint("Passwords don't match, try again.", KIND_COLORS["error"]))
             continue
+        link["username"] = username
         send(sock, {"type": "auth", "action": "login" if choice == "1" else "register",
                     "username": username, "password": password, "features": FEATURES})
         print(paint("⏳ Checking...", DIM))
@@ -476,18 +482,72 @@ def login(sock, messages):
         sock.settimeout(None)
         print(paint(printable(msg.get("text", "")), KIND_COLORS["money" if msg.get("ok") else "error"]))
         if msg.get("ok"):
+            keep(msg)   # 🔁 the resume token
             return True
 
 
 # ---------------------------------------------------------------- main
 
+def keep(msg):
+    """🔁 Remember the token and the packet number. False for a packet we already have."""
+    if msg.get("kicked") is True:
+        link["kicked"] = True
+    if msg.get("type") == "auth_result" and msg.get("ok") and isinstance(msg.get("resume_token"), str):
+        link["token"] = msg["resume_token"]
+    seq = msg.get("seq")
+    if not isinstance(seq, int) or isinstance(seq, bool):
+        return True
+    if seq <= link["seq"]:
+        return False
+    link["seq"] = seq
+    return True
+
+
 def receive_loop(messages):
-    """Runs in the background so messages show up while you're typing."""
-    for msg in messages:
-        show(msg)
+    """Runs in the background so messages show up while you're typing. After a drop it reconnects by itself."""
+    while messages is not None:
+        for msg in messages:
+            if keep(msg):
+                show(msg)
+        if quitting.is_set():
+            return
+        messages = reconnect()
     if not quitting.is_set():
         console.out(paint("[CLIENT] Disconnected from the server. Press Enter to exit.", KIND_COLORS["error"]))
         quitting.set()
+
+
+def reconnect():
+    """🔁 The connection dropped: log back in with the token and catch up. The new messages, or None."""
+    if not link["token"] or link["kicked"]:
+        return None
+    console.out(paint("🔁 Lost the connection. Reconnecting…", KIND_COLORS["system"]))
+    for wait in RECONNECT_WAITS:
+        if quitting.wait(wait):
+            return None
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.settimeout(10)
+            sock.connect((link["server"], PORT))
+            send(sock, {"type": "auth", "action": "resume", "username": link["username"], "token": link["token"],
+                        "seq": link["seq"], "features": FEATURES})
+            messages = read_messages(sock)
+            for msg in messages:
+                if msg.get("type") != "auth_result":
+                    continue
+                if not msg.get("ok"):
+                    console.out(paint(printable(msg.get("text", "")), KIND_COLORS["error"]))
+                    sock.close()
+                    return None
+                keep(msg)
+                sock.settimeout(None)
+                old, link["sock"] = link["sock"], sock
+                old.close()
+                console.out(paint("🔁 Reconnected! Here's what you missed:", KIND_COLORS["money"]))
+                return messages
+        except OSError:
+            sock.close()
+    return None
 
 
 def chat_loop(sock):
@@ -497,16 +557,20 @@ def chat_loop(sock):
             break
         if not text:
             continue
-        if text.lower().split()[0] == "/sendfile":
-            send_file(sock, text)
-        elif text.lower() == "/ping":
-            send_ping(sock)
-        elif text.lower() == "/quit":
-            quitting.set()  # set first, so the receiver doesn't report a "disconnect"
-            send(sock, {"type": "line", "text": text})
-            break
-        else:
-            send(sock, {"type": "line", "text": text})
+        sock = link["sock"] or sock   # 🔁 after a reconnect: the new connection
+        try:
+            if text.lower().split()[0] == "/sendfile":
+                send_file(sock, text)
+            elif text.lower() == "/ping":
+                send_ping(sock)
+            elif text.lower() == "/quit":
+                quitting.set()  # set first, so the receiver doesn't report a "disconnect"
+                send(sock, {"type": "line", "text": text})
+                break
+            else:
+                send(sock, {"type": "line", "text": text})
+        except OSError:   # dropped: the receiver reconnects (or says goodbye); this line is lost
+            console.out(paint("[CLIENT] Not sent: the connection dropped. Try again in a moment.", KIND_COLORS["error"]))
 
 
 def discover(targets=None, timeout=1.5):
@@ -605,6 +669,7 @@ def main():
     except OSError as e:
         print(f"[CLIENT] Can't connect to {server_ip}:{PORT} ({e})")
         return
+    link["sock"], link["server"] = sock, server_ip
     try:
         messages = read_messages(sock)
         if login(sock, messages):
@@ -616,7 +681,7 @@ def main():
         print("[CLIENT] Lost connection to the server.")
     finally:
         quitting.set()
-        sock.close()
+        (link["sock"] or sock).close()
         print("[CLIENT] Bye 👋")
 
 

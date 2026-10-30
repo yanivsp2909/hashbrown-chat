@@ -18,6 +18,10 @@ import { initTyping } from "./js/typing.js";
 import { initEdits, submitEdit } from "./js/edits.js";
 import { showLab, showTopic } from "./js/banners.js";
 import { initGroups, resetGroups } from "./js/groups.js";
+import * as resume from "./js/resume.js";
+
+const FEATURES = ["stream", "rooms", "typing", "chunks", "offers"];   // what this website understands (told at login)
+const RESUME_WAITS = [1, 2, 4, 8, 15, 30, 60];   // 🔁 seconds between tries to reconnect, then we give up
 
 const THEME_KEY = "hashbrown.theme";
 const SCREENS = ["loading", "login", "chat", "closed"];
@@ -145,6 +149,7 @@ async function connect(loginError = "") {
 
 api.setHandlers({
   onMessage: (msg, live) => {
+    if (!resume.seePacket(msg, live)) return;   // 🔁 already have it (caught up after a reconnect)
     try {
       handleMessage(msg, live, api.sendLine);
     } catch (error) {
@@ -156,7 +161,7 @@ api.setHandlers({
   onLive: (info) => {
     const { screen } = getState();
     if (info.logged_in && screen !== "chat") setState({ screen: "chat", nick: getState().nick || savedNick() });
-    else if (!info.logged_in && screen !== "login") {
+    else if (!info.logged_in && screen !== "login" && !reconnecting) {   // (🔁 not while logging back in by itself)
       setState({ screen: "login" });
       focusLogin();
     }
@@ -169,8 +174,10 @@ api.setHandlers({
   onClosed: (reason) => {
     if (quitting) {
       quitting = false;
+      resume.forget();
       return showClosed("You left the chat. Bye 👋");
     }
+    if (getState().screen === "chat" && resume.canResume()) return reconnect();
     if (getState().screen === "chat") return showClosed(reason);
     resetChat();
     // Still on the login screen: quietly start a fresh connection. Don't show why the old one
@@ -179,14 +186,40 @@ api.setHandlers({
   },
   onGap: () => chat.addNotice("system", "✂️ Some older messages were skipped."),
   onReplaced: () => showClosed("This chat is open in another tab. Close that tab, then come back here."),
-  onLost: () => showClosed("Your session ended. Log in again to keep chatting."),
+  onLost: () => (getState().screen === "chat" && resume.canResume() ? reconnect()
+    : showClosed("Your session ended. Log in again to keep chatting.")),
 });
+
+/** 🔁 The connection dropped: a new session, then log back in with the resume token (a few tries). */
+let reconnecting = false;
+async function reconnect() {
+  if (reconnecting) return;
+  reconnecting = true;
+  chat.addNotice("system", "🔁 The connection dropped. Reconnecting…");
+  for (const wait of RESUME_WAITS) {
+    await new Promise((done) => setTimeout(done, wait * 1000));
+    if (!resume.canResume()) break;
+    api.forgetSession();
+    const result = await api.newSession();
+    if (!result.ok) continue;   // the website itself isn't back yet
+    api.listen();
+    await api.whenLive();
+    const error = await api.send(resume.resumePacket(FEATURES));
+    if (!error) {
+      reconnecting = false;
+      return;
+    }
+  }
+  reconnecting = false;
+  showClosed("Couldn't reconnect. Log in again to keep chatting.");
+}
 
 $("reconnect").addEventListener("click", () => {
   setState({ screen: "loading" });
   connect();
 });
 $("logout").addEventListener("click", async () => {
+  resume.forget();
   await api.logout();
   resetChat();
   setState({ screen: "loading" });
@@ -202,7 +235,8 @@ initLogin({
     }
     await api.whenLive();  // otherwise the reply could arrive mixed into the replay and get lost
     setPendingUsername(username);
-    const error = await api.send({ type: "auth", action, username, password, features: ["stream", "rooms", "typing", "chunks", "offers"] });
+    resume.noteLogin(username);
+    const error = await api.send({ type: "auth", action, username, password, features: FEATURES });
     if (error) showLoginError(error);
   },
 });

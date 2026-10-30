@@ -10,7 +10,7 @@ import time
 import traceback
 from collections import deque
 
-from chatserver import config, state, textutil
+from chatserver import config, resume, state, textutil
 
 
 # ---------------------------------------------------------------- one connected person
@@ -63,8 +63,11 @@ class Client:
                 hang_up(self)
                 return
 
-    def send(self, obj, after=None):
-        """Queue a message. after() runs (in the writer thread) once it has really gone out."""
+    def send(self, obj, after=None, stamped=False):
+        """Queue a message. after() runs (in the writer thread) once it has really gone out.
+        Logged in: it gets its 🔁 "seq" number (unless it already has one: a resumed packet)."""
+        if self.key and not stamped:
+            obj = resume.stamp(self.key, obj)
         try:
             self.outbox.put_nowait((time.monotonic(), obj, after))
         except queue.Full:
@@ -77,7 +80,7 @@ class Client:
 
     def kick(self, text):
         """Tell them why, then hang up half a second later (so the message gets there first)."""
-        self.say(text, "error")
+        self.say(text, "error", kicked=True)   # (🔁 an app shouldn't reconnect by itself after this)
         threading.Timer(0.5 + state.lab_lag_ms / 1000, hang_up, args=(self,)).start()  # the lab may slow it down
 
     def close(self):

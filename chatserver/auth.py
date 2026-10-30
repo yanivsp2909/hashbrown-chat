@@ -5,7 +5,7 @@ import hashlib
 import secrets
 import time
 
-from chatserver import config, group_view, offers, reminders, rooms, state, storage, textutil, transfers
+from chatserver import config, group_view, offers, reminders, resume, rooms, state, storage, textutil, transfers
 
 
 # ---------------------------------------------------------------- passwords
@@ -61,6 +61,8 @@ def handle_auth(client, msg):
         client.send({"type": "auth_result", "ok": False, "text": text})
         return False
 
+    if action == "resume":
+        return resume_login(client, msg, username, fail)
     if action not in ("login", "register"):
         return fail("Bad request.")
     if action == "register" and username.lower() in config.RESERVED_NAMES:
@@ -104,6 +106,7 @@ def handle_auth(client, msg):
 
     with state.lock:
         state.login_fails.pop(key, None)
+        state.away.pop(key, None)   # 🔁 a password login starts fresh (the old token stops working)
         old = state.online.get(key)
         if old is not None:
             # The right password wins: the old window is probably a dead Wi-Fi connection
@@ -119,7 +122,8 @@ def handle_auth(client, msg):
         client.features = clean_features(msg.get("features"))
         state.online[key] = client
         greeting = "Welcome back" if action == "login" else "Account created! Welcome"
-        client.send({"type": "auth_result", "ok": True, "text": f"✅ {greeting}, {rooms.nick(key)}!"})
+        client.send({"type": "auth_result", "ok": True, "text": f"✅ {greeting}, {rooms.nick(key)}!",
+                     "resume_token": resume.new_token(key)})   # 🔁 optional: lets the app reconnect by itself
         client.say(f"🪙 You have {state.accounts[key]['tokens']} tokens and earn {config.TOKENS_PER_MINUTE} "
                    f"every minute you're online.", "money")
         hint = "🥔 Say @hashbrown + a question to ask the AI. " if state.hashbrown else ""
@@ -132,4 +136,52 @@ def handle_auth(client, msg):
         reminders.deliver_at_login(key)
         group_view.mark_dirty()   # 👥 one more online
         textutil.log(f"[SERVER] {rooms.nick(key)} logged in from {client.address}")
+    return True
+
+
+def resume_login(client, msg, username, fail):
+    """🔁 {"action": "resume", "username", "token", "seq"}: back after a dropped connection, without the password.
+    The packets after "seq" come again (in order, once); if some aren't kept any more, a normal login instead."""
+    key = username.lower()
+    seq = msg.get("seq")
+    with state.lock:
+        if login_locked(key):
+            return fail("🔒 Too many wrong tries for this account. Try again in 5 minutes.")
+        if key not in state.accounts or not isinstance(seq, int) or isinstance(seq, bool) or not resume.token_ok(key, msg.get("token")):
+            state.login_fails.setdefault(key, []).append(time.time())
+            client.send({"type": "auth_result", "ok": False, "resume_failed": True,
+                         "text": "❌ Can't reconnect by myself. Log in again."})
+            return False
+        old = state.online.get(key)
+        room = old.room if old is not None else state.away[key]["room"]
+        if old is not None:   # the old connection is dead but the server didn't notice yet
+            old.key = None
+            offers.drop_all_of(key)
+            transfers.drop_all_of(key)
+            old.kick("🔁 You reconnected from another window, so this one was disconnected.")
+        state.away.pop(key, None)
+        state.login_fails.pop(key, None)
+        packets = resume.missed(key, seq)
+        client.key = key
+        client.features = clean_features(msg.get("features"))
+        state.online[key] = client
+        token = resume.new_token(key)
+        nick = rooms.nick(key)
+        client.send({"type": "auth_result", "ok": True, "text": f"✅ Welcome back, {nick}!",
+                     "resumed": packets is not None, "resume_token": token})
+        if packets is None:   # too much was missed: start fresh, like a normal login
+            rooms.move_to_room(client, "lobby")
+        else:
+            for packet in packets:
+                client.send(packet, stamped=True)
+            client.room = room if room == "lobby" or rooms.is_member(key, room) else "lobby"
+            rooms.send_room_list(key)
+            client.send(rooms.topic_packet(client.room))
+        if state.lab_lag_ms or state.lab_loss_percent:
+            client.send(rooms.lab_packet())
+        rooms.notify_room(client.room, f"👋 {rooms.shown(key)} joined the chat", exclude=client)
+        deliver_inbox(key)
+        reminders.deliver_at_login(key)
+        group_view.mark_dirty()
+        textutil.log(f"[SERVER] {nick} reconnected from {client.address} ({len(packets or [])} packets caught up)")
     return True

@@ -9,7 +9,7 @@ import time
 import traceback
 
 from chatserver import (auth, background, chat, config, discovery, group_view, hashbrown_ai, matches, offers, receipts,
-                        rooms,
+                        resume, rooms,
                         session, state, storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
 
@@ -23,6 +23,10 @@ def disconnect(client):
             if key and state.online.get(key) is client:
                 rooms.end_typing(client)
                 del state.online[key]
+                if client.quitting:
+                    resume.forget(key)       # /quit: on purpose, no coming back with the token
+                else:
+                    resume.went_away(client)   # 🔁 a drop: they may reconnect and catch up
                 group_view.mark_dirty()   # 👥 one fewer online
                 match = state.matches.get(key)
                 if match:

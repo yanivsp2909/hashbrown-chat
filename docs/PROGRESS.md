@@ -157,7 +157,7 @@ Decision: group commands work on the room you're in, so a button for a group you
 
 | # | Feature | Status |
 |---|---|---|
-| N1 | 🔁 Reconnect and catch up (seq + resume) | not started |
+| N1 | 🔁 Reconnect and catch up (seq + resume) | done: packets kept for a client get an optional "seq" (the last RESUME_KEEP 500 / RESUME_SECONDS 600 per account; live-only ones like file pieces, typing, pongs, stream pieces, auth_result and the Groups screen get none); auth_result has an optional "resume_token" (random, new at every login, one use); after a drop the room keeps being collected for 10 min; {"type":"auth","action":"resume",username,token,seq} returns exactly the missed packets without the welcome burst (if some are gone: "resumed": false and a normal login); /quit ends it; kick notices carry "kicked": true so apps don't reconnect after them. The website and client.py reconnect by themselves (1-60 s backoff) and drop packets they already have. Choice: resume rides on the auth packet (not a separate "resume" packet after login), so the server can skip the welcome burst and nothing repeats |
 | N2 | 👤 Profiles you can edit (+ change password) | not started |
 | N3 | 🗺️ Live network map | not started |
 | N4 | 🎨 Drawing game (Pictionary) | not started |

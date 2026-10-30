@@ -395,6 +395,20 @@ class TestReadReceipts(BridgeTestCase):
         self.assertEqual(b.send({"type": "seen", "id": "seven"})[0], 400)
 
 
+class TestResume(BridgeTestCase):
+    def test_a_resume_login_goes_through_the_bridge(self):
+        a, a_name = self.user()
+        token = next(e["data"]["resume_token"] for e in a.stream.seen if e["data"].get("type") == "auth_result")
+        seq = max(e["data"]["seq"] for e in a.stream.seen if "seq" in e["data"])
+        a.close()
+        time.sleep(0.5)
+        b = self.tab()
+        self.assertEqual(b.send({"type": "auth", "action": "resume", "username": a_name, "token": "wrong", "seq": seq})[0], 202)
+        self.assertTrue(b.wait(lambda e: e["data"].get("type") == "auth_result", what="the refusal")["resume_failed"])
+        c = self.tab()
+        self.assertEqual(c.send({"type": "auth", "action": "resume", "username": a_name, "token": token, "seq": "x"})[0], 400)
+
+
 class TestGroupsScreen(BridgeTestCase):
     def test_the_groups_packets_go_through_the_bridge(self):
         a, _ = self.user()

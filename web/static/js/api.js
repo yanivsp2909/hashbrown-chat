@@ -110,6 +110,9 @@ export function listen() {
   };
 }
 
+/** 🔁 Drop the old session (it's gone) before starting a new one. */
+export const forgetSession = () => stop();
+
 function stop() {
   source?.close();
   source = null;

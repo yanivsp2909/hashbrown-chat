@@ -113,6 +113,10 @@ def test_lost_packets_are_late_side_by_side_not_one_after_another(user, monkeypa
 
 # ---------------------------------------------------------------- 🧪 the lab banner
 
+def without_seq(packet):
+    return {k: v for k, v in packet.items() if k != "seq"}   # (🔁 the reconnect number)
+
+
 def lab_packets(client):
     return [m for m in client.messages if m.get("type") == "lab"]
 
@@ -120,11 +124,11 @@ def lab_packets(client):
 def test_everyone_hears_when_the_lab_changes(user):
     adi = user("Adi")
     background.console_command("lag 300")
-    assert adi.expect(lambda m: m.get("type") == "lab") == {"type": "lab", "lag_ms": 300, "loss_percent": 0}
+    assert without_seq(adi.expect(lambda m: m.get("type") == "lab")) == {"type": "lab", "lag_ms": 300, "loss_percent": 0}
     background.console_command("loss 20")
     assert adi.expect(lambda m: m.get("type") == "lab")["loss_percent"] == 20
     background.console_command("lab off")
-    assert adi.expect(lambda m: m.get("type") == "lab", timeout=5) == {"type": "lab", "lag_ms": 0, "loss_percent": 0}
+    assert without_seq(adi.expect(lambda m: m.get("type") == "lab", timeout=5)) == {"type": "lab", "lag_ms": 0, "loss_percent": 0}
 
 
 def test_logging_in_while_the_lab_is_on_shows_it_and_not_when_off(user):

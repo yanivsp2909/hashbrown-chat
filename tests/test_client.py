@@ -446,3 +446,26 @@ def test_a_pong_shows_the_round_trip_in_milliseconds(monkeypatch):
 def test_the_client_asks_to_be_asked_before_files_arrive():
     """📎 It says "offers" at login, so a file waits for /accept (old copies without it get files directly)."""
     assert "offers" in client.FEATURES
+
+
+def test_reconnect_bookkeeping_keeps_the_token_and_drops_repeats(monkeypatch):
+    """🔁 keep(): remembers the resume token and the last seq; a packet we already have is dropped."""
+    monkeypatch.setattr(client, "link", {"sock": None, "server": "", "username": "adi", "token": "", "seq": 0, "kicked": False})
+    assert client.keep({"type": "auth_result", "ok": True, "resume_token": "abc"})
+    assert client.link["token"] == "abc"
+    assert client.keep({"type": "msg", "text": "one", "seq": 1}) and client.keep({"type": "msg", "text": "two", "seq": 2})
+    assert not client.keep({"type": "msg", "text": "one again", "seq": 1})
+    assert client.keep({"type": "typing"})                     # live-only packets have no seq
+    client.keep({"type": "msg", "kind": "error", "text": "🔁 bye", "kicked": True})
+    assert client.reconnect() is None                          # never by itself after a kick
+
+
+def test_the_password_and_the_token_are_hidden_in_packet_xray(monkeypatch, capsys):
+    monkeypatch.setattr(client, "FLAGS", {"--packets"})
+
+    class Sock:
+        def sendall(self, data):
+            pass
+    client.send(Sock(), {"type": "auth", "action": "resume", "username": "adi", "token": "secret-token", "seq": 3})
+    out = capsys.readouterr().out
+    assert "secret-token" not in out and '"token": "•••"' in out

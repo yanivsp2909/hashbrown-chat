@@ -80,9 +80,13 @@ function onAuthResult(msg, live, sendLine) {
   const text = str(msg.text);
   if (!msg.ok) {
     if (!live) return;
+    if (msg.resume_failed) {   // 🔁 couldn't reconnect by itself: back to the login screen
+      setState({ screen: "login" });
+    }
     showLoginError(text);
     return;
   }
+  if (msg.resumed === true && live) chat.addNotice("system", "🔁 Reconnected! You've caught up on what you missed.");
   clearPasswords();
   setState({ screen: "chat" });
   setNick(welcomeNick(text) || pendingUsername);

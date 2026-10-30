@@ -49,7 +49,7 @@ function announce(text) {
 }
 
 function packetRow(dir, packet, wireText) {
-  const shown = packet.type === "auth" ? JSON.stringify({ ...packet, password: "•••" }) : wireText;
+  const shown = packet.type === "auth" ? JSON.stringify({ ...packet, password: "•••", ...(packet.token ? { token: "•••" } : {}) }) : wireText;
   return el("li", { class: "xray-row" },
     head(dir, String(packet.type ?? "?"), `${bytesOf(wireText) + 1} B`, clock(Date.now() / 1000)),
     el("pre", { class: "xray-body", text: shown }));

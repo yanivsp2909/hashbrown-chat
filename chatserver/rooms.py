@@ -5,7 +5,7 @@ import re
 import time
 from datetime import datetime
 
-from chatserver import config, history, state
+from chatserver import config, history, resume, state
 
 
 # ---------------------------------------------------------------- small helpers
@@ -68,6 +68,7 @@ def send_room(room, obj, exclude=None):
     for c in list(state.online.values()):
         if c is not exclude and gets_it(c, room, obj):
             c.send(tagged if "rooms" in c.features else obj)
+    resume.record_for_away(room, obj, is_member)   # 🔁 kept for whoever dropped a moment ago
 
 
 def gets_it(client, room, obj):
@@ -107,11 +108,16 @@ def announce(text, kind="event", exclude=()):
     for key, c in list(state.online.items()):
         if key not in exclude:
             c.say(text, kind)
+    for key in resume.away_keys():
+        if key not in exclude:
+            resume.record_to_away(key, {"type": "msg", "kind": kind, "text": text})
 
 
 def tell(key, text, kind="system", **extra):
     if key in state.online:
         state.online[key].say(text, kind, **extra)
+    else:
+        resume.record_to_away(key, {"type": "msg", "kind": kind, "text": text, **extra})
 
 
 def parse_amount(client, text):

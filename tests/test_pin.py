@@ -11,8 +11,9 @@ pytestmark = pytest.mark.integration
 
 
 def topic_packet(client, empty=False):
-    """The next topic packet with a topic in it (or, with empty=True, the next one that clears it)."""
-    return client.expect(lambda m: m.get("type") == "topic" and bool(m.get("text")) != empty)
+    """The next topic packet with a topic in it (or, with empty=True, the next one that clears it), without its 🔁 seq."""
+    found = client.expect(lambda m: m.get("type") == "topic" and bool(m.get("text")) != empty)
+    return {k: v for k, v in found.items() if k != "seq"}
 
 
 def group(owner, name="Potatoes"):

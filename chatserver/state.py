@@ -25,6 +25,9 @@ commentator_today = ("", 0)   # 🎙️ (day, how many comments)
 transfers = {}  # 📦 big file transfers on their way: their key -> details
 offers = {}     # 📎 files waiting for their receiver to /accept: offer number -> details (see offers.py)
 offer_count = 0   # 📎 the last offer number given out
+replays = {}       # 🔁 login -> {"seq": last number, "items": deque of (time, packet)} (resume.py)
+resume_tokens = {}  # 🔁 login -> the secret that lets them reconnect without the password
+away = {}          # 🔁 login -> {room, features, until}: dropped a moment ago, may come back
 bank_snapshots = {}   # 🏦 group key -> when its balance was last saved as a chart point
 groups_dirty = False  # 👥 something changed: the open Groups screens get fresh data (group_view.py)
 hashbrown_usage = {"day": "", "questions": 0, "in": 0, "out": 0}   # 📊 today's AI answers and tokens (/hbstats)
@@ -64,7 +67,7 @@ def reset_state():
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
     global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers, offer_count, pm_count, reminders, lobby_topic, hashbrown_tokens, hashbrown_usage, groups_dirty
     with lock:
-        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, bank_snapshots, trivia, war_invites, solo, login_fails,
+        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, bank_snapshots, replays, resume_tokens, away, trivia, war_invites, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)
