@@ -8,7 +8,8 @@ import threading
 import time
 import traceback
 
-from chatserver import (auth, background, chat, config, discovery, hashbrown_ai, matches, offers, receipts, rooms,
+from chatserver import (auth, background, chat, config, discovery, group_view, hashbrown_ai, matches, offers, receipts,
+                        rooms,
                         session, state, storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
 
@@ -22,6 +23,7 @@ def disconnect(client):
             if key and state.online.get(key) is client:
                 rooms.end_typing(client)
                 del state.online[key]
+                group_view.mark_dirty()   # 👥 one fewer online
                 match = state.matches.get(key)
                 if match:
                     matches.finish_match(match, match.opponent(key), f"{rooms.nick(key)} disconnected")
@@ -123,6 +125,10 @@ def handle_message(client, msg):
         if kind == "typing":     # ⌨️ the same: its own small limit
             keep_typing(client)
             return
+        if kind in ("get_groups", "get_group", "groups_closed"):   # 👥 the website's Groups screen
+            if kind == "groups_closed" or rooms.spam_ok(client):
+                group_view.handle(client, msg)
+            return
         if kind == "seen":       # ✓✓ the same: one per private message at most
             receipts.seen(client, msg)
             return
@@ -143,6 +149,7 @@ def handle_message(client, msg):
         text = textutil.clean_text(msg.get("text", ""))[:config.MAX_TEXT]
         if not matches.is_game_move(client, text) and not rooms.spam_ok(client):
             return  # game moves don't count as spam
+        group_view.mark_dirty()   # 👥 a command may have changed a group: open Groups screens refresh
         if msg.get("type") == "line":
             chat.handle_line(client, text)
         elif msg.get("type") == "file":
@@ -202,7 +209,7 @@ def start_server(host=config.HOST, port=config.PORT, run_loops=True, run_console
         textutil.log(f"[SERVER] ⚠️ The admin password is shorter than {config.ADMIN_PASSWORD_WARN_UNDER} characters. "
                      "It works, but a longer one is much harder to guess.")
     loops = (([background.income_loop, background.quiz_loop, background.qotd_loop,
-                background.offers_loop] if run_loops else [])
+                background.offers_loop, background.groups_loop] if run_loops else [])
              + ([background.console_loop] if run_console else []))
     for loop in loops:
         threading.Thread(target=loop, daemon=True).start()

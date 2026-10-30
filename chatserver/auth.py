@@ -5,7 +5,7 @@ import hashlib
 import secrets
 import time
 
-from chatserver import config, offers, reminders, rooms, state, storage, textutil, transfers
+from chatserver import config, group_view, offers, reminders, rooms, state, storage, textutil, transfers
 
 
 # ---------------------------------------------------------------- passwords
@@ -130,5 +130,6 @@ def handle_auth(client, msg):
         rooms.notify_room("lobby", f"👋 {rooms.shown(key)} joined the chat", exclude=client)
         deliver_inbox(key)
         reminders.deliver_at_login(key)
+        group_view.mark_dirty()   # 👥 one more online
         textutil.log(f"[SERVER] {rooms.nick(key)} logged in from {client.address}")
     return True

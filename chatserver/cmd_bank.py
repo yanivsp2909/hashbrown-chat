@@ -3,7 +3,7 @@
 """
 import unicodedata
 
-from chatserver import achievements, config, registry, rooms, state, storage, textutil
+from chatserver import achievements, bank_log, config, registry, rooms, state, storage, textutil
 
 
 # ----- 🏦 Group bank
@@ -34,6 +34,7 @@ def cmd_donate(client, args):
         return
     state.accounts[client.key]["tokens"] -= amount
     group["bank"] += amount
+    bank_log.record(key, "donate", client.key, amount)
     rooms.notify_room(key, f"🤝 {rooms.shown(client.key)} donated {amount} 🪙 to the bank "
                            f"(now {group['bank']} 🪙)", kind="money")
     if amount >= config.TEAM_PLAYER_DONATION:  # a 1-token donation shouldn't earn a 50-token achievement
@@ -62,6 +63,7 @@ def cmd_upgrade(client, args):
         return
     group["bank"] -= price
     group["upgrades"].append(name)
+    bank_log.record(key, "upgrade", client.key, -price, name)
     storage.save_data()
     rooms.notify_room(key, f"⬆️ {rooms.shown(client.key)} bought {icon} {name}: {what}!", kind="event")
     if name == "emoji":

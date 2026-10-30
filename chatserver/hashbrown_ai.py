@@ -7,7 +7,7 @@ import re
 import threading
 import time
 
-from chatserver import achievements, config, history, registry, rooms, state, storage, textutil
+from chatserver import achievements, bank_log, config, history, registry, rooms, state, storage, textutil
 from chatserver.hashbrown_text import clean_answer, israel_time_text
 
 REQUEST_TIMEOUT = 90         # seconds the AI may stay silent
@@ -261,6 +261,7 @@ def ask_hashbrown(client, question, private=False, lines=None, forbidden=None):
     group = state.groups.get(room)
     if group and not private and "hashbrown" in group["upgrades"] and group["bank"] >= config.HASHBROWN_COST:
         group["bank"] -= config.HASHBROWN_COST
+        bank_log.record(room, "hashbrown", key, -config.HASHBROWN_COST)
         payer = ("group", group)
     elif state.accounts[key]["tokens"] >= config.HASHBROWN_COST:
         state.accounts[key]["tokens"] -= config.HASHBROWN_COST
@@ -299,6 +300,7 @@ def refund_hashbrown(asker, payer):
         state.accounts[who]["tokens"] += config.HASHBROWN_COST
     elif kind == "group" and state.groups.get(who["name"].lower()) is who:
         who["bank"] += config.HASHBROWN_COST
+        bank_log.record(who["name"].lower(), "refund", asker, config.HASHBROWN_COST)
     elif kind == "group" and who["owner"] in state.accounts:  # the group is gone: its bank went to the owner
         state.accounts[who["owner"]]["tokens"] += config.HASHBROWN_COST
     day, asked = state.hashbrown_today.get(asker, ("", 0))

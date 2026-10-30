@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, config, hashbrown_extras, offers, reminders, rooms, state, storage, textutil, transfers, wars
+from chatserver import achievements, bank_log, config, group_view, hashbrown_extras, offers, reminders, rooms, state, storage, textutil, transfers, wars
 
 
 # ---------------------------------------------------------------- background threads
@@ -25,6 +25,8 @@ def income_tick():
     with state.lock:
         transfers.expire_stalled()
         wars.end_due()
+        bank_log.snapshot_all()
+        group_view.mark_dirty()   # 👥 the banks just grew
         for key, c in state.online.items():
             group = state.groups.get(c.room)
             bonus = 2 if group and "income" in group["upgrades"] else 0
@@ -92,6 +94,14 @@ def offers_loop():
         with state.lock:
             run_safely(offers.expire)
             run_safely(reminders.deliver_due)
+
+
+def groups_loop():
+    """👥 Every second: if a group changed, the open Groups screens on the website get fresh data."""
+    while True:
+        time.sleep(config.GROUPS_PUSH_EVERY)
+        with state.lock:
+            run_safely(group_view.push_updates)
 
 
 def qotd_loop():

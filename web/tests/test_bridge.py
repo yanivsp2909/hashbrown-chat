@@ -395,6 +395,20 @@ class TestReadReceipts(BridgeTestCase):
         self.assertEqual(b.send({"type": "seen", "id": "seven"})[0], 400)
 
 
+class TestGroupsScreen(BridgeTestCase):
+    def test_the_groups_packets_go_through_the_bridge(self):
+        a, _ = self.user()
+        a.line("/create Bridgers")
+        a.wait(is_msg("🎉"), what="the new group")
+        self.assertEqual(a.send({"type": "get_groups"})[0], 202)
+        cards = a.wait(lambda e: e["data"].get("type") == "groups", what="the group list")["groups"]
+        self.assertEqual(cards[0]["key"], "bridgers")
+        self.assertEqual(a.send({"type": "get_group", "group": "bridgers", "sneaky": 1})[0], 202)
+        self.assertEqual(a.wait(lambda e: e["data"].get("type") == "group_info", what="the group")["group"]["your_role"], "owner")
+        self.assertEqual(a.send({"type": "get_group", "group": ["x"]})[0], 400)
+        self.assertEqual(a.send({"type": "groups_closed"})[0], 202)
+
+
 class TestBigFiles(BridgeTestCase):
     """📦 A big file through the website: chunks with acks, and the chunks never go into the reload replay."""
 

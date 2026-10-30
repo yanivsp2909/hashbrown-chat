@@ -5,7 +5,7 @@ The commands are in cmd_wars.py; scoring hooks into every finished match (matche
 """
 import time
 
-from chatserver import config, matches, rooms, state, storage
+from chatserver import bank_log, config, matches, rooms, state, storage
 
 
 def war_of(group_key):
@@ -60,6 +60,8 @@ def end_war(war):
         prize = min(config.WAR_PRIZE, state.groups[loser]["bank"])
         state.groups[loser]["bank"] -= prize
         state.groups[winner]["bank"] += prize
+        bank_log.record(winner, "war_won", "", prize, state.groups[loser]["name"])
+        bank_log.record(loser, "war_lost", "", -prize, state.groups[winner]["name"])
         storage.save_data()
         text = (f"🏆 {rooms.room_title(winner)} won the war against {rooms.room_title(loser)} "
                 f"({war['points'][winner]} to {war['points'][loser]}) and took {prize} 🪙 from their bank!")

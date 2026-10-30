@@ -84,7 +84,8 @@ def clean_features(value):
 
 
 # What a browser may send (everything else is refused before it reaches the chat server)
-BROWSER_PACKETS = ("line", "file", "ping", "typing", "typing_stop", "seen", "react", "edit", "delete",
+BROWSER_PACKETS = ("line", "file", "ping", "typing", "typing_stop", "seen", "get_groups", "get_group", "groups_closed",
+                   "react", "edit", "delete",
                    "file_start", "file_chunk", "file_cancel")
 
 
@@ -110,6 +111,10 @@ def validate(msg, logged_in):
         raise BridgeError(403, "Log in first.")
     if kind in ("typing", "typing_stop"):   # ⌨️ no fields at all
         return {"type": kind}
+    if kind in ("get_groups", "groups_closed"):   # 👥 the Groups screen: no fields
+        return {"type": kind}
+    if kind == "get_group":   # 👥 one group, by its key (a group name in lowercase)
+        return {"type": "get_group", "group": clean(msg.get("group"), 16, "Group")}
     if kind == "seen":     # ✓✓ the number of a private message that's on screen now
         return {"type": "seen", "id": whole_number(msg.get("id"), "message id")}
     if kind == "react":    # 😂 a message id and one short emoji (the server checks it's an allowed one)

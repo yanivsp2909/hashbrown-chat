@@ -51,6 +51,10 @@ def _open():
         # 😂 one row per (message, person, emoji): reacting again deletes the row
         connection.execute("CREATE TABLE IF NOT EXISTS reactions (message_id INTEGER, login TEXT, emoji TEXT, "
                            "PRIMARY KEY (message_id, login, emoji))")
+        # 🏦 every change of a group bank (bank_log.py): who, how much, why, and the balance after it
+        connection.execute("CREATE TABLE IF NOT EXISTS bank_log (id INTEGER PRIMARY KEY AUTOINCREMENT, grp TEXT, "
+                           "time REAL, kind TEXT, who TEXT, amount INTEGER, note TEXT, balance INTEGER)")
+        connection.execute("CREATE INDEX IF NOT EXISTS bank_log_grp ON bank_log (grp, id)")
         connection.commit()
     except sqlite3.Error as e:
         _failed_path = path
@@ -77,6 +81,20 @@ def reset():
         _failed_path = None
         _memory.clear()
         _memory_ids = 0
+
+
+def run(job, default=None):
+    """job(connection) with the database locked; `default` if history.db can't be opened or the job fails."""
+    with _lock:
+        connection = _open()
+        if connection is None:
+            return default
+        try:
+            return job(connection)
+        except sqlite3.Error as e:
+            connection.rollback()
+            textutil.log(f"[SERVER] ⚠️ history.db: {e}")
+            return default
 
 
 def room_size(room):

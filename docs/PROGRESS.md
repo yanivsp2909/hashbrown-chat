@@ -138,7 +138,18 @@ If you're picking this up after a break: read the rules, then continue from the 
 | # | Item | Status |
 |---|---|---|
 | R18 | Tip Hashbrown | done: /give hashbrown N (any case, @ ok): the usual /give limits, tokens go to state.hashbrown_tokens (saved as "hashbrown_tokens"), "🥔 Hashbrown" in /top, a canned thanks from Hashbrown in your room (random of 3, no AI) |
-| R19 | `/hbstats` | done: /hbstats (server admins): answers today, the server-wide cap used, tokens from the API's own usage numbers (read on response.completed), cost = in x HASHBROWN_PRICE_IN + out x HASHBROWN_PRICE_OUT per million (example prices 0.25 / 2.00 $: set your deployment's). Counted in memory per day (a restart starts from zero); the fake test AI now sends usage too |
+| R19 | `/hbstats` | done: /hbstats (server admins): answers today, the server-wide cap used, tokens from the API's own usage numbers (read on response.completed), cost = in x HASHBROWN_PRICE_IN + out x HASHBROWN_PRICE_OUT per million (example prices 0.25 / 2.00 $: set your deployment's). Counted in memory per day (a restart starts from zero); the fake test AI now sends usage too  |
+
+## Round 4: the 👥 Groups screen (website)
+
+| # | Step | Status |
+|---|---|---|
+| G1 | Server: `get_groups` / `get_group` / `groups_closed` -> `groups` / `group_info` (group_view.py), privacy rules, 1 s refresh of open screens | done: private groups you're not in show name/emoji/size only; `bank_details` for members; `admin` (requests, muted, banned) for that group's admins only |
+| G2 | Bank history in history.db (`bank_log` table): donations, upgrades, war prizes, Hashbrown payments/refunds, hourly snapshots for the chart; top donors; all upgrades with owned / can_buy / locked (+ missing) | done |
+| G3 | Website screen: list, search, create, details, Bank & Upgrades, admin tools, phone layout | not started |
+| G4 | Reviews (impeccable-finish-reviewer, a11y-architect, security-reviewer, code-reviewer), Chrome check, docs | not started |
+
+Decision: group commands work on the room you're in, so a button for a group you're not in sends `/join X` first (option A, approved). The packets only show things; every button sends an existing command.
 
 ### Round 3 reviews
 
