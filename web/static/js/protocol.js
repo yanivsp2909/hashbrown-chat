@@ -13,7 +13,9 @@ import * as online from "./online.js";
 
 const MAX_NAMES = 60;
 const NICK_KEY = "hashbrown.nick";
+const QUIET_HELP_FOR = 5000;  // ms: a quiet /help that got no answer by then (say, "Slow down!") is forgotten
 let quietHelp = 0;        // live /help replies to swallow: the ones we asked for to fill autocomplete
+let quietHelpUntil = 0;
 let replayHelpHidden = true;  // during a replay, the first /help after a login was our quiet one
 let gameCount = 0;
 let pendingUsername = "";
@@ -45,6 +47,7 @@ export function savedNick() {
 /** Ask the server for /help without showing the reply: it becomes the autocomplete list. */
 export function requestCommands(sendLine) {
   quietHelp += 1;
+  quietHelpUntil = Date.now() + QUIET_HELP_FOR;
   sendLine("/help").then((error) => { if (error) quietHelp = Math.max(0, quietHelp - 1); });
 }
 
@@ -100,7 +103,7 @@ function onServerText(msg, live) {
     setState({ commands: parseHelp(text) });
     if (live && quietHelp > 0) {
       quietHelp -= 1;
-      return;
+      if (Date.now() < quietHelpUntil) return;   // too late means it's the /help you typed: show it
     }
     if (!live && !replayHelpHidden) {
       replayHelpHidden = true;

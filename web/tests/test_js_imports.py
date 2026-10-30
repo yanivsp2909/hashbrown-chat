@@ -12,7 +12,7 @@ import unittest
 
 from harness import WEB
 
-JS_DIR = WEB / "static" / "js"
+JS_DIR = WEB / "static"   # app.js and everything in js/
 
 # One pass over the source: comments and strings are matched together so that
 # a "//" inside a string (like "http://") is not mistaken for a comment.
@@ -38,9 +38,16 @@ DESTRUCTURED = re.compile(r"\b(?:const|let|var)\s*[\[{]([^\]}]*)[\]}]")
 IDENTIFIER = re.compile(r"[A-Za-z_$][\w$]*")
 
 
+TEMPLATE_CODE = re.compile(r"\$\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}")   # the code inside ${...}
+
+
 def blank(match):
-    """Replace a comment or string with an empty string literal / a space."""
-    return '""' if match.group(0)[0] in "\"'`" else " "
+    """Replace a comment or string with an empty string literal / a space.
+    Template literals keep the code inside their ${...}, because calls hide there too."""
+    text = match.group(0)
+    if text[0] == "`":
+        return '"" ' + " ; ".join(TEMPLATE_CODE.findall(text))
+    return '""' if text[0] in "\"'" else " "
 
 
 def strip_comments_and_strings(source):

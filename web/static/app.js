@@ -1,6 +1,6 @@
 // 🥔 Hashbrown Chat in the browser: wires the screens, the bridge connection and the panels together.
 
-import { $ } from "./js/dom.js";
+import { $, str } from "./js/dom.js";
 import * as api from "./js/api.js";
 import { getState, setState, subscribe } from "./js/store.js";
 import * as chat from "./js/chat.js";
@@ -134,7 +134,15 @@ async function connect(loginError = "") {
 }
 
 api.setHandlers({
-  onMessage: (msg, live) => handleMessage(msg, live, api.sendLine),
+  onMessage: (msg, live) => {
+    try {
+      handleMessage(msg, live, api.sendLine);
+    } catch (error) {
+      // A bug in drawing one message must not make it disappear without a trace
+      console.error("Couldn't show a message from the chat server:", error, msg);
+      chat.addNotice("error", `⚠️ A message couldn't be shown properly: ${str(msg.text ?? msg.type)}`, { live });
+    }
+  },
   onLive: (info) => {
     const { screen } = getState();
     if (info.logged_in && screen !== "chat") setState({ screen: "chat", nick: getState().nick || savedNick() });
@@ -197,7 +205,8 @@ initComposer({
       return true;
     }
     if (lower === "/quit") quitting = true;
-    if (lower === "/users" || lower === "/balance") youAsked(lower.slice(1));   // show you the answer
+    const command = lower.split(/\s+/u)[0];
+    if (command === "/users" || command === "/balance") youAsked(command.slice(1));   // show you the answer
     const error = await api.sendLine(text);
     if (error) {
       quitting = false;
