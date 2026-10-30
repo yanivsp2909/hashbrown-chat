@@ -209,9 +209,10 @@ class Checkers:
             self.board[jumped[0]][jumped[1]] = None
             self._place(src, dst)
             self.quiet = 0
-            if not self._promote(dst) and self._captures(*dst):
+            if self._captures(*dst):  # still a man here: crowning waits until the jumps are over
                 self.chain = dst
                 return True, f"💥 Jump again with {self.name(dst)}!"
+            self._promote(dst)
             self.chain = None
         else:
             if dst not in self._steps(*src):
@@ -295,8 +296,10 @@ class MathDuel:
         self.question, self.answer = f"{a} {op} {b}", answer
 
     def looks_like_move(self, text):
-        text = text.strip()
-        return 0 < len(text) < 8 and text.lstrip("-").isdigit()
+        digits = text.strip()
+        if digits.startswith("-"):  # one minus sign at most
+            digits = digits[1:]
+        return 1 <= len(digits) <= 6 and digits.isascii() and digits.isdigit()
 
     def move(self, player, text):
         if self.finished:

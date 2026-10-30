@@ -11,11 +11,13 @@ import json
 import os
 import queue
 import random
+import re
 import secrets
 import socket
 import threading
 import time
 import traceback
+import unicodedata
 import urllib.error
 import urllib.request
 from collections import deque
@@ -42,9 +44,25 @@ WIN_REWARD, MAX_REWARDED_WINS = 25, 10                # +25 per win, for the fir
 SOLO_MAX_REWARDS = 5                                  # rewarded Wordle wins per day
 HISTORY_SIZE, BIG_HISTORY_SIZE = 15, 50
 SPAM_LIMIT, SPAM_WINDOW = 8, 5   # at most 8 messages per 5 seconds
+MAX_OWNED_GROUPS = 2             # groups one person can own
+TEAM_PLAYER_DONATION = 50        # one donation this big unlocks 🤝 Team Player
+MIN_MOVES_FOR_BONUS = 2          # moves EACH player must make before a resign/disconnect win earns the +25
 
-# /admin <password> makes your account an admin. CHANGE THIS before your friends guess it.
-ADMIN_PASSWORD = "123"
+# Protection against broken or abusive connections
+MAX_CONNECTIONS = 200            # connections at the same time
+MAX_LOGIN_LINE = 64 * 1024       # biggest message from someone who hasn't logged in yet
+LOGIN_TIMEOUT = 120              # seconds a new connection has to log in (in total)
+OUTBOX_LIMIT = 1000              # messages waiting for one person; more = they stopped reading, disconnect them
+LOGIN_FAIL_LIMIT, LOGIN_FAIL_WINDOW = 5, 300   # 5 wrong passwords for one username in 5 minutes...
+LOGIN_LOCK_SECONDS = 300                       # ...lock that username for 5 minutes
+HASHING_AT_ONCE = 4              # password checks running at the same time (they're slow on purpose)
+ACCEPT_WAKEUP = 1                # seconds; the accept loop wakes up this often (so Ctrl+C works on Windows)
+
+# /admin <password> makes your account an admin. While the password is still "123", /admin is
+# switched off. Change it here, or better: set the HASHBROWN_ADMIN_PASSWORD environment variable.
+DEFAULT_ADMIN_PASSWORD = "123"
+ADMIN_PASSWORD = DEFAULT_ADMIN_PASSWORD
+ADMIN_FAIL_LIMIT, ADMIN_FAIL_WINDOW = 3, 600   # 3 wrong /admin tries by ANYONE in 10 minutes locks /admin
 ADMIN_TOKENS = 1000              # what /admintokens gives
 
 HASHBROWN_COST = 20          # tokens per question
@@ -67,7 +85,7 @@ ACHIEVEMENTS = {  # id: (icon, title, how to get it, reward)
     "first_win": ("🥇", "First Blood", "win a game", 50),
     "ten_wins": ("🏆", "Champion", "win 10 games", 200),
     "founder": ("🏗️", "Founder", "create a group", 50),
-    "team_player": ("🤝", "Team Player", "donate to a group bank", 50),
+    "team_player": ("🤝", "Team Player", f"donate {TEAM_PLAYER_DONATION}+ to a group bank", 50),
     "chatty": ("💬", "Chatterbox", "send 100 messages", 100),
     "rich": ("💰", "Rich", "have 1000 tokens", 100),
     "jackpot": ("🎰", "Jackpot", "hit 3 of a kind in slots", 100),
@@ -96,7 +114,10 @@ invites = {}    # login -> game challenges waiting for that person
 matches = {}    # login -> the Match they're playing
 last_rob = {}   # login -> time of their last /rob
 solo = {}       # login -> their Wordle game
-admin_fails = {}  # login -> (wrong /admin tries, time of the last one)
+login_fails = {}         # login -> times of recent wrong passwords
+admin_fail_times = []    # times of recent wrong /admin passwords, from anyone
+connections = 0          # open connections right now
+hashing = threading.BoundedSemaphore(HASHING_AT_ONCE)
 quiz = None     # the open quick-math question, if any
 hashbrown = None        # Foundry settings, or None if Hashbrown isn't set up
 hashbrown_busy = 0      # questions being answered right now
@@ -114,24 +135,47 @@ def log(text):
         print(text.encode("ascii", "replace").decode())
 
 
+# ---------------------------------------------------------------- cleaning text from the network
+
+# Control characters (new lines, terminal escape codes...) and the invisible "flip the text
+# direction" marks. In a chat line they could fake a second line or mess up someone's screen.
+CONTROL_CHARS = re.compile("[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]")
+
+
+def clean_text(text, keep_newlines=False):
+    """Make text from the network safe to store, save and show."""
+    # A lone half of an emoji ("\ud800") can't be saved or sent: turn it into "?"
+    text = str(text).encode("utf-8", "replace").decode("utf-8")
+    if keep_newlines:
+        return "\n".join(CONTROL_CHARS.sub("", line.replace("\t", " ")) for line in text.split("\n"))
+    return CONTROL_CHARS.sub("", re.sub("[\t\r\n]", " ", text))
+
+
 # ---------------------------------------------------------------- saving / loading
 
 def load_data():
+    """Read chat_data.json. Returns False if the file is damaged: then the server must NOT
+    start, or the next save would overwrite everyone's accounts."""
     global accounts, groups
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, encoding="utf-8") as f:
-            data = json.load(f)
-        accounts, groups = data.get("accounts", {}), data.get("groups", {})
+        try:
+            with open(DATA_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+            accounts, groups = dict(data.get("accounts", {})), dict(data.get("groups", {}))
+        except (OSError, ValueError, AttributeError, TypeError) as e:
+            log(f"[SERVER] ❌ Can't read {DATA_FILE} ({type(e).__name__}). It may be damaged. "
+                f"The server did not start, so nothing was overwritten. Fix the file or move it away.")
+            return False
     # Files saved by an older version are missing the newer fields: fill them in
     for account in accounts.values():
         for field, default in new_account("", "", "").items():
             account.setdefault(field, default)
     for key, group in groups.items():
-        group.setdefault("bank", 0)
-        group.setdefault("upgrades", [])
-        group.setdefault("emoji", "")
+        for field, default in new_group(key, "", False).items():
+            group.setdefault(field, default)
         history[key] = deque(maxlen=history_size(group))
     log(f"[SERVER] Loaded {len(accounts)} accounts and {len(groups)} groups")
+    return True
 
 
 def history_size(group):
@@ -139,11 +183,27 @@ def history_size(group):
 
 
 def save_data():
+    """Write everything to chat_data.json. Returns False (and logs why) if it couldn't:
+    the data stays in memory and the next save tries again."""
     with lock:
         tmp = DATA_FILE + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump({"accounts": accounts, "groups": groups}, f, ensure_ascii=False, indent=1)
-        os.replace(tmp, DATA_FILE)  # swap in one step, so a crash never leaves a half-written file
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump({"accounts": accounts, "groups": groups}, f, ensure_ascii=False, indent=1)
+                f.flush()
+                os.fsync(f.fileno())  # really on the disk, even if the power goes out right after
+            for attempt in range(3):
+                try:
+                    os.replace(tmp, DATA_FILE)  # swap in one step, so a crash never leaves a half file
+                    break
+                except PermissionError:  # Windows: an antivirus can hold the file for a moment
+                    if attempt == 2:
+                        raise
+                    time.sleep(0.1)
+            return True
+        except (OSError, ValueError) as e:
+            log(f"[SERVER] ⚠️ Couldn't save {DATA_FILE}: {e}")
+            return False
 
 
 # ---------------------------------------------------------------- passwords
@@ -164,10 +224,11 @@ class Client:
         self.key = None          # login name once logged in
         self.room = "lobby"
         self.quitting = False
+        self.login_deadline = time.time() + LOGIN_TIMEOUT  # strangers must log in before this
         self.recent = deque()    # times of recent messages, for spam protection
         # Sending goes through a queue + its own thread, so a slow connection
         # can never freeze the server while it holds the lock.
-        self.outbox = queue.Queue()
+        self.outbox = queue.Queue(maxsize=OUTBOX_LIMIT)
         self.writer = threading.Thread(target=self._write_loop, daemon=True)
         self.writer.start()
 
@@ -177,18 +238,36 @@ class Client:
             if obj is None:
                 return
             try:
-                self.sock.sendall((json.dumps(obj, ensure_ascii=False) + "\n").encode())
-            except OSError:
+                # "replace": a broken character becomes "?" instead of killing this thread
+                self.sock.sendall((json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8", "replace"))
+            except OSError:  # the connection is gone: make the reading side notice too
+                hang_up(self)
+                return
+            except Exception:  # a bug in one message must never leave this person deaf
+                log("[SERVER] Error while sending:\n" + traceback.format_exc())
+                hang_up(self)
                 return
 
     def send(self, obj):
-        self.outbox.put(obj)
+        try:
+            self.outbox.put_nowait(obj)
+        except queue.Full:
+            # They stopped reading. Dropping messages would break their game board, so disconnect them.
+            hang_up(self)
 
     def say(self, text, kind="system"):
         self.send({"type": "msg", "kind": kind, "text": text})
 
+    def kick(self, text):
+        """Tell them why, then hang up half a second later (so the message gets there first)."""
+        self.say(text, "error")
+        threading.Timer(0.5, hang_up, args=(self,)).start()
+
     def close(self):
-        self.outbox.put(None)
+        try:
+            self.outbox.put_nowait(None)
+        except queue.Full:
+            pass  # the writer is stuck or gone; closing the socket below stops it
         self.writer.join(timeout=1)  # let the last messages go out first
         try:
             self.sock.close()
@@ -196,10 +275,15 @@ class Client:
             pass
 
 
-def recv_lines(sock):
+def recv_lines(sock, client):
     """Yield complete lines from the socket (one JSON message per line)."""
     buffer = bytearray()
     while True:
+        if client.key is None:  # not logged in: the clock keeps running, sending bytes doesn't reset it
+            left = client.login_deadline - time.time()
+            if left <= 0:
+                return
+            sock.settimeout(left)
         chunk = sock.recv(65536)
         if not chunk:  # empty = the other side closed the connection
             return
@@ -213,8 +297,18 @@ def recv_lines(sock):
             del buffer[:end + 1]
             start = 0
             yield line
-        if len(buffer) > MAX_LINE:  # no newline for 4 MB: broken or abusive client
+        limit = MAX_LINE if client.key else MAX_LOGIN_LINE  # strangers can't send 4 MB
+        if len(buffer) > limit:  # no newline that far: broken or abusive client
             return
+
+
+def parse_message(raw):
+    """One line from the network -> a dict, or None if it isn't a JSON object."""
+    try:
+        msg = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError, RecursionError):  # RecursionError: [[[[... nested very deep
+        return None
+    return msg if isinstance(msg, dict) else None
 
 
 # ---------------------------------------------------------------- small helpers
@@ -335,6 +429,26 @@ def new_account(username, salt, digest):
             "admin": False, "joined": today()}
 
 
+def new_group(name, owner, private):
+    return {"name": name, "owner": owner, "admins": [], "members": [owner] if owner else [],
+            "banned": [], "requests": [], "private": private, "bank": 0, "upgrades": [], "emoji": ""}
+
+
+def login_locked(key):
+    """True if this username had too many wrong passwords lately (per username, never per IP:
+    every website user comes from the same address)."""
+    now = time.time()
+    recent = [t for t in login_fails.get(key, []) if now - t < LOGIN_FAIL_WINDOW]
+    login_fails[key] = recent
+    return len(recent) >= LOGIN_FAIL_LIMIT and now - recent[-1] < LOGIN_LOCK_SECONDS
+
+
+def check_password(password, salt_hex):
+    """Slow on purpose. At most a few run at once, so password guessing can't eat every CPU."""
+    with hashing:
+        return hash_password(password, salt_hex)
+
+
 # ---------------------------------------------------------------- achievements
 
 def unlock(key, achievement):
@@ -358,7 +472,7 @@ def check_rich(key):
 def handle_auth(client, msg):
     """Log in or create an account. Returns True on success."""
     action = msg.get("action")
-    username = str(msg.get("username", "")).strip()
+    username = clean_text(msg.get("username", "")).strip()
     password = str(msg.get("password", ""))
 
     def fail(text):
@@ -375,6 +489,10 @@ def handle_auth(client, msg):
         return fail("❌ Wrong username or password.")
     if not 4 <= len(password) <= 64:
         return fail("❌ Password: 4 to 64 characters.")
+    try:
+        password.encode("utf-8")
+    except UnicodeEncodeError:  # a broken half-emoji character
+        return fail("❌ That password has a character that can't be used.")
     key = username.lower()
 
     # Hashing is slow on purpose (it makes guessing passwords slow), so do it OUTSIDE the lock.
@@ -382,7 +500,7 @@ def handle_auth(client, msg):
         with lock:
             if key in accounts or find_account(username):
                 return fail("❌ That username is taken.")
-        salt, digest = hash_password(password)
+        salt, digest = check_password(password, None)
         with lock:
             if key in accounts or find_account(username):
                 return fail("❌ That username is taken.")
@@ -390,16 +508,27 @@ def handle_auth(client, msg):
             save_data()
     else:
         with lock:
+            if login_locked(key):
+                return fail("🔒 Too many wrong passwords for this account. Try again in 5 minutes.")
             account = accounts.get(key)
-        if account is None:
-            return fail("❌ Wrong username or password.")
-        _, digest = hash_password(password, account["salt"])
-        if not secrets.compare_digest(digest, account["hash"]):
+        # Unknown names get a hash too, so the answer time doesn't reveal who has an account
+        _, digest = check_password(password, account["salt"] if account else "00" * 16)
+        if account is None or not secrets.compare_digest(digest, account["hash"]):
+            with lock:
+                login_fails.setdefault(key, []).append(time.time())
             return fail("❌ Wrong username or password.")
 
     with lock:
-        if key in online:
-            return fail("⚠️ That account is already logged in somewhere else.")
+        login_fails.pop(key, None)
+        old = online.get(key)
+        if old is not None:
+            # The right password wins: the old window is probably a dead Wi-Fi connection
+            # or a closed browser tab. It can't do anything as this account anymore
+            # (with key None it's treated as logged out until it's hung up half a second later).
+            notify_room(old.room, f"👋 {shown(key)} left the chat", exclude=old)
+            old.key = None
+            old.kick("🔁 You logged in from another window, so this one was disconnected.")
+            log(f"[SERVER] {nick(key)} logged in again, closing the old connection")
         client.key = key
         online[key] = client
         greeting = "Welcome back" if action == "login" else "Account created! Welcome"
@@ -558,14 +687,15 @@ def cmd_create(client, args):
     if key in groups:
         client.say("❌ That group already exists.", "error")
         return
+    if sum(1 for g in groups.values() if g["owner"] == client.key) >= MAX_OWNED_GROUPS:
+        client.say(f"👑 You can own at most {MAX_OWNED_GROUPS} groups. /disband one first.", "error")
+        return
     account = accounts[client.key]
     if account["tokens"] < GROUP_COST:
         client.say(f"💸 Creating a group costs {GROUP_COST} 🪙, you have {account['tokens']}.", "error")
         return
     account["tokens"] -= GROUP_COST
-    groups[key] = {"name": name, "owner": client.key, "admins": [], "members": [client.key],
-                   "banned": [], "requests": [], "private": private,
-                   "bank": 0, "upgrades": [], "emoji": ""}
+    groups[key] = new_group(name, client.key, private)
     history[key] = deque(maxlen=HISTORY_SIZE)
     client.say(f"🎉 Created {room_title(key)} for {GROUP_COST} 🪙. You're the owner 👑\n"
                f"🏦 The group bank earns {GROUP_INCOME} 🪙/min while a member is online. See /bank", "event")
@@ -900,7 +1030,8 @@ def cmd_donate(client, args):
     group["bank"] += amount
     notify_room(key, f"🤝 {shown(client.key)} donated {amount} 🪙 to the bank (now {group['bank']} 🪙)",
                 kind="money")
-    unlock(client.key, "team_player")
+    if amount >= TEAM_PLAYER_DONATION:  # a 1-token donation shouldn't earn a 50-token achievement
+        unlock(client.key, "team_player")
     save_data()
 
 
@@ -945,7 +1076,9 @@ def cmd_groupemoji(client, args):
         client.say("🎨 Buy the emoji upgrade first: /upgrade emoji", "error")
         return
     emoji = args.strip()
-    if not emoji or len(emoji) > 8 or any(ch.isalnum() or ch.isspace() for ch in emoji):
+    # Only emoji pieces: symbols (So, Sk) plus the invisible joiners and variation marks (Mn, Cf)
+    if not emoji or len(emoji) > 8 or any(unicodedata.category(ch) not in ("So", "Sk", "Mn", "Cf")
+                                          for ch in emoji):
         client.say("🎨 Send a single emoji, like /groupemoji 🔥", "error")
         return
     group["emoji"] = emoji
@@ -1179,6 +1312,7 @@ def cmd_slots(client, args):
     gamble_result(client, bet, int(bet * multiplier), f"🎰 [ {' | '.join(reels)} ]", "slots")
     if multiplier >= 10:
         unlock(client.key, "jackpot")
+        save_data()  # gamble_result already saved, before this achievement
 
 
 # ----- 🎮 Games
@@ -1190,6 +1324,7 @@ class Match:
         self.players = [first, second]
         self.bet = bet
         self.over = False
+        self.moves = {first: 0, second: 0}  # accepted moves per player
 
     def opponent(self, key):
         return self.players[1] if key == self.players[0] else self.players[0]
@@ -1206,9 +1341,9 @@ def push_board(match, note=""):
 
 
 def start_match(game_class, p1, p2, bet):
+    match = Match(game_class, p1, p2, bet)
     for p in (p1, p2):
         accounts[p]["tokens"] -= bet  # both bets go into the pot
-    match = Match(game_class, p1, p2, bet)
     matches[p1] = matches[p2] = match
     pot = f"   💰 pot: {bet * 2} 🪙" if bet else ""
     for p in match.players:
@@ -1238,11 +1373,13 @@ def finish_match(match, winner, reason=""):
         account["tokens"] += pot
         account["wins"] += 1
         accounts[loser]["losses"] += 1
-        # Free reward for winning, capped per day so two friends can't farm each other
+        # Free reward for winning, capped per day so two friends can't farm each other.
+        # A resign or disconnect before both really played earns no reward (only the pot).
         if account["win_day"] != today():
             account["win_day"], account["rewarded_wins"] = today(), 0
+        really_played = match.game.finished or min(match.moves.values()) >= MIN_MOVES_FOR_BONUS
         bonus = ""
-        if account["rewarded_wins"] < MAX_REWARDED_WINS:
+        if really_played and account["rewarded_wins"] < MAX_REWARDED_WINS:
             account["rewarded_wins"] += 1
             account["tokens"] += WIN_REWARD
             bonus = f" +{WIN_REWARD} 🪙 win reward ({account['rewarded_wins']}/{MAX_REWARDED_WINS} today)"
@@ -1257,6 +1394,17 @@ def finish_match(match, winner, reason=""):
     save_data()
 
 
+def end_all_matches():
+    """The server is stopping: cancel every running game and give the bets back."""
+    for match in set(matches.values()):
+        match.over = True
+        for p in match.players:
+            matches.pop(p, None)
+            accounts[p]["tokens"] += match.bet
+            tell(p, "🛑 The server is stopping, so your game was cancelled."
+                 + (" Your bet was refunded." if match.bet else ""), "game")
+
+
 def do_move(client, text):
     match = matches.get(client.key)
     if match is None:
@@ -1266,6 +1414,7 @@ def do_move(client, text):
     if not ok:
         client.say(info, "error")
         return
+    match.moves[client.key] += 1
     push_board(match, info)
     if match.game.finished:
         finish_match(match, match.game.winner)
@@ -1452,22 +1601,32 @@ def cmd_giveup(client, args):
 
 # ----- 🛠️ Admin
 
+def admin_password():
+    """HASHBROWN_ADMIN_PASSWORD wins, otherwise ADMIN_PASSWORD at the top. Never print this."""
+    return os.environ.get("HASHBROWN_ADMIN_PASSWORD", "").strip() or ADMIN_PASSWORD
+
+
 @command("/admin", "/admin password", "become a server admin", "🛠️ Admin")
 def cmd_admin(client, args):
     account = accounts[client.key]
     if account["admin"]:
         client.say("🛠️ You're already an admin. Try /admintokens")
         return
-    fails, last = admin_fails.get(client.key, (0, 0))
-    if fails >= 3 and time.time() - last < 600:
-        client.say("🔒 Too many wrong passwords. Try again in 10 minutes.", "error")
+    password = admin_password()
+    if password == DEFAULT_ADMIN_PASSWORD:
+        client.say("🔒 /admin is disabled until the host changes the admin password.", "error")
         return
-    if not secrets.compare_digest(args.strip().encode(), ADMIN_PASSWORD.encode()):
-        admin_fails[client.key] = (fails + 1 if time.time() - last < 600 else 1, time.time())
+    # Wrong tries from ALL accounts count together, so making extra accounts doesn't give more guesses
+    now = time.time()
+    admin_fail_times[:] = [t for t in admin_fail_times if now - t < ADMIN_FAIL_WINDOW]
+    if len(admin_fail_times) >= ADMIN_FAIL_LIMIT:
+        client.say("🔒 Too many wrong admin passwords. Try again in 10 minutes.", "error")
+        return
+    if not secrets.compare_digest(args.strip().encode("utf-8", "replace"), password.encode("utf-8", "replace")):
+        admin_fail_times.append(now)
         client.say("❌ Wrong admin password.", "error")
         log(f"[SERVER] ⚠️ {nick(client.key)} typed a wrong /admin password")
         return
-    admin_fails.pop(client.key, None)
     account["admin"] = True
     save_data()
     client.say("🛠️ You're now an admin! Try /admintokens", "event")
@@ -1500,7 +1659,7 @@ def cmd_sendfile(client, args):
 
 
 def handle_file(client, msg):
-    target = find_online(client, str(msg.get("to", "")))
+    target = find_online(client, clean_text(msg.get("to", "")))
     if target is None:
         return
     if target == client.key:
@@ -1510,7 +1669,7 @@ def handle_file(client, msg):
     if not isinstance(data, str) or len(data) > MAX_FILE_B64:
         client.say("📁 Files must be 2 MB or less.", "error")
         return
-    filename = os.path.basename(str(msg.get("filename", "")).replace("\\", "/"))[:100] or "file"
+    filename = os.path.basename(clean_text(msg.get("filename", "")).replace("\\", "/"))[:100] or "file"
     online[target].send({"type": "file", "from": nick(client.key), "filename": filename, "data": data})
     client.say(f"📤 Sent {filename} ({len(data) * 3 // 4 // 1024 + 1} KB) to {shown(target)}.")
 
@@ -1644,11 +1803,18 @@ def ask_hashbrown(client, question):
         client.say("🥔 Hashbrown is busy answering others. Try again in a few seconds.", "error")
         return
 
-    # Who pays: the group bank (with the 🥔 upgrade) or the person asking
+    # Give it the recent chat so it knows what everyone is talking about
+    recent = "\n".join(f"{m['name']}: {m['text']}" for m in list(history[room])[-10:])
+    messages = [{"role": "system", "content": HASHBROWN_PROMPT},
+                {"role": "user", "content": f"Recent chat:\n{recent}\n\n{nick(key)} asks you: {question}"}]
+
+    # Who pays: the group bank (with the 🥔 upgrade) or the person asking.
+    # We remember the group itself, not just its name: it could be disbanded (and a new group
+    # with the same name created) before the answer comes back.
     group = groups.get(room)
     if group and "hashbrown" in group["upgrades"] and group["bank"] >= HASHBROWN_COST:
         group["bank"] -= HASHBROWN_COST
-        payer = ("group", room)
+        payer = ("group", group)
     elif accounts[key]["tokens"] >= HASHBROWN_COST:
         accounts[key]["tokens"] -= HASHBROWN_COST
         payer = ("user", key)
@@ -1659,40 +1825,51 @@ def ask_hashbrown(client, question):
     hashbrown_last[key] = time.time()
     hashbrown_today[key] = (day, asked + 1)
     hashbrown_busy += 1
-    # Give it the recent chat so it knows what everyone is talking about
-    recent = "\n".join(f"{m['name']}: {m['text']}" for m in list(history[room])[-10:])
-    messages = [{"role": "system", "content": HASHBROWN_PROMPT},
-                {"role": "user", "content": f"Recent chat:\n{recent}\n\n{nick(key)} asks you: {question}"}]
     notify_room(room, "🥔 Hashbrown is thinking...", kind="event")
-    threading.Thread(target=hashbrown_worker, args=(key, room, messages, payer), daemon=True).start()
+    threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer), daemon=True).start()
 
 
-def hashbrown_worker(asker, room, messages, payer):
-    """Runs in its own thread so the chat keeps working while the AI thinks."""
+def refund_hashbrown(asker, payer):
+    """The question failed: give the tokens back and don't count it as one of today's questions."""
+    kind, who = payer
+    if kind == "user" and who in accounts:
+        accounts[who]["tokens"] += HASHBROWN_COST
+    elif kind == "group" and groups.get(who["name"].lower()) is who:
+        who["bank"] += HASHBROWN_COST
+    elif kind == "group" and who["owner"] in accounts:  # the group is gone: its bank went to the owner
+        accounts[who["owner"]]["tokens"] += HASHBROWN_COST
+    day, asked = hashbrown_today.get(asker, ("", 0))
+    if day == today() and asked > 0:
+        hashbrown_today[asker] = (day, asked - 1)
+
+
+def hashbrown_worker(asker, room, group, messages, payer):
+    """Runs in its own thread so the chat keeps working while the AI thinks.
+    `group` is the group the question was asked in (None in the lobby)."""
     global hashbrown_busy
     try:
-        answer, error = call_hashbrown(messages), None
+        answer, error = clean_text(call_hashbrown(messages), keep_newlines=True), None
     except Exception as e:  # network down, bad key, timeout... the chat must survive all of it
         answer, error = None, e
     with lock:
         hashbrown_busy -= 1
-        room_exists = room == "lobby" or room in groups
+        room_still_there = groups.get(room) is group  # True for the lobby too (None is None)
         if answer is None:
-            log(f"[HASHBROWN] Error: {error}")
-            kind, who = payer
-            if kind == "user" and who in accounts:
-                accounts[who]["tokens"] += HASHBROWN_COST
-            elif kind == "group" and who in groups:
-                groups[who]["bank"] += HASHBROWN_COST
-            if room_exists:
-                notify_room(room, "🥔💥 Hashbrown tripped over something and couldn't answer. "
-                                  "The tokens were refunded.", kind="error")
+            log(f"[HASHBROWN] Error: {type(error).__name__}: {error}")
+            refund_hashbrown(asker, payer)
+            oops = "🥔💥 Hashbrown tripped over something and couldn't answer. The tokens were refunded."
+            if room_still_there:
+                notify_room(room, oops, kind="error")
+            else:
+                tell(asker, oops, "error")
             return
-        if room_exists:
+        if room_still_there:
             msg = chat_message("Hashbrown", "🥔", answer)
             history[room].append(msg)
             send_room(room, msg)
             log(f"[{room}] Hashbrown: {answer}")
+        else:  # the group was disbanded while Hashbrown thought: answer just the asker
+            tell(asker, f"🥔 Hashbrown (only you): {answer}", "private")
         if asker in accounts:
             unlock(asker, "potato")
             save_data()
@@ -1770,144 +1947,230 @@ def handle_line(client, text):
 
 
 # ---------------------------------------------------------------- background threads
+# Each loop sleeps, then runs one "tick" through run_safely(): if a tick crashes, the error
+# is logged and the loop keeps going (a dead income thread would mean no more tokens, silently).
+
+def run_safely(job, *args):
+    try:
+        return job(*args)
+    except Exception:
+        log("[SERVER] Error in a background job (it keeps running):\n" + traceback.format_exc())
+        return None
+
+
+def income_tick():
+    """Online users get tokens, and so does every group with a member online."""
+    with lock:
+        for key, c in online.items():
+            group = groups.get(c.room)
+            bonus = 2 if group and "income" in group["upgrades"] else 0
+            accounts[key]["tokens"] += TOKENS_PER_MINUTE + bonus
+            check_rich(key)
+        for group in groups.values():
+            if any(member in online for member in group["members"]):
+                group["bank"] += GROUP_INCOME
+        now = time.time()
+        for key in [k for k, times in login_fails.items() if not times or now - times[-1] > LOGIN_FAIL_WINDOW]:
+            del login_fails[key]  # old wrong-password records: forget them
+        if online:
+            save_data()
+
 
 def income_loop():
-    """Every minute: online users get tokens, and so does every group with a member online."""
     while True:
         time.sleep(60)
-        with lock:
-            for key, c in online.items():
-                group = groups.get(c.room)
-                bonus = 2 if group and "income" in group["upgrades"] else 0
-                accounts[key]["tokens"] += TOKENS_PER_MINUTE + bonus
-                check_rich(key)
-            for group in groups.values():
-                if any(member in online for member in group["members"]):
-                    group["bank"] += GROUP_INCOME
-            if online:
-                save_data()
+        run_safely(income_tick)
+
+
+def quiz_open():
+    """Ask a quick math question in the lobby. Returns (the quiz, who was asked), or None."""
+    global quiz
+    with lock:
+        free = [c for c in online.values()
+                if c.room == "lobby" and c.key not in matches and c.key not in solo]
+        if not free:
+            return None
+        a, b = random.randint(2, 20), random.randint(2, 20)
+        op = random.choice("+-×")
+        answer = a + b if op == "+" else a - b if op == "-" else a * b
+        quiz = {"answer": str(answer), "reward": 50 if op == "×" else 30}
+        for c in free:  # people in the middle of a game don't get interrupted
+            c.say(f"⚡ QUICK MATH! First to answer wins {quiz['reward']} 🪙:   {a} {op} {b} = ?", "event")
+        return quiz, free
+
+
+def quiz_close(current, free):
+    """Nobody answered in time: tell the people who were asked."""
+    global quiz
+    with lock:
+        if quiz is not current:
+            return
+        for c in free:
+            # online.get(c.key) is c: they're still on the SAME connection (not logged in again)
+            if online.get(c.key) is c and c.key not in matches and c.key not in solo:
+                c.say(f"⏰ Time's up! The answer was {current['answer']}.", "event")
+        quiz = None
 
 
 def quiz_loop():
     """Every few minutes, a quick math question pops up in the lobby."""
-    global quiz
     while True:
         time.sleep(random.randint(180, 420))
-        with lock:
-            free = [c for c in online.values()
-                    if c.room == "lobby" and c.key not in matches and c.key not in solo]
-            if not free:
-                continue
-            a, b = random.randint(2, 20), random.randint(2, 20)
-            op = random.choice("+-×")
-            answer = a + b if op == "+" else a - b if op == "-" else a * b
-            quiz = {"answer": str(answer), "reward": 50 if op == "×" else 30}
-            current = quiz
-            for c in free:  # people in the middle of a game don't get interrupted
-                c.say(f"⚡ QUICK MATH! First to answer wins {quiz['reward']} 🪙:   {a} {op} {b} = ?", "event")
-        time.sleep(45)
-        with lock:
-            if quiz is current:
-                for c in free:
-                    if c.key in online and c.key not in matches and c.key not in solo:
-                        c.say(f"⏰ Time's up! The answer was {current['answer']}.", "event")
-                quiz = None
+        opened = run_safely(quiz_open)
+        if opened:
+            time.sleep(45)
+            run_safely(quiz_close, *opened)
+
+
+def console_command(line):
+    """One command typed into the server window. Only whoever runs the server can use these."""
+    cmd, _, rest = line.strip().partition(" ")
+    with lock:
+        if cmd == "say" and rest:
+            announce(f"📢 [SERVER] {rest}")
+        elif cmd == "give":
+            parts = rest.split()
+            key = find_account(parts[0]) if parts else None
+            try:
+                amount = int(parts[1]) if len(parts) == 2 else None
+            except ValueError:
+                amount = None
+            if key and amount is not None:
+                account = accounts[key]
+                account["tokens"] = max(0, account["tokens"] + amount)  # negative takes tokens away
+                save_data()
+                tell(key, f"🎁 The server gave you {amount} 🪙!" if amount >= 0
+                     else f"💸 The server took {-amount} 🪙.", "money")
+                log(f"[CONSOLE] {nick(key)} now has {account['tokens']}")
+            else:
+                log("[CONSOLE] Usage: give <name> <amount>")
+        elif cmd == "kick":
+            key = find_account(rest)
+            if key in online:
+                online[key].kick("👢 You were kicked by the server.")
+            else:
+                log("[CONSOLE] Not online.")
+        elif cmd == "list":
+            for key, c in online.items():
+                log(f"  {nick(key)} {c.address} in {c.room}, {accounts[key]['tokens']} tokens")
+        elif cmd == "save":
+            if save_data():
+                log("[CONSOLE] Saved.")
+        elif cmd:
+            log("[CONSOLE] Commands: say, give, kick, list, save")
 
 
 def console_loop():
-    """Commands typed into the server window. Only whoever runs the server can use these."""
     log("[CONSOLE] Commands: say <text> | give <name> <amount> | kick <name> | list | save")
     while True:
         try:
-            line = input().strip()
+            line = input()
         except (EOFError, OSError):
+            log("[CONSOLE] No keyboard here, so console commands are off.")
             return
-        cmd, _, rest = line.partition(" ")
-        with lock:
-            if cmd == "say" and rest:
-                announce(f"📢 [SERVER] {rest}")
-            elif cmd == "give":
-                parts = rest.split()
-                key = find_account(parts[0]) if parts else None
-                if key and len(parts) == 2 and parts[1].lstrip("-").isdecimal():
-                    accounts[key]["tokens"] += int(parts[1])
-                    save_data()
-                    tell(key, f"🎁 The server gave you {parts[1]} 🪙!", "money")
-                    log(f"[CONSOLE] {nick(key)} now has {accounts[key]['tokens']}")
-                else:
-                    log("[CONSOLE] Usage: give <name> <amount>")
-            elif cmd == "kick":
-                key = find_account(rest)
-                if key in online:
-                    online[key].say("👢 You were kicked by the server.", "error")
-                    threading.Timer(0.5, hang_up, args=(online[key],)).start()
-                else:
-                    log("[CONSOLE] Not online.")
-            elif cmd == "list":
-                for key, c in online.items():
-                    log(f"  {nick(key)} {c.address} in {c.room}, {accounts[key]['tokens']} tokens")
-            elif cmd == "save":
-                save_data()
-                log("[CONSOLE] Saved.")
-            elif cmd:
-                log("[CONSOLE] Commands: say, give, kick, list, save")
+        except ValueError:  # a key the console couldn't decode
+            continue
+        run_safely(console_command, line)
 
 
 # ---------------------------------------------------------------- connections
 
 def disconnect(client):
-    with lock:
-        key = client.key
-        if key and online.get(key) is client:
-            del online[key]
-            match = matches.get(key)
-            if match:
-                finish_match(match, match.opponent(key), f"{nick(key)} disconnected")
-            invites.pop(key, None)
-            solo.pop(key, None)
-            for waiting in invites.values():
-                waiting[:] = [i for i in waiting if i["from"] != key]
-            notify_room(client.room, f"👋 {shown(key)} left the chat")
-            log(f"[SERVER] {nick(key)} disconnected")
-            save_data()
-    client.close()
+    try:
+        with lock:
+            key = client.key
+            if key and online.get(key) is client:
+                del online[key]
+                match = matches.get(key)
+                if match:
+                    finish_match(match, match.opponent(key), f"{nick(key)} disconnected")
+                invites.pop(key, None)
+                solo.pop(key, None)
+                for waiting in invites.values():
+                    waiting[:] = [i for i in waiting if i["from"] != key]
+                notify_room(client.room, f"👋 {shown(key)} left the chat")
+                log(f"[SERVER] {nick(key)} disconnected")
+                save_data()
+    except Exception:
+        log("[SERVER] Error while disconnecting:\n" + traceback.format_exc())
+    finally:
+        client.close()  # always, or the socket and its writer thread would stay open forever
 
 
 def handle_client(sock, address):
     """Runs in its own thread, one per connection."""
-    client = Client(sock, address)
+    global connections
+    with lock:
+        too_many = connections >= MAX_CONNECTIONS
+        if not too_many:
+            connections += 1
+    if too_many:
+        log(f"[SERVER] ⚠️ Too many connections ({MAX_CONNECTIONS}), turned away {address}")
+        sock.close()
+        return
+    try:
+        talk_to(sock, address)
+    finally:
+        with lock:
+            connections -= 1
+
+
+def try_auth(client, msg):
+    """handle_auth(), but a bug in it answers "something went wrong" instead of dropping the person."""
+    try:
+        return handle_auth(client, msg)
+    except Exception:
+        log("[SERVER] Error while logging someone in:\n" + traceback.format_exc())
+        client.send({"type": "auth_result", "ok": False, "text": "💥 Something went wrong. Try again."})
+        return False
+
+
+def handle_message(client, msg):
+    """A message from someone who is logged in. Called while holding the lock."""
+    try:
+        text = clean_text(msg.get("text", ""))[:MAX_TEXT]
+        if not is_game_move(client, text) and not spam_ok(client):
+            return  # game moves don't count as spam
+        if msg.get("type") == "line":
+            handle_line(client, text)
+        elif msg.get("type") == "file":
+            handle_file(client, msg)
+    except Exception:  # a bug in one command must not kick the person out
+        log("[SERVER] Error while handling a message:\n" + traceback.format_exc())
+        client.say("💥 Something went wrong on the server with that. Try something else.", "error")
+
+
+def talk_to(sock, address):
+    """Read one connection's messages until it closes."""
+    try:
+        client = Client(sock, address)
+    except RuntimeError:  # couldn't start its writer thread
+        sock.close()
+        return
     failed_logins = 0
     try:
-        for raw in recv_lines(sock):
-            try:
-                msg = json.loads(raw.decode("utf-8"))
-            except (UnicodeDecodeError, ValueError):
+        for raw in recv_lines(sock, client):
+            msg = parse_message(raw)
+            if msg is None:
                 continue
-            if not isinstance(msg, dict):
-                continue
-            if client.key is None:  # not logged in yet: only login/register allowed
-                if msg.get("type") == "auth" and not handle_auth(client, msg):
-                    failed_logins += 1
-                    if failed_logins >= 5:
-                        client.say("🚫 Too many failed attempts. Bye.", "error")
-                        break
+            if client.key is None:  # not logged in yet (or replaced by a newer login): only auth
+                if msg.get("type") != "auth":
+                    continue
+                if try_auth(client, msg):
+                    sock.settimeout(None)  # logged in: no more time limit
+                    continue
+                failed_logins += 1
+                if failed_logins >= 5:
+                    client.say("🚫 Too many failed attempts. Bye.", "error")
+                    break
                 continue
             with lock:
-                text = str(msg.get("text", ""))[:MAX_TEXT]
-                if not is_game_move(client, text) and not spam_ok(client):
-                    continue  # game moves don't count as spam
-                try:
-                    if msg.get("type") == "line":
-                        handle_line(client, text)
-                    elif msg.get("type") == "file":
-                        handle_file(client, msg)
-                except Exception:  # a bug in one command must not kick the person out
-                    log("[SERVER] Error while handling a message:\n" + traceback.format_exc())
-                    client.say("💥 Something went wrong on the server with that. Try something else.", "error")
+                if client.key is not None:
+                    handle_message(client, msg)
             if client.quitting:
                 break
     except OSError:
-        pass  # connection dropped (ConnectionResetError is a kind of OSError)
+        pass  # connection dropped or timed out (ConnectionResetError and timeouts are OSErrors)
     finally:
         disconnect(client)
 
@@ -1917,32 +2180,80 @@ def is_game_move(client, text):
     return bool(match) and not text.startswith("/") and match.game.looks_like_move(text)
 
 
-def main():
+def reset_state():
+    """Forget everything in memory (the tests use this to start each test from zero)."""
+    global quiz, hashbrown, hashbrown_busy
+    with lock:
+        for table in (accounts, groups, online, mutes, invites, matches, last_rob, solo, login_fails,
+                      admin_fail_times, hashbrown_last, hashbrown_today, history):
+            table.clear()
+        history["lobby"] = deque(maxlen=HISTORY_SIZE)
+        quiz, hashbrown, hashbrown_busy = None, None, 0
+
+
+def start_server(host=HOST, port=PORT, run_loops=True, run_console=True):
+    """Load the data, wake Hashbrown, start the helper threads and open the port.
+    Returns the listening socket, or None if the server can't start.
+    (The tests call this with port 0 and without the loops and the console.)"""
     global hashbrown
-    load_data()
+    if not load_data():
+        return None
     hashbrown = load_hashbrown()
-    for loop in (income_loop, quiz_loop, console_loop):
+    if admin_password() == DEFAULT_ADMIN_PASSWORD:  # never print the password itself
+        log("[SERVER] 🔒 /admin is off. To turn it on, set the HASHBROWN_ADMIN_PASSWORD environment "
+            "variable (or change ADMIN_PASSWORD in server.py).")
+    loops = ([income_loop, quiz_loop] if run_loops else []) + ([console_loop] if run_console else [])
+    for loop in loops:
         threading.Thread(target=loop, daemon=True).start()
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     if os.name != "nt":  # on Windows this option would let two servers share the port by accident
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
-        server_socket.bind((HOST, PORT))
-    except OSError:
-        log(f"[SERVER] ❌ Port {PORT} is already in use. Is the server already running in another window?")
-        return
+        server_socket.bind((host, port))
+    except OSError as e:
+        log(f"[SERVER] ❌ Can't use port {port} ({e}). Is the server already running in another window?")
+        server_socket.close()
+        return None
     server_socket.listen()
-    log(f"[SERVER] 💬 Chat server running on port {PORT} (Ctrl+C to stop)")
+    log(f"[SERVER] 💬 Chat server running on port {server_socket.getsockname()[1]} (Ctrl+C to stop)")
+    return server_socket
+
+
+def serve_forever(server_socket):
+    """Accept connections until Ctrl+C (or until the socket is closed). Everyone gets their own thread."""
+    server_socket.settimeout(ACCEPT_WAKEUP)  # wake up now and then, so Ctrl+C works on Windows too
     try:
         while True:
-            sock, address = server_socket.accept()
-            threading.Thread(target=handle_client, args=(sock, address), daemon=True).start()
+            try:
+                sock, address = server_socket.accept()
+            except socket.timeout:
+                continue
+            except OSError as e:
+                if server_socket.fileno() == -1:  # the socket was closed: time to stop
+                    break
+                # e.g. someone gave up halfway through connecting: just carry on
+                log(f"[SERVER] ⚠️ Couldn't accept a connection ({e}). Still running.")
+                time.sleep(0.1)
+                continue
+            try:
+                threading.Thread(target=handle_client, args=(sock, address), daemon=True).start()
+            except RuntimeError:  # the computer can't start more threads right now
+                log("[SERVER] ⚠️ Too many threads, turned a connection away.")
+                sock.close()
     except KeyboardInterrupt:
         log("\n[SERVER] Shutting down.")
     finally:
+        with lock:
+            run_safely(end_all_matches)  # nobody loses their bet because the server stopped
         save_data()
         server_socket.close()
+
+
+def main():
+    server_socket = start_server()
+    if server_socket is not None:
+        serve_forever(server_socket)
 
 
 if __name__ == "__main__":

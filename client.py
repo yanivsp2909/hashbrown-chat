@@ -9,6 +9,7 @@ import base64
 import getpass
 import json
 import os
+import select
 import socket
 import sys
 import threading
@@ -34,6 +35,9 @@ KIND_COLORS = {"system": "\033[93m", "error": "\033[91m", "private": "\033[95m",
                "event": "\033[96m", "game": "\033[96m", "help": "", "board": ""}
 NAME_COLORS = ["\033[91m", "\033[92m", "\033[93m", "\033[94m", "\033[95m", "\033[96m"]
 WINDOWS_RESERVED = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {f"LPT{i}" for i in range(1, 10)}
+
+ESC_WAIT = 0.05  # seconds to wait after Esc to see if it is the start of an arrow-key sequence
+TIMED_OUT = {"type": "timed_out"}  # made here (never sent by the server) when waiting took too long
 
 quitting = threading.Event()
 
@@ -139,38 +143,59 @@ class InputLine:
 
     def _unix_keys(self):
         """Mac / Linux: switch the terminal to key-by-key mode, and always switch it back."""
-        import codecs
         import termios
         fd = sys.stdin.fileno()
         saved = termios.tcgetattr(fd)
         raw = termios.tcgetattr(fd)
         raw[3] &= ~(termios.ICANON | termios.ECHO)  # no line buffering, we draw the keys ourselves
         termios.tcsetattr(fd, termios.TCSADRAIN, raw)
-        decoder = codecs.getincrementaldecoder("utf-8")(errors="ignore")
         try:
-            while True:
-                byte = os.read(fd, 1)
-                if not byte:
-                    raise EOFError
-                ch = decoder.decode(byte)
-                if not ch:
-                    continue  # middle of a Hebrew letter or emoji
-                if ch in ("\r", "\n"):
-                    yield "enter"
-                elif ch in ("\x7f", "\x08"):
-                    yield "backspace"
-                elif ch == "\x04" and not self.buffer:
-                    raise EOFError
-                elif ch == "\x1b":  # arrows send ESC [ A/B/C/D
-                    if os.read(fd, 1) == b"[":
-                        code = os.read(fd, 1)
-                        yield {b"A": "up", b"B": "down"}.get(code, "ignore")
-                    else:
-                        yield "escape"
-                else:
-                    yield ch
+            yield from self._read_unix_keys(fd)
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, saved)
+
+    def _read_unix_keys(self, fd):
+        """Turns the bytes coming from file descriptor fd into keys (split out so tests can feed it a pipe)."""
+        import codecs
+        decoder = codecs.getincrementaldecoder("utf-8")(errors="ignore")
+        extra = b""  # a byte we read too early, to handle on the next round
+        while True:
+            byte, extra = extra or self._next_byte(fd), b""
+            ch = decoder.decode(byte)
+            if not ch:
+                continue  # middle of a Hebrew letter or emoji
+            if ch in ("\r", "\n"):
+                yield "enter"
+            elif ch in ("\x7f", "\x08"):
+                yield "backspace"
+            elif ch == "\x04" and not self.buffer:
+                raise EOFError
+            elif ch == "\x1b":
+                key, extra = self._escape_key(fd)
+                yield key
+            else:
+                yield ch
+
+    @staticmethod
+    def _next_byte(fd):
+        byte = os.read(fd, 1)
+        if not byte:
+            raise EOFError
+        return byte
+
+    def _escape_key(self, fd):
+        """Called right after an Esc byte. Returns (key, extra byte we read but didn't use)."""
+        if not select.select([fd], [], [], ESC_WAIT)[0]:
+            return "escape", b""  # nothing followed, so it really was the Esc key
+        first = self._next_byte(fd)
+        if first == b"[":  # arrows etc: ESC [ numbers or ; ... one final letter
+            code = self._next_byte(fd)
+            while 0x20 <= code[0] <= 0x3F:
+                code = self._next_byte(fd)
+            return {b"A": "up", b"B": "down"}.get(code, "ignore"), b""
+        if first == b"O":  # some terminals send ESC O A for the arrows
+            return {b"A": "up", b"B": "down"}.get(self._next_byte(fd), "ignore"), b""
+        return "escape", first  # Esc and then an ordinary key: don't lose that key
 
     @staticmethod
     def _windows_keys():
@@ -188,7 +213,8 @@ class InputLine:
             elif ch == "\x1b":
                 yield "escape"
             elif "\ud800" <= ch <= "\udbff":  # an emoji arrives in two halves
-                yield (ch + msvcrt.getwch()).encode("utf-16", "surrogatepass").decode("utf-16")
+                pair = (ch + msvcrt.getwch()).encode("utf-16", "surrogatepass")
+                yield pair.decode("utf-16", errors="ignore")  # a broken pair gives "" which is ignored
             else:
                 yield ch
 
@@ -211,6 +237,9 @@ def read_messages(sock):
     while True:
         try:
             chunk = sock.recv(65536)
+        except socket.timeout:
+            yield TIMED_OUT
+            return
         except OSError:
             return
         if not chunk:
@@ -226,7 +255,7 @@ def read_messages(sock):
             start = 0
             try:
                 msg = json.loads(line.decode("utf-8"))
-            except (UnicodeDecodeError, ValueError):
+            except (UnicodeDecodeError, ValueError, RecursionError):
                 continue
             if isinstance(msg, dict):
                 yield msg
@@ -236,25 +265,41 @@ def read_messages(sock):
 
 # ---------------------------------------------------------------- showing messages
 
+def printable(text):
+    """Text from the network can hold hidden terminal commands (clear the screen, move the cursor...).
+    Keep letters, emoji and new lines, drop every control character."""
+    text = str(text).replace("\t", " ")
+    return "".join(ch for ch in text if ch == "\n" or unicodedata.category(ch) != "Cc")
+
+
 def format_chat(msg):
-    name = str(msg.get("name", "?"))
+    name = printable(msg.get("name", "?"))
     who = paint(name, NAME_COLORS[sum(map(ord, name)) % len(NAME_COLORS)])
     if msg.get("badge"):
-        who = f"{msg['badge']} {who}"
-    stamp = paint(f"[{msg.get('time', '')}]", DIM)
+        who = f"{printable(msg['badge'])} {who}"
+    stamp = paint(f"[{printable(msg.get('time', ''))}]", DIM)
+    text = printable(msg.get("text", ""))
     if msg.get("action"):
-        return f"{stamp} * {who} {msg.get('text', '')}"
-    return f"{stamp} {who}: {msg.get('text', '')}"
+        return f"{stamp} * {who} {text}"
+    return f"{stamp} {who}: {text}"
 
 
 def show(msg):
+    """Print one message from the server. A broken message must never stop the receiving thread."""
+    try:
+        show_message(msg)
+    except Exception as e:
+        console.out(paint(f"⚠️ Couldn't show a message from the server ({type(e).__name__}).", KIND_COLORS["error"]))
+
+
+def show_message(msg):
     kind = msg.get("type")
     if kind == "msg":
-        console.out(paint(str(msg.get("text", "")), KIND_COLORS.get(msg.get("kind"), "")))
+        console.out(paint(printable(msg.get("text", "")), KIND_COLORS.get(msg.get("kind"), "")))
     elif kind == "chat":
         console.out(format_chat(msg))
     elif kind == "history":
-        lines = [paint(f"\n📍 You're in {msg.get('room')}", BOLD)]
+        lines = [paint(f"\n📍 You're in {printable(msg.get('room'))}", BOLD)]
         past = msg.get("messages") or []
         if past:
             lines.append(paint("──── recent messages ────", DIM))
@@ -278,7 +323,7 @@ def safe_filename(name):
 
 
 def save_file(msg):
-    sender = msg.get("from", "someone")
+    sender = printable(msg.get("from", "someone"))
     try:
         data = base64.b64decode(str(msg.get("data", "")), validate=True)
     except ValueError:
@@ -287,15 +332,20 @@ def save_file(msg):
     if len(data) > MAX_FILE_SIZE:
         console.out(paint(f"📁 {sender} sent a file that's too big. Ignored.", KIND_COLORS["error"]))
         return
-    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     name = safe_filename(msg.get("filename", "file"))
     stem, ext = os.path.splitext(name)
     path, n = os.path.join(DOWNLOAD_DIR, name), 1
-    while os.path.exists(path):  # don't overwrite older files
-        path = os.path.join(DOWNLOAD_DIR, f"{stem}_{n}{ext}")
-        n += 1
-    with open(path, "wb") as f:
-        f.write(data)
+    try:
+        os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+        while os.path.exists(path):  # don't overwrite older files
+            path = os.path.join(DOWNLOAD_DIR, f"{stem}_{n}{ext}")
+            n += 1
+        with open(path, "wb") as f:
+            f.write(data)
+    except OSError as e:
+        console.out(paint(f"📁 {sender} sent you a file but I couldn't save it ({e.strerror or e}).",
+                          KIND_COLORS["error"]))
+        return
     console.out(paint(f"📥 {sender} sent you a file ({len(data) // 1024 + 1} KB), saved to {os.path.abspath(path)}",
                 KIND_COLORS["event"]))
 
@@ -310,11 +360,15 @@ def send_file(sock, line):
     if not os.path.isfile(path):
         console.out(paint(f"📁 Can't find {path}", KIND_COLORS["error"]))
         return
-    if os.path.getsize(path) > MAX_FILE_SIZE:
-        console.out(paint("📁 Files must be 2 MB or less.", KIND_COLORS["error"]))
+    try:
+        if os.path.getsize(path) > MAX_FILE_SIZE:
+            console.out(paint("📁 Files must be 2 MB or less.", KIND_COLORS["error"]))
+            return
+        with open(path, "rb") as f:
+            data = base64.b64encode(f.read()).decode("ascii")  # bytes -> text, so it fits in JSON
+    except OSError as e:
+        console.out(paint(f"📁 Can't read {path} ({e.strerror or e}).", KIND_COLORS["error"]))
         return
-    with open(path, "rb") as f:
-        data = base64.b64encode(f.read()).decode("ascii")  # bytes -> text, so it fits in JSON
     send(sock, {"type": "file", "to": target, "filename": os.path.basename(path), "data": data})
     console.out(paint(f"📤 Sending {os.path.basename(path)} to {target}...", DIM))
 
@@ -348,15 +402,19 @@ def login(sock, messages):
         print(paint("⏳ Checking...", DIM))
         sock.settimeout(15)  # don't wait forever if the server never answers
         for msg in messages:
-            if msg.get("type") == "auth_result":
+            if msg.get("type") == "auth_result" or msg is TIMED_OUT:
                 break
             show(msg)
         else:
+            print(paint("❌ The server closed the connection. Run the client again to retry.",
+                        KIND_COLORS["error"]))
+            return False
+        if msg is TIMED_OUT:
             print(paint("❌ No answer from the server. Make sure it's running the NEW server.py "
                         "(with games.py next to it), then try again.", KIND_COLORS["error"]))
             return False
         sock.settimeout(None)
-        print(paint(msg.get("text", ""), KIND_COLORS["money" if msg.get("ok") else "error"]))
+        print(paint(printable(msg.get("text", "")), KIND_COLORS["money" if msg.get("ok") else "error"]))
         if msg.get("ok"):
             return True
 
@@ -379,7 +437,7 @@ def chat_loop(sock):
             break
         if not text:
             continue
-        if text.lower().startswith("/sendfile"):
+        if text.lower().split()[0] == "/sendfile":
             send_file(sock, text)
         elif text.lower() == "/quit":
             quitting.set()  # set first, so the receiver doesn't report a "disconnect"
