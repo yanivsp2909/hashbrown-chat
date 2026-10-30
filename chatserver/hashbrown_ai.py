@@ -181,13 +181,14 @@ def call_hashbrown(messages, on_text=None):
         except openai.BadRequestError:
             if "reasoning" not in request:
                 raise
-            # Some deployments don't know the reasoning setting: ask again without it, and remember
+            # Some deployments don't know the reasoning setting: ask again without it. Only if that
+            # works do we remember it (a 400 can also be a content filter, which has nothing to do with it).
+            del request["reasoning"]
+            raw = read_stream(client, request, on_text)
             if not state.hashbrown_no_reasoning:
                 textutil.log("[HASHBROWN] 🥔 This deployment doesn't support reasoning effort. "
                              "Not sending it from now on.")
             state.hashbrown_no_reasoning = True
-            del request["reasoning"]
-            raw = read_stream(client, request, on_text)
     finally:
         client.close()
     answer = clean_answer(raw)
@@ -255,8 +256,13 @@ def ask_hashbrown(client, question, private=False):
         client.say("🥔 Hashbrown is thinking...", "event", temp_id=temp_id)
     else:
         rooms.notify_room(room, "🥔 Hashbrown is thinking...", kind="event", temp_id=temp_id)
-    threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer, private, temp_id),
-                     daemon=True).start()
+    try:
+        threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer, private, temp_id),
+                         daemon=True).start()
+    except RuntimeError:  # the computer can't start another thread right now: undo everything
+        state.hashbrown_busy -= 1
+        refund_hashbrown(key, payer)
+        client.say("🥔💥 Hashbrown is too busy right now. The tokens were refunded.", "error", replaces=temp_id)
 
 
 def refund_hashbrown(asker, payer):

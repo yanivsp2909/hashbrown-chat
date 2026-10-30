@@ -195,6 +195,11 @@ export function removeStream(streamId) {
   findStream(streamId)?.remove();
 }
 
+/** You changed rooms: half-written answers from the old room won't get their ending here, so drop them. */
+export function removeAllStreams() {
+  for (const node of list.querySelectorAll("[data-stream-id]")) node.remove();
+}
+
 // ---------------------------------------------------------------- server notices
 
 function cardHead(label, time) {

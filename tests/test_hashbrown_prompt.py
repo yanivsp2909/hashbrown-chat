@@ -144,3 +144,24 @@ def test_a_second_400_after_the_retry_is_a_normal_error(user, fake_hashbrown):
     adi.line("/ask hi")
     adi.expect_text("refunded")
     assert len(fake_hashbrown.requests) == 2
+
+
+def test_a_400_that_isnt_about_reasoning_doesnt_switch_reasoning_off(user, fake_hashbrown, monkeypatch):
+    fake_hashbrown.status = 400      # e.g. a content filter: the retry without reasoning fails too
+    adi = user("Adi")
+    adi.line("/ask hi")
+    adi.expect_text("refunded", kind="error")
+    assert state.hashbrown_no_reasoning is False
+
+
+def test_if_no_thread_can_start_the_question_is_refunded(user, fake_hashbrown, monkeypatch):
+    def no_threads(*args, **kwargs):
+        raise RuntimeError("can't start new thread")
+    adi = user("Adi")
+    before = state.accounts["adi"]["tokens"]
+    monkeypatch.setattr(hashbrown_ai.threading, "Thread", no_threads)
+    adi.line("/ask hi")
+    error = adi.expect_text("refunded", kind="error")
+    assert error.get("replaces", "").startswith("hb-")
+    assert state.accounts["adi"]["tokens"] == before
+    assert state.hashbrown_busy == 0

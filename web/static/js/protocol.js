@@ -172,6 +172,7 @@ export function handleMessage(msg, live, sendLine) {
       return chat.addChat(msg, { live, mine: name === getState().nick });
     }
     case "history":
+      chat.removeAllStreams();
       setState({ room: str(msg.room, "🏠 Lobby") });
       for (const old of Array.isArray(msg.messages) ? msg.messages : []) remember(str(old?.name));
       return chat.addHistory(str(msg.room), msg.messages, { live, isMine: (n) => n === getState().nick });
