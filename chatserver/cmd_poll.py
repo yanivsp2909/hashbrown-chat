@@ -7,10 +7,14 @@ from chatserver import registry, rooms, state
 USAGE = "Use: /poll question | option | option (2 to 6 options)"
 
 
-def results(poll):
-    counts = [list(poll["votes"].values()).count(i) for i in range(len(poll["options"]))]
-    lines = [f"  {option}: {count}" for option, count in zip(poll["options"], counts)]
-    return counts, "\n".join(lines)
+def count_votes(poll, room):
+    """How many votes each option has. Only people still in the room count (someone may have left the group)."""
+    votes = [choice for login, choice in poll["votes"].items() if rooms.is_member(login, room)]
+    return [votes.count(i) for i in range(len(poll["options"]))]
+
+
+def results_text(poll, room):
+    return "\n".join(f"  {option}: {count}" for option, count in zip(poll["options"], count_votes(poll, room)))
 
 
 @registry.command("/poll", "/poll question | a | b", "ask the room to vote 📊 (/poll alone: the votes)", "💬 Chat")
@@ -20,7 +24,7 @@ def cmd_poll(client, args):
         if poll is None:
             client.say(USAGE, "error")
         else:
-            client.say(f"📊 {poll['question']}\n{results(poll)[1]}")
+            client.say(f"📊 {poll['question']}\n{results_text(poll, client.room)}")
         return
     parts = [p.strip() for p in args.split("|")]
     question, options = parts[0], [o for o in parts[1:] if o]
@@ -63,7 +67,7 @@ def cmd_endpoll(client, args):
         client.say(f"📊 Only {rooms.nick(poll['by'])} (or a group admin) can end this poll.", "error")
         return
     del state.polls[client.room]
-    counts, lines = results(poll)
+    counts, lines = count_votes(poll, client.room), results_text(poll, client.room)
     best = max(counts)
     winners = [option for option, count in zip(poll["options"], counts) if count == best]
     verdict = "nobody voted" if best == 0 else (f"{winners[0]} wins" if len(winners) == 1 else "it's a tie")

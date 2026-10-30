@@ -86,23 +86,24 @@ def pass_on_typing(client):
     note = {"type": "typing", "name": rooms.nick(client.key)}
     for other in list(state.online.values()):
         if other is not client and other.room == client.room and "typing" in other.features:
-            other.send(note)
+            other.send({**note, "room": client.room} if "rooms" in other.features else note)
 
 
 def handle_message(client, msg):
     """A message from someone who is logged in. Called while holding the lock."""
     try:
-        if msg.get("type") == "ping":   # 🏓 not chat, so it skips the spam limit (it has its own)
+        kind = msg.get("type")
+        if kind == "ping":       # 🏓 not chat, so it skips the spam limit (it has its own)
             answer_ping(client, msg)
             return
-        if msg.get("type") == "typing":   # ⌨️ the same: its own small limit
+        if kind == "typing":     # ⌨️ the same: its own small limit
             pass_on_typing(client)
             return
-        text = textutil.clean_text(msg.get("text", ""))[:config.MAX_TEXT]
-        if msg.get("type") == "react":
+        if kind == "react":      # 😂 counts toward the spam limit like a message
             if rooms.spam_ok(client):
                 chat.react(client, msg)
             return
+        text = textutil.clean_text(msg.get("text", ""))[:config.MAX_TEXT]
         if not matches.is_game_move(client, text) and not rooms.spam_ok(client):
             return  # game moves don't count as spam
         if msg.get("type") == "line":

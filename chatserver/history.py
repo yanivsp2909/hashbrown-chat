@@ -169,11 +169,17 @@ def toggle_reaction(message_id, login, emoji):
     """Add this person's emoji to the message, or take it back if it's already there. Returns the new counts."""
     with _lock:
         connection = _open()
+        if connection is None:
+            return {}
         key = (message_id, login, emoji)
-        if connection.execute("SELECT 1 FROM reactions WHERE message_id = ? AND login = ? AND emoji = ?",
-                              key).fetchone():
-            connection.execute("DELETE FROM reactions WHERE message_id = ? AND login = ? AND emoji = ?", key)
-        else:
-            connection.execute("INSERT INTO reactions (message_id, login, emoji) VALUES (?, ?, ?)", key)
-        connection.commit()
+        try:
+            if connection.execute("SELECT 1 FROM reactions WHERE message_id = ? AND login = ? AND emoji = ?",
+                                  key).fetchone():
+                connection.execute("DELETE FROM reactions WHERE message_id = ? AND login = ? AND emoji = ?", key)
+            else:
+                connection.execute("INSERT INTO reactions (message_id, login, emoji) VALUES (?, ?, ?)", key)
+            connection.commit()
+        except sqlite3.Error as e:
+            connection.rollback()   # never leave a half-done change on the shared connection
+            textutil.log(f"[SERVER] ⚠️ Couldn't save a reaction in history.db ({e})")
     return reaction_counts([message_id]).get(message_id, {})
