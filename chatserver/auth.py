@@ -1,0 +1,103 @@
+"""
+🔑 Logging in and creating accounts.
+"""
+import hashlib
+import secrets
+import time
+
+from chatserver import config, rooms, state, storage, textutil
+
+
+# ---------------------------------------------------------------- passwords
+
+def hash_password(password, salt_hex=None):
+    """Never store the password itself: store a salted, slow hash of it."""
+    salt = bytes.fromhex(salt_hex) if salt_hex else secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100_000)
+    return salt.hex(), digest.hex()
+
+def login_locked(key):
+    """True if this username had too many wrong passwords lately (per username, never per IP:
+    every website user comes from the same address)."""
+    now = time.time()
+    recent = [t for t in state.login_fails.get(key, []) if now - t < config.LOGIN_FAIL_WINDOW]
+    state.login_fails[key] = recent
+    return len(recent) >= config.LOGIN_FAIL_LIMIT and now - recent[-1] < config.LOGIN_LOCK_SECONDS
+
+def check_password(password, salt_hex):
+    """Slow on purpose. At most a few run at once, so password guessing can't eat every CPU."""
+    with state.hashing:
+        return hash_password(password, salt_hex)
+
+def handle_auth(client, msg):
+    """Log in or create an account. Returns True on success."""
+    action = msg.get("action")
+    username = textutil.clean_text(msg.get("username", "")).strip()
+    password = str(msg.get("password", ""))
+
+    def fail(text):
+        client.send({"type": "auth_result", "ok": False, "text": text})
+        return False
+
+    if action not in ("login", "register"):
+        return fail("Bad request.")
+    if action == "register" and username.lower() in config.RESERVED_NAMES:
+        return fail("❌ That name is reserved.")
+    if action == "register" and not rooms.valid_name(username):
+        return fail("❌ Username: 3-16 letters, numbers or _")
+    if not 1 <= len(username) <= 16:
+        return fail("❌ Wrong username or password.")
+    if not 4 <= len(password) <= 64:
+        return fail("❌ Password: 4 to 64 characters.")
+    try:
+        password.encode("utf-8")
+    except UnicodeEncodeError:  # a broken half-emoji character
+        return fail("❌ That password has a character that can't be used.")
+    key = username.lower()
+
+    # Hashing is slow on purpose (it makes guessing passwords slow), so do it OUTSIDE the lock.
+    if action == "register":
+        with state.lock:
+            if key in state.accounts or rooms.find_account(username):
+                return fail("❌ That username is taken.")
+        salt, digest = check_password(password, None)
+        with state.lock:
+            if key in state.accounts or rooms.find_account(username):
+                return fail("❌ That username is taken.")
+            state.accounts[key] = storage.new_account(username, salt, digest)
+            storage.save_data()
+    else:
+        with state.lock:
+            if login_locked(key):
+                return fail("🔒 Too many wrong passwords for this account. Try again in 5 minutes.")
+            account = state.accounts.get(key)
+        # Unknown names get a hash too, so the answer time doesn't reveal who has an account
+        _, digest = check_password(password, account["salt"] if account else "00" * 16)
+        if account is None or not secrets.compare_digest(digest, account["hash"]):
+            with state.lock:
+                state.login_fails.setdefault(key, []).append(time.time())
+            return fail("❌ Wrong username or password.")
+
+    with state.lock:
+        state.login_fails.pop(key, None)
+        old = state.online.get(key)
+        if old is not None:
+            # The right password wins: the old window is probably a dead Wi-Fi connection
+            # or a closed browser tab. It can't do anything as this account anymore
+            # (with key None it's treated as logged out until it's hung up half a second later).
+            rooms.notify_room(old.room, f"👋 {rooms.shown(key)} left the chat", exclude=old)
+            old.key = None
+            old.kick("🔁 You logged in from another window, so this one was disconnected.")
+            textutil.log(f"[SERVER] {rooms.nick(key)} logged in again, closing the old connection")
+        client.key = key
+        state.online[key] = client
+        greeting = "Welcome back" if action == "login" else "Account created! Welcome"
+        client.send({"type": "auth_result", "ok": True, "text": f"✅ {greeting}, {rooms.nick(key)}!"})
+        client.say(f"🪙 You have {state.accounts[key]['tokens']} tokens and earn {config.TOKENS_PER_MINUTE} "
+                   f"every minute you're online.", "money")
+        hint = "🥔 Say @hashbrown + a question to ask the AI. " if state.hashbrown else ""
+        client.say(f"✨ {hint}Type /help to see everything you can do.")
+        rooms.move_to_room(client, "lobby")
+        rooms.notify_room("lobby", f"👋 {rooms.shown(key)} joined the chat", exclude=client)
+        textutil.log(f"[SERVER] {rooms.nick(key)} logged in from {client.address}")
+    return True

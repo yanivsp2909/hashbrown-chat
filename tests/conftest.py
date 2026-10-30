@@ -13,6 +13,7 @@ import urllib.request
 import pytest
 
 import server
+from chatserver import config, session, state
 from helpers import FakeClient, FakeFoundry, auth
 
 
@@ -22,11 +23,11 @@ from helpers import FakeClient, FakeFoundry, auth
 def isolated(tmp_path, monkeypatch):
     monkeypatch.delenv("HASHBROWN_API_KEY", raising=False)
     monkeypatch.delenv("HASHBROWN_ADMIN_PASSWORD", raising=False)
-    monkeypatch.setattr(server, "DATA_FILE", str(tmp_path / "chat_data.json"))
-    monkeypatch.setattr(server, "HASHBROWN_CONFIG", str(tmp_path / "hashbrown_config.json"))
-    monkeypatch.setattr(server, "SPAM_LIMIT", 1000)  # tests type fast; the spam test sets it back
-    monkeypatch.setattr(server, "ACCEPT_WAKEUP", 0.1)  # stop each test's server quickly
-    for path in (server.DATA_FILE, server.HASHBROWN_CONFIG):
+    monkeypatch.setattr(config, "DATA_FILE", str(tmp_path / "chat_data.json"))
+    monkeypatch.setattr(config, "HASHBROWN_CONFIG", str(tmp_path / "hashbrown_config.json"))
+    monkeypatch.setattr(config, "SPAM_LIMIT", 1000)  # tests type fast; the spam test sets it back
+    monkeypatch.setattr(config, "ACCEPT_WAKEUP", 0.1)  # stop each test's server quickly
+    for path in (config.DATA_FILE, config.HASHBROWN_CONFIG):
         assert os.path.realpath(path).startswith(os.path.realpath(str(tmp_path)))
 
     real_urlopen = urllib.request.urlopen
@@ -38,9 +39,9 @@ def isolated(tmp_path, monkeypatch):
         return real_urlopen(request, *args, **kwargs)
 
     monkeypatch.setattr(urllib.request, "urlopen", local_only)
-    server.reset_state()
+    state.reset_state()
     yield
-    server.reset_state()
+    state.reset_state()
 
 
 # ---------------------------------------------------------------- the real server
@@ -53,10 +54,10 @@ def chat_server():
     thread = threading.Thread(target=server.serve_forever, args=(listener,), daemon=True)
     thread.start()
     yield listener.getsockname()[1]
-    with server.lock:
-        clients = list(server.online.values())
+    with state.lock:
+        clients = list(state.online.values())
     for c in clients:
-        server.hang_up(c)
+        session.hang_up(c)
     listener.close()
     thread.join(5)  # let serve_forever finish shutting down before the next test starts
     assert not thread.is_alive()
@@ -96,6 +97,6 @@ def user(connect):
 def fake_hashbrown(chat_server):
     """Wakes Hashbrown up, pointed at a FakeFoundry on 127.0.0.1."""
     foundry = FakeFoundry()
-    server.hashbrown = {"deployment": "fake-model", "api_key": "test-key", "url": foundry.url}
+    state.hashbrown = {"deployment": "fake-model", "api_key": "test-key", "url": foundry.url}
     yield foundry
     foundry.stop()

@@ -9,6 +9,7 @@ import unicodedata
 import pytest
 
 import server
+from chatserver import config, session, state, storage
 from helpers import FakeClient, auth
 
 pytestmark = pytest.mark.integration
@@ -47,7 +48,7 @@ def test_lone_surrogate_does_not_poison_history_for_new_people(user):
 
 def test_writer_survives_a_message_that_cannot_be_encoded():
     a, b = socket.socketpair()
-    client = server.Client(a, ("test", 0))
+    client = session.Client(a, ("test", 0))
     client.send({"type": "msg", "text": "bad \ud800"})
     client.send({"type": "msg", "text": "ok"})
     b.settimeout(3)
@@ -63,12 +64,12 @@ def test_group_emoji_with_a_lone_surrogate_does_not_break_saving(user):
     adi = user("Adi")
     adi.line("/create Potatoes")
     adi.expect_text("Created")
-    with server.lock:
-        server.groups["potatoes"]["upgrades"].append("emoji")
+    with state.lock:
+        state.groups["potatoes"]["upgrades"].append("emoji")
     adi.send_raw(b'{"type": "line", "text": "/groupemoji \\ud800"}\n')
     adi.sync()
-    assert server.save_data() is not False
-    with open(server.DATA_FILE, encoding="utf-8") as f:
+    assert storage.save_data() is not False
+    with open(config.DATA_FILE, encoding="utf-8") as f:
         json.load(f)
 
 
@@ -76,13 +77,13 @@ def test_group_emoji_must_be_an_emoji(user):
     adi = user("Adi")
     adi.line("/create Potatoes")
     adi.expect_text("Created")
-    with server.lock:
-        server.groups["potatoes"]["upgrades"].append("emoji")
+    with state.lock:
+        state.groups["potatoes"]["upgrades"].append("emoji")
     adi.line("/groupemoji \x1b[?")
     adi.expect_text("Send a single emoji", kind="error")
     adi.line("/groupemoji 🍟")
     adi.expect_text("The group is now")
-    assert server.groups["potatoes"]["emoji"] == "🍟"
+    assert state.groups["potatoes"]["emoji"] == "🍟"
 
 
 def test_password_with_a_lone_surrogate_is_refused_not_a_crash(connect):
@@ -134,8 +135,8 @@ def test_deeply_nested_json_before_login_does_not_drop_the_connection(connect):
 
 
 def test_login_with_a_damaged_account_fails_politely(connect):
-    with server.lock:
-        server.accounts["adi"] = server.new_account("Adi", "not-hex", "00")
+    with state.lock:
+        state.accounts["adi"] = storage.new_account("Adi", "not-hex", "00")
     client = connect()
     result = auth(client, "login", "Adi", "pass1234")
     assert not result["ok"]
@@ -146,43 +147,43 @@ def test_login_with_a_damaged_account_fails_politely(connect):
 
 def test_commands_and_quitting_still_work_when_saving_fails(user, monkeypatch, tmp_path):
     adi, ben = user("Adi"), user("Ben")
-    monkeypatch.setattr(server, "DATA_FILE", str(tmp_path))  # a folder: every save fails
+    monkeypatch.setattr(config, "DATA_FILE", str(tmp_path))  # a folder: every save fails
     adi.line("/give Ben 10")
     adi.expect_text("You gave 10")
     adi.line("/quit")
     assert adi.wait_closed()
-    assert wait_until(lambda: "adi" not in server.online)
+    assert wait_until(lambda: "adi" not in state.online)
 
 
 def test_registering_still_works_when_saving_fails(connect, monkeypatch, tmp_path):
-    monkeypatch.setattr(server, "DATA_FILE", str(tmp_path))
+    monkeypatch.setattr(config, "DATA_FILE", str(tmp_path))
     assert auth(connect(), "register", "Adi", "pass1234")["ok"]
 
 
 def test_save_data_reports_failure_instead_of_raising(monkeypatch, tmp_path):
-    monkeypatch.setattr(server, "DATA_FILE", str(tmp_path))
-    assert server.save_data() is False
+    monkeypatch.setattr(config, "DATA_FILE", str(tmp_path))
+    assert storage.save_data() is False
 
 
 def test_save_data_flushes_to_disk(monkeypatch):
     calls = []
     real_fsync = os.fsync
     monkeypatch.setattr(os, "fsync", lambda fd: (calls.append(fd), real_fsync(fd)))
-    assert server.save_data() is True
+    assert storage.save_data() is True
     assert calls
 
 
 def test_damaged_data_file_stops_startup_and_is_left_alone():
-    with open(server.DATA_FILE, "w", encoding="utf-8") as f:
+    with open(config.DATA_FILE, "w", encoding="utf-8") as f:
         f.write("{broken")
     assert server.start_server("127.0.0.1", 0, run_loops=False, run_console=False) is None
-    with open(server.DATA_FILE, encoding="utf-8") as f:
+    with open(config.DATA_FILE, encoding="utf-8") as f:
         assert f.read() == "{broken"
 
 
 def test_old_groups_missing_fields_still_work(connect):
     old = {"accounts": {}, "groups": {"potatoes": {"name": "Potatoes", "owner": "zed", "members": ["zed"]}}}
-    with open(server.DATA_FILE, "w", encoding="utf-8") as f:
+    with open(config.DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(old, f)
     listener = server.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
     thread, errors = run_serve_forever(listener)
@@ -256,37 +257,37 @@ def test_one_failed_accept_does_not_stop_the_server():
 # ---------------------------------------------------------------- limits
 
 def test_client_that_stops_reading_gets_disconnected(user, chat_server, monkeypatch):
-    monkeypatch.setattr(server, "OUTBOX_LIMIT", 50)
+    monkeypatch.setattr(config, "OUTBOX_LIMIT", 50)
     lazy = socket.socket()
     lazy.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
     lazy.connect(("127.0.0.1", chat_server))
     lazy.sendall(b'{"type": "auth", "action": "register", "username": "Lazy", "password": "pass1234"}\n')
-    assert wait_until(lambda: "lazy" in server.online)
+    assert wait_until(lambda: "lazy" in state.online)
     adi = user("Adi")
     a_file = "QUJD" * 50_000  # 150 KB after decoding
     for _ in range(80):  # Lazy's network buffers fill up, then 50 more wait in its outbox
         adi.send({"type": "file", "to": "Lazy", "filename": "big.bin", "data": a_file})
-    assert wait_until(lambda: "lazy" not in server.online, timeout=10)
+    assert wait_until(lambda: "lazy" not in state.online, timeout=10)
     adi.sync()  # everyone else is fine
     lazy.close()
 
 
 def test_idle_connection_that_never_logs_in_is_closed(connect, monkeypatch):
-    monkeypatch.setattr(server, "LOGIN_TIMEOUT", 0.5)
+    monkeypatch.setattr(config, "LOGIN_TIMEOUT", 0.5)
     client = connect()
     assert client.wait_closed(timeout=3)
 
 
 def test_logged_in_people_are_not_timed_out(user, monkeypatch):
-    monkeypatch.setattr(server, "LOGIN_TIMEOUT", 0.5)
+    monkeypatch.setattr(config, "LOGIN_TIMEOUT", 0.5)
     adi = user("Adi")
     time.sleep(1)
     adi.sync()
 
 
 def test_too_many_connections_are_turned_away(connect, monkeypatch):
-    monkeypatch.setattr(server, "MAX_CONNECTIONS", 2)
-    assert wait_until(lambda: server.connections == 0)  # earlier tests' connections are gone
+    monkeypatch.setattr(config, "MAX_CONNECTIONS", 2)
+    assert wait_until(lambda: state.connections == 0)  # earlier tests' connections are gone
     first, second = connect(), connect()
     assert auth(first, "register", "Adi", "pass1234")["ok"]
     third = connect()
@@ -308,31 +309,31 @@ def test_run_safely_logs_errors_instead_of_raising(capsys):
 
 
 def test_console_give_with_a_bad_amount_does_not_crash():
-    with server.lock:
-        server.accounts["adi"] = server.new_account("Adi", "00", "00")
+    with state.lock:
+        state.accounts["adi"] = storage.new_account("Adi", "00", "00")
     server.console_command("give Adi --5")
-    assert server.accounts["adi"]["tokens"] == server.START_TOKENS
+    assert state.accounts["adi"]["tokens"] == config.START_TOKENS
 
 
 def test_console_give_cannot_make_a_balance_negative():
-    with server.lock:
-        server.accounts["adi"] = server.new_account("Adi", "00", "00")
+    with state.lock:
+        state.accounts["adi"] = storage.new_account("Adi", "00", "00")
     server.console_command("give Adi -500")
-    assert server.accounts["adi"]["tokens"] == 0
+    assert state.accounts["adi"]["tokens"] == 0
 
 
 def test_income_tick_pays_online_people_and_group_banks(user):
     adi = user("Adi")
     adi.line("/create Potatoes")
     adi.expect_text("Created")
-    before = server.accounts["adi"]["tokens"]
+    before = state.accounts["adi"]["tokens"]
     server.income_tick()
-    assert server.accounts["adi"]["tokens"] == before + server.TOKENS_PER_MINUTE
-    assert server.groups["potatoes"]["bank"] == server.GROUP_INCOME
+    assert state.accounts["adi"]["tokens"] == before + config.TOKENS_PER_MINUTE
+    assert state.groups["potatoes"]["bank"] == config.GROUP_INCOME
 
 
 def test_login_time_limit_counts_from_connecting_not_from_the_last_byte(connect, monkeypatch):
-    monkeypatch.setattr(server, "LOGIN_TIMEOUT", 0.6)
+    monkeypatch.setattr(config, "LOGIN_TIMEOUT", 0.6)
     client = connect()
     start = time.monotonic()
     while not client.closed and time.monotonic() - start < 3:
@@ -346,7 +347,7 @@ def test_login_time_limit_counts_from_connecting_not_from_the_last_byte(connect,
 
 
 def test_old_wrong_password_records_are_forgotten():
-    with server.lock:
-        server.login_fails["ghost"] = [time.time() - 10_000]
+    with state.lock:
+        state.login_fails["ghost"] = [time.time() - 10_000]
     server.income_tick()
-    assert "ghost" not in server.login_fails
+    assert "ghost" not in state.login_fails

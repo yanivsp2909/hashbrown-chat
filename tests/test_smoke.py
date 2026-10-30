@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-import server
+from chatserver import config, state
 from helpers import auth
 
 pytestmark = pytest.mark.integration
@@ -30,7 +30,7 @@ def test_wrong_password_is_refused(connect, user):
 
 def test_account_is_saved_to_the_temp_data_file(user):
     user("Adi")
-    with open(server.DATA_FILE, encoding="utf-8") as f:
+    with open(config.DATA_FILE, encoding="utf-8") as f:
         data = json.load(f)
     assert "adi" in data["accounts"]
 
@@ -47,8 +47,8 @@ def test_give_moves_tokens(user):
     adi.line("/give Ben 30")
     adi.expect_text("You gave 30")
     ben.expect_text("gave you 30")
-    assert server.accounts["adi"]["tokens"] == server.START_TOKENS - 30
-    assert server.accounts["ben"]["tokens"] == server.START_TOKENS + 30
+    assert state.accounts["adi"]["tokens"] == config.START_TOKENS - 30
+    assert state.accounts["ben"]["tokens"] == config.START_TOKENS + 30
 
 
 def start_game(a, b, game):
@@ -75,6 +75,6 @@ def test_full_tic_tac_toe_game(user):
     play(first, second, ["1", "4", "2", "5", "3"])  # first player gets the top row
     first.expect_text("🏆 YOU WON!", kind="money")
     second.expect_text("💀 You lost.", kind="error")
-    winner = server.accounts[first.name.lower()]
-    assert (winner["wins"], server.accounts[second.name.lower()]["losses"]) == (1, 1)
-    assert first.name.lower() not in server.matches
+    winner = state.accounts[first.name.lower()]
+    assert (winner["wins"], state.accounts[second.name.lower()]["losses"]) == (1, 1)
+    assert first.name.lower() not in state.matches

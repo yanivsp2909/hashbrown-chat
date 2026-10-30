@@ -5,6 +5,7 @@ These must stay true no matter which file the code lives in.
 import os
 
 import server
+from chatserver import config
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
@@ -22,5 +23,5 @@ def test_help_is_exactly_the_saved_snapshot(user):
 def test_data_files_live_next_to_server_py(monkeypatch):
     # The isolated fixture points them at a temp folder; undo that to see the real defaults
     monkeypatch.undo()
-    for path in (server.DATA_FILE, server.HASHBROWN_CONFIG):
+    for path in (config.DATA_FILE, config.HASHBROWN_CONFIG):
         assert os.path.dirname(os.path.abspath(path)) == PROJECT

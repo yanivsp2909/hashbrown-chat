@@ -4,6 +4,8 @@ import time
 import pytest
 
 import server
+from chatserver import config, state
+from chatserver import auth as server_auth
 from helpers import auth
 from test_smoke import start_game
 
@@ -22,7 +24,7 @@ def test_logging_in_again_replaces_the_old_session(connect, user):
     assert "already logged in somewhere else" not in note["text"]  # would confuse the website
     assert old.wait_closed()
     new.sync()
-    assert server.online["adi"] is not None
+    assert state.online["adi"] is not None
 
 
 def test_old_session_cannot_act_after_being_replaced(connect, user):
@@ -35,7 +37,7 @@ def test_old_session_cannot_act_after_being_replaced(connect, user):
     except OSError:
         pass
     new.sync()
-    assert server.accounts["ben"]["tokens"] == server.START_TOKENS
+    assert state.accounts["ben"]["tokens"] == config.START_TOKENS
 
 
 def test_wrong_password_does_not_replace_the_session(connect, user):
@@ -53,7 +55,7 @@ def test_taking_over_keeps_your_game_going(connect, user):
     adi.wait_closed()
     new.line("/board")
     new.expect_board()
-    assert server.matches.get("ben") is server.matches.get("adi") is not None
+    assert state.matches.get("ben") is state.matches.get("adi") is not None
     assert not any("YOU WON" in t for t in ben.texts())
 
 
@@ -86,7 +88,7 @@ def test_lockout_is_per_username_not_for_everyone(connect, user):
 
 
 def test_lockout_ends_after_a_while(connect, user, monkeypatch):
-    monkeypatch.setattr(server, "LOGIN_LOCK_SECONDS", 0.5)
+    monkeypatch.setattr(config, "LOGIN_LOCK_SECONDS", 0.5)
     adi = user("Adi")
     adi.line("/quit")
     adi.wait_closed()
@@ -97,8 +99,8 @@ def test_lockout_ends_after_a_while(connect, user, monkeypatch):
 
 def test_unknown_usernames_take_as_long_as_real_ones(connect, monkeypatch):
     hashed = []
-    real = server.hash_password
-    monkeypatch.setattr(server, "hash_password", lambda *a: (hashed.append(1), real(*a))[1])
+    real = server_auth.hash_password
+    monkeypatch.setattr(server_auth, "hash_password", lambda *a: (hashed.append(1), real(*a))[1])
     assert not auth(connect(), "login", "Nobody", "pass1234")["ok"]
     assert hashed  # a dummy hash ran, so timing doesn't reveal who has an account
 
@@ -109,15 +111,15 @@ def test_admin_works_with_the_password_at_the_top(user):
     adi = user("Adi")
     adi.line("/admin 123")
     adi.expect_text("You're now an admin", kind="event")
-    assert server.accounts["adi"]["admin"]
+    assert state.accounts["adi"]["admin"]
 
 
 def test_admin_is_disabled_while_the_password_is_empty(user, monkeypatch):
-    monkeypatch.setattr(server, "ADMIN_PASSWORD", "")
+    monkeypatch.setattr(config, "ADMIN_PASSWORD", "")
     adi = user("Adi")
     adi.line("/admin ")
     adi.expect_text("disabled", kind="error")
-    assert not server.accounts["adi"]["admin"]
+    assert not state.accounts["adi"]["admin"]
 
 
 def test_admin_password_can_come_from_the_environment(user, monkeypatch):
@@ -125,7 +127,7 @@ def test_admin_password_can_come_from_the_environment(user, monkeypatch):
     adi = user("Adi")
     adi.line("/admin long-test-password")
     adi.expect_text("You're now an admin", kind="event")
-    assert server.accounts["adi"]["admin"]
+    assert state.accounts["adi"]["admin"]
 
 
 def test_admin_lockout_counts_wrong_guesses_from_all_accounts(user, monkeypatch):
@@ -137,7 +139,7 @@ def test_admin_lockout_counts_wrong_guesses_from_all_accounts(user, monkeypatch)
     dan = user("Dan")
     dan.line("/admin long-test-password")
     dan.expect_text("Too many wrong", kind="error")
-    assert not server.accounts["dan"]["admin"]
+    assert not state.accounts["dan"]["admin"]
 
 
 def startup_output(capsys):
@@ -150,12 +152,12 @@ def startup_output(capsys):
 def test_startup_never_prints_the_admin_password(monkeypatch, capsys, password):
     if password:
         monkeypatch.setenv("HASHBROWN_ADMIN_PASSWORD", password)
-    secret = password or server.ADMIN_PASSWORD
+    secret = password or config.ADMIN_PASSWORD
     assert secret not in startup_output(capsys)
 
 
 def test_startup_says_how_to_turn_admin_on_when_the_password_is_empty(monkeypatch, capsys):
-    monkeypatch.setattr(server, "ADMIN_PASSWORD", "")
+    monkeypatch.setattr(config, "ADMIN_PASSWORD", "")
     assert "HASHBROWN_ADMIN_PASSWORD" in startup_output(capsys)
 
 
