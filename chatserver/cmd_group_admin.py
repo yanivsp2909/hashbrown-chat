@@ -158,6 +158,7 @@ def cmd_disband(client, args):
     members = list(group["members"])
     del state.groups[key]
     history.delete_room(key)
+    state.polls.pop(key, None)
     for member in members:
         rooms.send_room_list(member)
     for mute in [m for m in state.mutes if m[0] == key]:

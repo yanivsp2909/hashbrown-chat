@@ -153,7 +153,10 @@ function onServerText(msg, live) {
   ] : wordleOver && wordle.state ? [  // the grid lives in the game panel: one click away
     el("button", { class: "btn btn-ghost", type: "button", text: "🟩 Show grid", onclick: () => hooks.showGame() }),
   ] : [];
-  chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions, label: result ? "Game over" : "",
+  const poll = msg.poll && Array.isArray(msg.poll.options) && live ? msg.poll.options.slice(0, 6).map((option, i) =>
+    el("button", { class: "btn btn-ghost", type: "button", text: `${i + 1}) ${str(option)}`, onclick: () => sendLine(`/vote ${i + 1}`) }))
+    : [];   // 📊 a poll: one button per option
+  chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions: poll.length ? poll : actions, label: result ? "Game over" : "",
     tempId: str(msg.temp_id) });
 }
 
