@@ -83,7 +83,8 @@ function matchCard(match, prev) {
     el("header", { class: "game-head" },
       el("h2", { text: title || "🎮 Game" }),
       players ? el("p", { class: "players", text: players }) : null,
-      game && YOU[game] ? el("p", { class: "players", text: YOU[game](s) }) : null,
+      s.spectating ? el("p", { class: "players", text: "👀 Watching (you can't move)" })
+        : game && YOU[game] ? el("p", { class: "players", text: YOU[game](s) }) : null,
       game ? turnPill(game, s, match.result) : null),
     game ? el("div", { class: "plate" }, BOARDS[game](s, send, prev?.state)) : null,
     match.note ? el("p", { class: "game-error", text: match.note }) : null,

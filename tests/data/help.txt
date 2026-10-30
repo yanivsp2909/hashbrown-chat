@@ -63,6 +63,7 @@
   /accept [name]                   accept a challenge
   /decline [name]                  say no to a challenge
   /move ...                        a move (or just type it)
+  /watch [name]                    watch someone's game 👀 (/watch alone: stop)
   /leaderboard [elo|wins|tokens]   the best players (ELO by default) 📈
   /hint                            a Wordle hint from Hashbrown, one per game (20 🪙)
   /rematch                         challenge your last opponent again 🔁

@@ -218,6 +218,22 @@ class Battleship:
         return {"game": "battleship", "size": self.SIZE, "mine": self.sea(viewer), "theirs": theirs,
                 "your_turn": self.turn == viewer and not self.finished, "finished": self.finished}
 
+    def spectator_state(self):
+        """👀 For someone watching: both seas, hits and misses only, never a ship."""
+        hide = lambda sea: [mark if mark != "ship" else None for mark in sea]   # noqa: E731
+        p1, p2 = self.players
+        return {"game": "battleship", "size": self.SIZE, "mine": hide(self.sea(p1)), "theirs": hide(self.sea(p2)),
+                "your_turn": False, "finished": self.finished, "spectating": True}
+
+    def spectator_render(self):
+        icons = {"hit": "💥", "miss": "⚪", None: "🌊"}
+        view = self.spectator_state()
+        rows = []
+        for title, cells in (("First player's sea", view["mine"]), ("Second player's sea", view["theirs"])):
+            rows.append(title)
+            rows += ["".join(icons[cells[r * self.SIZE + c]] for c in range(self.SIZE)) for r in range(self.SIZE)]
+        return "\n".join(rows)
+
     def render(self, viewer):
         icons = {"hit": "💥", "miss": "⚪", "ship": "🚢", None: "🌊"}
         view = self.state(viewer)

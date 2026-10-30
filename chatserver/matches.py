@@ -22,6 +22,7 @@ class Match:
         self.over = False
         self.moves = {first: 0, second: 0}  # accepted moves per player
         self.last_move = time.monotonic()    # for /claim: when the last move (or the start) happened
+        self.spectators = set()              # 👀 logins watching this match (/watch)
 
     def opponent(self, key):
         return self.players[1] if key == self.players[0] else self.players[0]
@@ -35,6 +36,29 @@ def push_board(match, note=""):
             text = f"\n{header}\n{match.game.render(p)}" + (f"\n{note}" if note else "")
             # "state" is the board as data: the terminal ignores it, the website draws it
             state.online[p].send({"type": "msg", "kind": "board", "text": text, "state": match.game.state(p)})
+    for watcher in match.spectators:
+        show_to_spectator(match, watcher, note)
+
+
+def show_to_spectator(match, watcher, note=""):
+    if watcher in state.online:
+        p1, p2 = match.players
+        text = (f"\n👀 {match.game.title}   {rooms.shown(p1)} vs {rooms.shown(p2)}\n{spectator_render(match.game)}"
+                + (f"\n{note}" if note else ""))
+        state.online[watcher].send({"type": "msg", "kind": "board", "text": text, "state": spectator_state(match.game)})
+
+
+def spectator_state(game):
+    """👀 The board for someone watching: what nobody has to hide (Battleship: hits and misses only)."""
+    if hasattr(game, "spectator_state"):
+        return game.spectator_state()
+    return {**game.state(game.players[0]), "your_turn": False, "spectating": True}
+
+
+def spectator_render(game):
+    if hasattr(game, "spectator_render"):
+        return game.spectator_render()
+    return game.render(game.players[0]).rsplit("\n", 1)[0]   # without "your turn" (that's for player 1)
 
 
 def start_match(game_class, p1, p2, bet):
@@ -91,6 +115,9 @@ def finish_match(match, winner, reason=""):
             achievements.unlock(winner, "ten_wins")
         achievements.check_rich(winner)
     update_elo(match, winner)
+    outcome = "a draw" if winner in ("draw", None) else f"{rooms.nick(winner)} won"
+    for watcher in match.spectators:
+        rooms.tell(watcher, f"🏁 {title}: {rooms.nick(p1)} vs {rooms.nick(p2)}, {outcome}{reason}", "game")
     storage.save_data()
     for hook in finish_hooks:
         hook(match, winner)

@@ -120,6 +120,30 @@ def cmd_move(client, args):
 LEADERBOARDS = {"elo": ("elo", "📈 ELO"), "wins": ("wins", "🏆 wins"), "tokens": ("tokens", "🪙 tokens")}
 
 
+@registry.command("/watch", "/watch [name]", "watch someone's game 👀 (/watch alone: stop)", "🎮 Games")
+def cmd_watch(client, args):
+    for match in set(state.matches.values()):   # stop watching whatever you watched before
+        match.spectators.discard(client.key)
+    name = args.strip()
+    if not name:
+        client.say("👀 You stopped watching.")
+        return
+    target = rooms.find_online(client, name)
+    if target is None:
+        return
+    if client.key in state.matches:
+        client.say("👀 You're playing a game yourself!", "error")
+        return
+    match = state.matches.get(target)
+    if match is None:
+        client.say(f"👀 {rooms.nick(target)} isn't playing right now.", "error")
+        return
+    match.spectators.add(client.key)
+    for player in match.players:
+        rooms.tell(player, f"👀 {rooms.shown(client.key)} is watching your game.", "game")
+    matches.show_to_spectator(match, client.key)
+
+
 @registry.command("/leaderboard", "/leaderboard [elo|wins|tokens]", "the best players (ELO by default) 📈", "🎮 Games")
 def cmd_leaderboard(client, args):
     field, label = LEADERBOARDS.get(args.strip().lower(), LEADERBOARDS["elo"])
