@@ -83,6 +83,5 @@ def test_leaving_stops_watching(user):
     cat.line("/watch Adi")
     board(cat)
     cat.close()
-    adi.line("/users")
-    adi.expect_text("Online now")
+    adi.expect_text("Cat left the chat")   # (the server has handled the disconnect)
     assert "cat" not in match.spectators

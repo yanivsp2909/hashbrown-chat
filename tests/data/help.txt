@@ -68,8 +68,23 @@
 
 📈 Market
   /stocks                          stock prices 📈 (/buy FRY 5, /sell FRY 5)
-  /sell FRY 5                      sell shares
+  /sell FRY 5                      sell shares (or a badge: /sell badge 🔥 300)
   /portfolio                       your shares and what they're worth
+  /market [buy N | cancel N]       players' badges for sale 🛒
+  /bid amount                      bid in the lobby's auction 🔨
+
+🛠️ Admin
+  /auction                         admin: start an auction of a rare badge now
+  /admin password                  become a server admin
+  /admintokens [name]              admin: +1000 🪙
+  /hbstats                         admin: Hashbrown's questions, tokens and cost today 📊
+
+🏦 Savings & loans
+  /save amount                     put tokens in savings (interest every day) 🏦
+  /withdraw amount                 take tokens out of savings
+  /savings                         your savings and loan
+  /loan amount                     borrow tokens (you pay back a bit more) 💳
+  /repay [amount|all]              pay your loan back
 
 🎮 Games
   /games                           what you can play
@@ -89,11 +104,6 @@
   /wordle                          solo word game, win tokens 🟩
   /g word                          guess in your Wordle
   /giveup                          quit your Wordle
-
-🛠️ Admin
-  /admin password                  become a server admin
-  /admintokens [name]              admin: +1000 🪙
-  /hbstats                         admin: Hashbrown's questions, tokens and cost today 📊
 
 📁 Files
   /sendfile name path              send a file (up to 2 MB) 📁

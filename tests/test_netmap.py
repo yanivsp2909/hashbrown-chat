@@ -26,6 +26,7 @@ def test_the_map_shows_players_and_packet_counts_by_type(user):
     ben.line("hello")
     ben.line("hello again")
     adi.expect(lambda m: m.get("text") == "hello again")
+    ben.expect(lambda m: m.get("text") == "hello again")   # (Ben's own copy counted as sent to him)
     tick()
     seen = next(p for p in latest_map(adi)["players"] if p["name"] == "Ben")
     assert seen["in"].get("line") == 2 and seen["out"].get("chat") == 2 and seen["room"] == "🏠 Lobby"

@@ -55,9 +55,9 @@ class Client:
             try:
                 # "replace": a broken character becomes "?" instead of killing this thread
                 data = (json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8", "replace")
+                self.types_out[str(obj.get("type", "?"))[:20]] += 1   # 🗺️ (counted first: the reader may be quick)
                 self.sock.sendall(data)
                 self.packets_out += 1
-                self.types_out[str(obj.get("type", "?"))[:20]] += 1
                 self.bytes_out += len(data)
                 if after is not None:   # e.g. 📦 "this chunk is really out: ack the sender"
                     after()
