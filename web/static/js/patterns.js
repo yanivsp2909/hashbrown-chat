@@ -17,6 +17,8 @@
 //   privateMsg     msg private: "💌 [HH:MM] {from} → {to}: {text}"   (from or to is "you")
 //   presence       msg:         "👋 {who} joined the chat" / "... left the chat" / "🚪 ... left the room" / "➡️ ... entered"
 //
+// Also read, but not by a regex: the private /ask answer starts with HASHBROWN_PRIVATE ("🥔 Hashbrown (only you): ").
+//
 // web/tests/test_bridge.py runs the real server and checks every pattern below against what
 // it actually sends. If you reword one of these messages in chatserver/, that test tells you
 // which pattern to update here.
@@ -110,6 +112,13 @@ export function myBalance(text, nick) {
 export function parsePrivate(text) {
   const match = PATTERNS.privateMsg.exec(text);
   return match ? { time: match[1], from: match[2], to: match[3], text: match[4] } : null;
+}
+
+const HASHBROWN_PRIVATE = "🥔 Hashbrown (only you): ";
+
+/** The answer inside a private /ask reply, or null if the text isn't one. */
+export function hashbrownPrivate(text) {
+  return text.startsWith(HASHBROWN_PRIVATE) ? text.slice(HASHBROWN_PRIVATE.length) : null;
 }
 
 export function isPresence(text) {

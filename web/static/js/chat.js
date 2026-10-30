@@ -8,7 +8,7 @@
 //   meta  a short grey line in the middle ("👋 Noa joined the chat").
 
 import { $, clear, el, initial, nameClass, str } from "./dom.js";
-import { isHashbrown, parsePrivate } from "./patterns.js";
+import { hashbrownPrivate, isHashbrown, parsePrivate } from "./patterns.js";
 
 const MAX_MESSAGES = 500;
 const NEAR_BOTTOM = 80;     // px: closer than this to the bottom counts as "reading the latest"
@@ -204,9 +204,14 @@ function privateNode(pm, live) {
  *  `label` replaces the kind's usual header word (like "Game over" for a loss). */
 export function addNotice(kind, text, { live = true, lit = false, actions = [], label = "" } = {}) {
   const safeKind = Object.hasOwn(LABELS, kind) ? kind : "system";
-  const body = str(text);
+  let body = str(text);
   const time = live ? nowTime() : "";
   const pm = safeKind === "private" ? parsePrivate(body) : null;
+  const answer = safeKind === "private" && !pm ? hashbrownPrivate(body) : null;
+  if (answer !== null) {   // Hashbrown's private /ask answer: a card that reads as Hashbrown
+    body = answer;
+    label = "🥔 Only you";
+  }
   let node;
   if (pm) {
     node = privateNode(pm, live);

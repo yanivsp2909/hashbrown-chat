@@ -105,7 +105,9 @@ def call_hashbrown(messages):
     return answer[:1500]
 
 
-def ask_hashbrown(client, question):
+def ask_hashbrown(client, question, private=False):
+    """Check the rules, take the payment and start the worker thread.
+    private=True is /ask: only the asker sees the thinking notice and the answer, and they always pay."""
     if state.hashbrown is None:
         client.say("🥔💤 Hashbrown is asleep (the server owner hasn't set it up yet).", "error")
         return
@@ -143,7 +145,7 @@ def ask_hashbrown(client, question):
     # We remember the group itself, not just its name: it could be disbanded (and a new group
     # with the same name created) before the answer comes back.
     group = state.groups.get(room)
-    if group and "hashbrown" in group["upgrades"] and group["bank"] >= config.HASHBROWN_COST:
+    if group and not private and "hashbrown" in group["upgrades"] and group["bank"] >= config.HASHBROWN_COST:
         group["bank"] -= config.HASHBROWN_COST
         payer = ("group", group)
     elif state.accounts[key]["tokens"] >= config.HASHBROWN_COST:
@@ -157,8 +159,12 @@ def ask_hashbrown(client, question):
     state.hashbrown_today[key] = (day, asked + 1)
     state.hashbrown_all_today = (all_day, all_asked + 1)
     state.hashbrown_busy += 1
-    rooms.notify_room(room, "🥔 Hashbrown is thinking...", kind="event")
-    threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer), daemon=True).start()
+    if private:
+        client.say("🥔 Hashbrown is thinking...", "event")
+    else:
+        rooms.notify_room(room, "🥔 Hashbrown is thinking...", kind="event")
+    threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer, private),
+                     daemon=True).start()
 
 
 def refund_hashbrown(asker, payer):
@@ -178,7 +184,7 @@ def refund_hashbrown(asker, payer):
         state.hashbrown_all_today = (all_day, all_asked - 1)
 
 
-def hashbrown_worker(asker, room, group, messages, payer):
+def hashbrown_worker(asker, room, group, messages, payer, private=False):
     """Runs in its own thread so the chat keeps working while the AI thinks.
     `group` is the group the question was asked in (None in the lobby)."""
     try:
@@ -192,18 +198,18 @@ def hashbrown_worker(asker, room, group, messages, payer):
             textutil.log(f"[HASHBROWN] Error: {type(error).__name__}: {error}")
             refund_hashbrown(asker, payer)
             oops = "🥔💥 Hashbrown tripped over something and couldn't answer. The tokens were refunded."
-            if room_still_there:
+            if room_still_there and not private:
                 rooms.notify_room(room, oops, kind="error")
             else:
                 rooms.tell(asker, oops, "error")
             return
-        if room_still_there:
+        if private or not room_still_there:  # /ask, or the group was disbanded while Hashbrown thought
+            rooms.tell(asker, f"🥔 Hashbrown (only you): {answer}", "private")
+        else:
             msg = rooms.chat_message("Hashbrown", "🥔", answer)
             history.add(room, msg)
             rooms.send_room(room, msg)
             textutil.log(f"[{room}] Hashbrown: {answer}")
-        else:  # the group was disbanded while Hashbrown thought: answer just the asker
-            rooms.tell(asker, f"🥔 Hashbrown (only you): {answer}", "private")
         if asker in state.accounts:
             achievements.unlock(asker, "potato")
             storage.save_data()
