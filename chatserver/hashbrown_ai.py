@@ -99,10 +99,11 @@ def command_list():
     return "\n".join(lines)
 
 
-def build_messages(key, room, question):
+def build_messages(key, room, question, lines=None):
     """[system, user] for one question. The system part is the personality plus the command list;
     the user part has the facts of this moment (who asks, where, when, who is online, the recent chat)."""
-    recent = "\n".join(f"{m['name']}: {m['text']}" for m in history.recent(room, config.HASHBROWN_HISTORY))
+    lines = lines or config.HASHBROWN_HISTORY
+    recent = "\n".join(f"{m['name']}: {m['text']}" for m in history.recent(room, lines))
     online = ", ".join(rooms.nick(k) for k in state.online)
     facts = (f"Asking: {rooms.nick(key)}\n"
              f"Room: {rooms.room_title(room)}\n"
@@ -197,7 +198,7 @@ def call_hashbrown(messages, on_text=None):
     return answer
 
 
-def ask_hashbrown(client, question, private=False):
+def ask_hashbrown(client, question, private=False, lines=None):
     """Check the rules, take the payment and start the worker thread.
     private=True is /ask: only the asker sees the thinking notice and the answer, and they always pay."""
     if state.hashbrown is None:
@@ -228,7 +229,7 @@ def ask_hashbrown(client, question, private=False):
         client.say("🥔 Hashbrown is busy answering others. Try again in a few seconds.", "error")
         return
 
-    messages = build_messages(key, room, question)
+    messages = build_messages(key, room, question, lines)
 
     # Who pays: the group bank (with the 🥔 upgrade) or the person asking.
     # We remember the group itself, not just its name: it could be disbanded (and a new group

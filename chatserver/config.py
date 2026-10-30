@@ -23,6 +23,9 @@ If someone asks how to do something in the app, use the command list you're give
 HASHBROWN_REASONING = "low"      # how hard it thinks: "low", "medium", "high" ("" = don't send the setting)
 HASHBROWN_MAX_OUTPUT = 4000      # most tokens per answer (thinking models use some of this to think)
 HASHBROWN_HISTORY = 15           # how many recent chat lines of the room it gets to read
+TLDR_HISTORY = 50                # 📝 /tldr reads this many, to sum them up
+TLDR_QUESTION = ("Summarize what this room talked about recently, in 2 or 3 short sentences: who said what "
+                 "and what got decided. In the language most of the chat is in.")
 HASHBROWN_MAX_CHARS = 700        # longest answer text; code blocks don't count (a safety net, see hashbrown_text.py)
 HASHBROWN_MAX_CODE_LINES = 50    # longest code block in an answer
 

@@ -76,6 +76,7 @@
 
 🥔 Hashbrown
   /ask question                    ask Hashbrown, the AI (20 🪙)
+  /tldr                            Hashbrown sums up the chat, only for you (20 🪙)
 
 🌐 Network
   /ping                            how long a packet takes there and back 🏓
