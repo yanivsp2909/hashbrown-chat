@@ -1,5 +1,7 @@
 # 🧭 Build progress
 
+**Status (2026-10-30): all 29 features done and pushed. 695 server tests + 29 website tests, 90% coverage.**
+
 The checklist for the big build run. Each feature: **not started**, **in progress**, **done** (with the commit) or **skipped** (with the reason).
 If you're picking this up after a break: read the rules, then continue from the first item that isn't done or skipped.
 
