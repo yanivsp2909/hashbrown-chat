@@ -1,6 +1,7 @@
 """
 🏠 Names, rooms and sending messages to people.
 """
+import re
 import time
 from datetime import datetime
 
@@ -9,8 +10,15 @@ from chatserver import config, history, state
 
 # ---------------------------------------------------------------- small helpers
 
+ENGLISH = re.compile(r"[A-Za-z0-9_]+")
+HEBREW = re.compile(r"[\u05d0-\u05ea0-9_]+")   # the 27 Hebrew letters (with the final forms), no vowel marks
+NAME_RULE = "3-16 English or Hebrew letters, digits or _ (one alphabet per name)"
+
+
 def valid_name(name):
-    return (3 <= len(name) <= 16 and all(ch.isalnum() or ch == "_" for ch in name)
+    """🔤 For new names only (old accounts keep theirs): English OR Hebrew letters, digits 0-9 and _, so a name
+    can't hide a look-alike letter from another alphabet (a Cyrillic "А" in "Аdi")."""
+    return (3 <= len(name) <= 16 and bool(ENGLISH.fullmatch(name) or HEBREW.fullmatch(name))
             and name.lower() not in config.RESERVED_NAMES)
 
 

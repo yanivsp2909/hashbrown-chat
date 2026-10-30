@@ -73,7 +73,7 @@ def cmd_me(client, args):
 def cmd_nick(client, args):
     new = args.strip()
     if not rooms.valid_name(new):
-        client.say("❌ Names: 3-16 letters, numbers or _", "error")
+        client.say(f"❌ Names: {rooms.NAME_RULE}", "error")
         return
     owner = rooms.find_account(new)
     login_owner = new.lower() if new.lower() in state.accounts else None

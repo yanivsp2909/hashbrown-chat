@@ -40,7 +40,9 @@ export function focusLogin() {
 
 function check(username, password) {
   if (!username) return "Type your username.";
-  if (mode === "register" && !/^[\p{L}\p{N}_]{3,16}$/u.test(username)) return "Usernames are 3–16 letters, numbers or _.";
+  if (mode === "register" && !/^(?:[A-Za-z0-9_]{3,16}|[\u05d0-\u05ea0-9_]{3,16})$/u.test(username)) {
+    return "Usernames are 3–16 English or Hebrew letters (not both), digits or _.";
+  }
   if (password.length < 4 || password.length > 64) return "Passwords are 4–64 characters.";
   if (mode === "register" && pass2.value !== password) return "The two passwords don't match.";
   return null;

@@ -49,7 +49,7 @@ def test_nick_renames_you_but_you_still_log_in_with_the_old_name(user):
 
 
 @pytest.mark.parametrize("new_name, error", [
-    ("x", "Names: 3-16 letters"),
+    ("x", "Names: 3-16 English"),
     ("Ben", "already has that name"),
 ])
 def test_nick_refuses_bad_or_taken_names(user, new_name, error):

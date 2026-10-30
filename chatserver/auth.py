@@ -66,7 +66,7 @@ def handle_auth(client, msg):
     if action == "register" and username.lower() in config.RESERVED_NAMES:
         return fail("❌ That name is reserved.")
     if action == "register" and not rooms.valid_name(username):
-        return fail("❌ Username: 3-16 letters, numbers or _")
+        return fail(f"❌ Username: {rooms.NAME_RULE}")
     if not 1 <= len(username) <= 16:
         return fail("❌ Wrong username or password.")
     if not 4 <= len(password) <= 64:

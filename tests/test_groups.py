@@ -84,9 +84,9 @@ def test_cannot_create_a_group_with_a_taken_name(user):
 def test_group_names_must_be_valid(user):
     adi = user("Adi")
     adi.line("/create ab")
-    adi.expect_text("3-16 letters", kind="error")
+    adi.expect_text("3-16 English", kind="error")
     adi.line("/create lobby")
-    adi.expect_text("3-16 letters", kind="error")
+    adi.expect_text("3-16 English", kind="error")
     assert not state.groups
 
 

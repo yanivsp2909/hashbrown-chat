@@ -30,7 +30,7 @@ def cmd_create(client, args):
     name, key = parts[0], parts[0].lower()
     private = len(parts) > 1 and parts[1].lower() in ("private", "p")
     if not rooms.valid_name(name) or key == "lobby":
-        client.say("❌ Group names: 3-16 letters, numbers or _", "error")
+        client.say(f"❌ Group names: {rooms.NAME_RULE}", "error")
         return
     if key in state.groups:
         client.say("❌ That group already exists.", "error")
