@@ -127,6 +127,11 @@
       </header>
       <p id="topic-banner" class="topic-banner" dir="auto" hidden></p>
       <p id="lab-banner" class="lab-banner" role="status" hidden></p>
+      <section id="draw-board" class="draw-board" aria-labelledby="draw-title" hidden>
+        <div class="draw-head"><h2 id="draw-title" class="draw-title">🎨 Drawing</h2><span id="draw-timer" class="draw-timer"></span></div>
+        <canvas id="draw-canvas" class="draw-canvas" width="800" height="600" aria-label="The drawing. Guess what it is in the chat."></canvas>
+        <div id="draw-tools" class="draw-tools"></div>
+      </section>
       <section id="rail" class="rail" aria-label="Tickets: challenges and games"></section>
       <div id="messages-wrap" class="messages-wrap">
         <ol id="messages" class="messages" aria-live="polite" aria-relevant="additions" aria-label="Messages" tabindex="0"></ol>

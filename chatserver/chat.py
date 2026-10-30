@@ -4,7 +4,8 @@
 import os
 import time
 
-from chatserver import (achievements, config, hashbrown_ai, hashbrown_extras, history, matches, offers, quests,
+from chatserver import (achievements, config, drawing, hashbrown_ai, hashbrown_extras, history, matches, offers,
+                        quests,
                         registry, rooms, state, storage, textutil)
 
 
@@ -73,6 +74,8 @@ def handle_line(client, text):
             client.say(f"❓ Unknown command {name}. Type /help", "error")
             return
         entry[0](client, args.strip())
+        return
+    if drawing.check_guess(client, text):   # 🎨 the drawing's word: checked here, never posted
         return
     if not post_chat(client, text):
         return

@@ -19,10 +19,11 @@ import { initEdits, submitEdit } from "./js/edits.js";
 import { showLab, showTopic } from "./js/banners.js";
 import { initGroups, resetGroups } from "./js/groups.js";
 import { initNetmap } from "./js/netmap.js";
+import { initDrawing } from "./js/drawing.js";
 import { initProfiles, resetProfile, saveTheme, showProfile } from "./js/profile.js";
 import * as resume from "./js/resume.js";
 
-const FEATURES = ["stream", "rooms", "typing", "chunks", "offers", "profiles", "probe"];   // what this website understands (told at login)
+const FEATURES = ["stream", "rooms", "typing", "chunks", "offers", "profiles", "probe", "draw"];   // what this website understands (told at login)
 const RESUME_WAITS = [1, 2, 4, 8, 15, 30, 60];   // 🔁 seconds between tries to reconnect, then we give up
 
 const THEME_KEY = "hashbrown.theme";
@@ -291,6 +292,7 @@ initProfiles({
   onChallenge: (name) => { if (narrow.matches) setDrawer("side"); focusChallenge(name); },
 });
 initNetmap();
+initDrawing();
 initGroups({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
 initOnline({
   sendLine: api.sendLine,

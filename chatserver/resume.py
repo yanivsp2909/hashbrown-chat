@@ -16,7 +16,7 @@ from collections import deque
 
 from chatserver import config, state
 
-LIVE_ONLY = {"auth_result", "netmap", "probe", "file", "file_start", "file_chunk", "file_ack", "file_end", "file_cancel", "pong",
+LIVE_ONLY = {"auth_result", "netmap", "probe", "stroke", "file", "file_start", "file_chunk", "file_ack", "file_end", "file_cancel", "pong",
              "typing", "typing_stop", "stream", "groups", "group_info"}
 _lock = threading.Lock()   # (send() runs in many threads; the seq counter must never give a number twice)
 

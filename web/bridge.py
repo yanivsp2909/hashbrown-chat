@@ -17,12 +17,13 @@ from collections import deque
 MAX_LINE = 4 * 1024 * 1024   # same limit as the chat server
 MAX_TEXT = 500               # longest chat line the server accepts
 MAX_FILE_B64 = 2_800_000     # a 2 MB file after base64
-MAX_FEATURES, MAX_FEATURE_LENGTH = 8, 20   # the optional "features" list in the login packet
+MAX_FEATURES, MAX_FEATURE_LENGTH = 16, 20   # the optional "features" list in the login packet
 LOG_MAX_EVENTS = 1000        # events kept per session for replay after a reload
 LOG_MAX_BYTES = 6 * 1024 * 1024
 XRAY_MAX_TEXT = 2000           # 🔬 bytes of each raw chunk shown in the Packet X-ray (big files are cut)
 CHUNK_B64 = 1_400_000          # 📦 one chunk of a big file, after base64 (as in the chat server)
 LIVE_ONLY_MAX_BYTES = 8 * 1024 * 1024    # 📦 big file chunks waiting for a tab (never replayed)
+LIVE_ONLY_TYPES = ("file_chunk", "stroke", "netmap", "probe")   # sent to the tab once, never in a reload's replay
 XRAY_KEEP = 100                # 🔬 X-ray events kept in the replay log, so chat messages aren't pushed out
 DETACHED_GRACE = 90          # seconds a session lives with no tab attached (reload / phone in pocket)
 LOGIN_GRACE = 120            # seconds to log in before an unused session is closed
@@ -85,7 +86,7 @@ def clean_features(value):
 
 # What a browser may send (everything else is refused before it reaches the chat server)
 BROWSER_PACKETS = ("line", "file", "ping", "typing", "typing_stop", "seen", "get_groups", "get_group", "groups_closed",
-                   "get_profile", "change_password", "get_netmap", "netmap_closed", "probe_back",
+                   "get_profile", "change_password", "get_netmap", "netmap_closed", "probe_back", "stroke",
                    "react", "edit", "delete",
                    "file_start", "file_chunk", "file_cancel")
 
@@ -114,6 +115,16 @@ def validate(msg, logged_in):
         raise BridgeError(403, "Log in first.")
     if kind in ("typing", "typing_stop"):   # ⌨️ no fields at all
         return {"type": kind}
+    if kind == "stroke":   # 🎨 a brush stroke: points (0-1000), colour, size; or "clear" (the server checks again)
+        if msg.get("clear") is True:
+            return {"type": "stroke", "clear": True}
+        points = msg.get("points")
+        if not isinstance(points, list) or not 1 <= len(points) <= 64 or not all(
+                isinstance(p, list) and len(p) == 2 and all(isinstance(v, int) and not isinstance(v, bool) for v in p)
+                for p in points):
+            raise BridgeError(400, "Bad stroke.")
+        return {"type": "stroke", "points": points, "color": whole_number(msg.get("color"), "colour"),
+                "size": whole_number(msg.get("size"), "size")}
     if kind in ("get_netmap", "netmap_closed"):   # 🗺️ the network map page opens / closes
         return {"type": kind}
     if kind == "probe_back":   # 🗺️ the answer to the server's ping probe
@@ -247,7 +258,7 @@ class Session:
                     elif self.on_login_fail:
                         self.on_login_fail(self.ip)
                 text = json.dumps(msg, ensure_ascii=False, separators=(",", ":"))
-                if msg.get("type") == "file_chunk":   # 📦 1 MB each: kept out of the replay log
+                if msg.get("type") in LIVE_ONLY_TYPES:   # 📦 big, or only useful live: kept out of the replay log
                     self._append_live_only(text)
                 else:
                     self._append(text)

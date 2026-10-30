@@ -179,6 +179,8 @@ def move_to_room(client, room):
     send_history(client, room)
     send_room_list(client.key)
     client.send(topic_packet(room))   # 📌 (an empty one clears the last room's)
+    from chatserver import drawing   # (drawing uses rooms: importing it at the top would loop)
+    drawing.on_enter(client)          # 🎨 a round going on here: the drawing so far
     if topic_of(room):
         client.say(f"📌 Topic: {topic_of(room)}")
 

@@ -17,6 +17,7 @@ import { applyReceipt } from "./receipts.js";
 import * as groups from "./groups.js";
 import * as profile from "./profile.js";
 import * as netmap from "./netmap.js";
+import * as drawing from "./drawing.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
 import * as bigfiles from "./bigfiles.js";
@@ -116,6 +117,7 @@ function onServerText(msg, live) {
   const kind = str(msg.kind, "system");
   const text = str(msg.text);
   if (profile.isQuietSave(text)) return;   // 👤 the Edit profile dialog says so itself
+  if (live && kind === "private") drawing.noteWord(text);   // 🎨 your secret word goes on your board too
   if (kind === "help") {
     setState({ commands: parseHelp(text) });
     if (live && quietHelp > 0) {
@@ -242,6 +244,10 @@ export function handleMessage(msg, live, sendLine) {
       return showLab(msg);
     case "profile":
       return profile.onProfile(msg, live);
+    case "draw_round":
+      return drawing.onRound(msg, live);
+    case "stroke":
+      return live ? drawing.onStroke(msg) : undefined;
     case "netmap":
       return live ? netmap.onMap(msg) : undefined;
     case "probe":

@@ -12,7 +12,7 @@ from chatserver import (auth, background, chat, config, discovery, group_view, h
                         resume, rooms,
                         session, state, storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
-from chatserver import cmd_profile, netmap, profiles
+from chatserver import cmd_profile, drawing, netmap, profiles
 
 
 # ---------------------------------------------------------------- connections
@@ -132,6 +132,9 @@ def handle_message(client, msg):
             keep_typing(client)
             return
         client.types_in[str(kind)[:20]] += 1   # 🗺️ (the network map counts types, never content)
+        if kind == "stroke":     # 🎨 a brush stroke: no spam limit (its own limit, in drawing.py)
+            drawing.stroke(client, msg)
+            return
         if kind in ("get_netmap", "netmap_closed", "probe_back"):   # 🗺️ the live network map: no spam limit
             netmap.handle(client, msg)
             return

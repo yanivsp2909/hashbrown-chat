@@ -11,7 +11,7 @@ import time
 
 import games
 
-from chatserver import (achievements, config, hashbrown_ai, matches, offers, quests, registry, rooms, state, storage,
+from chatserver import (achievements, config, drawing, hashbrown_ai, matches, offers, quests, registry, rooms, state, storage,
                         textutil)
 
 
@@ -117,6 +117,11 @@ def cmd_decline(client, args):
     if invite:
         client.say("👎 Declined.")
         rooms.tell(invite["from"], f"👎 {rooms.shown(client.key)} declined your challenge.", "error")
+
+
+@registry.command("/draw", "/draw", "start a drawing round: draw your word, the others guess 🎨 (/draw stop)", "🎮 Games")
+def cmd_draw(client, args):
+    drawing.start(client, args)
 
 
 @registry.command("/quests", "/quests", "today's three small tasks, each pays 🪙 🎯", "🎮 Games")

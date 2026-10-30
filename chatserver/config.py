@@ -90,6 +90,12 @@ START_TOKENS = 100
 TOKENS_PER_MINUTE = 5        # every logged-in user
 GROUP_INCOME = 10            # every group bank, while at least one member is online
 BANK_HISTORY_SHOWN = 30      # 🏦 rows of a bank's history on the website's Groups screen
+DRAW_SECONDS = 90               # 🎨 a drawing round
+DRAW_GUESS_PRIZE = 30           # 🎨 for the first right guess...
+DRAW_DRAWER_PRIZE = 15          # 🎨 ...and for the drawer
+DRAW_POINTS_MAX = 64            # 🎨 points in one stroke packet
+DRAW_STROKES_PER_SECOND = 20    # 🎨 stroke packets one drawer may send a second (more are dropped)
+DRAW_STROKES_KEPT = 1500        # 🎨 strokes kept for people who come in during a round
 NETMAP_PROBE_EVERY = 3       # 🗺️ seconds between ping probes while someone has the network map open
 GROUPS_PUSH_EVERY = 1        # 👥 seconds between refreshes of the website's open Groups screens (only if changed)
 BANK_CHART_DAYS = 7          # 🏦 days of balance in its chart
@@ -114,7 +120,7 @@ MIN_MOVES_FOR_BONUS = 2          # moves EACH player must make before a resign/d
 
 # Protection against broken or abusive connections
 MAX_CONNECTIONS = 200            # connections at the same time
-MAX_FEATURES, MAX_FEATURE_LENGTH = 8, 20   # the optional "features" list in the login packet
+MAX_FEATURES, MAX_FEATURE_LENGTH = 16, 20   # the optional "features" list in the login packet
 MAX_LOGIN_LINE = 64 * 1024       # biggest message from someone who hasn't logged in yet
 LOGIN_TIMEOUT = 120              # seconds a new connection has to log in (in total)
 OUTBOX_LIMIT = 1000              # messages waiting for one person; more = they stopped reading, disconnect them

@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, bank_log, config, group_view, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
+from chatserver import achievements, bank_log, config, drawing, group_view, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
 
 
 # ---------------------------------------------------------------- background threads
@@ -94,6 +94,7 @@ def offers_loop():
         with state.lock:
             run_safely(offers.expire)
             run_safely(reminders.deliver_due)
+            run_safely(drawing.end_due)
 
 
 def netmap_loop():

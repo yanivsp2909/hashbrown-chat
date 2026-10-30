@@ -71,6 +71,7 @@
   /challenge name game [bet]       invite to a 1v1
   /accept [name]                   accept a challenge or a file 📎
   /decline [name]                  say no to a challenge or a file
+  /draw                            start a drawing round: draw your word, the others guess 🎨 (/draw stop)
   /quests                          today's three small tasks, each pays 🪙 🎯
   /move ...                        a move (or just type it)
   /watch [name]                    watch someone's game 👀 (/watch alone: stop)

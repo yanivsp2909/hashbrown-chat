@@ -46,7 +46,7 @@ def stream_until_final(client, final_check=is_hashbrown_chat):
     ([], set()),
     (["stream", 5], set()),
     (["x" * 21], set()),
-    ([f"f{i}" for i in range(9)], set()),
+    ([f"f{i}" for i in range(config.MAX_FEATURES + 1)], set()),   # too many
 ])
 def test_features_are_validated(value, expected):
     assert auth.clean_features(value) == expected

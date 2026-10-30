@@ -826,3 +826,23 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .nm-table th, .nm-table td { padding: 5px 8px; text-align: start; border-bottom: 1px solid var(--line-soft); }
 .nm-table thead th { color: var(--muted); font-weight: 700; font-size: 12.5px; }
 .nm-num { font-variant-numeric: tabular-nums; text-align: end !important; }
+
+/* ----- 🎨 the drawing board (above the chat while a round is on) */
+.draw-board { padding: 10px var(--chat-pad); border-bottom: 1px solid var(--line-soft); background: var(--panel); display: grid; gap: 8px; }
+.draw-board[hidden] { display: none; }
+.draw-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.draw-title { margin: 0; font-size: 16px; font-weight: 800; }
+.draw-timer { font-variant-numeric: tabular-nums; color: var(--text-2); font-weight: 700; }
+.draw-canvas { width: min(100%, calc(38vh * 4 / 3)); aspect-ratio: 4 / 3; justify-self: center; border-radius: 12px; border: 1px solid var(--line); background: #fffaf2; touch-action: none; }
+.draw-canvas.drawing { cursor: crosshair; }
+.draw-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.draw-colors { display: flex; gap: 6px; }
+.draw-color { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); }
+.draw-color.on { box-shadow: 0 0 0 3px var(--gold); }
+.draw-color[data-color="0"] { background: #2b1d12; } .draw-color[data-color="1"] { background: #e2412a; }
+.draw-color[data-color="2"] { background: #4f9a2b; } .draw-color[data-color="3"] { background: #e9a21d; }
+.draw-color[data-color="4"] { background: #7a5cff; } .draw-color[data-color="5"] { background: #2a8fd6; }
+.draw-color[data-color="6"] { background: #8a5a2b; } .draw-color[data-color="7"] { background: #ffffff; }
+.draw-size { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
+.draw-hint { margin: 0; color: var(--text-2); font-weight: 650; }
+@media (pointer: coarse) { .draw-color { width: 40px; height: 40px; } }

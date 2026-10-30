@@ -87,7 +87,7 @@ class TestThinkingNotice(unittest.TestCase):
     def test_bad_features_are_refused_by_the_bridge(self):
         browser = Browser(self.stack.web_port)
         self.addCleanup(browser.close)
-        for bad in ("stream", ["x" * 21], ["a"] * 9, [1]):
+        for bad in ("stream", ["x" * 21], ["a"] * 17, [1]):
             status, _ = browser.send({"type": "auth", "action": "login", "username": "nobody1",
                                       "password": PASSWORD, "features": bad})
             self.assertEqual(status, 400, bad)
