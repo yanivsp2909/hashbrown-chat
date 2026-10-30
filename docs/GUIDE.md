@@ -135,7 +135,8 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 | 🏦 Group bank | `/bank` `/donate amount` `/upgrade name` `/groupemoji 🍟` `/topgroups` |
 | 🪙 Tokens | `/balance` `/top` `/give name amount` `/daily` `/rob name` `/shop` `/buy 🔥` `/badge 🔥` `/achievements` |
 | 🎰 Casino | `/coinflip amount heads` `/dice amount` `/slots amount` |
-| 🎮 Games | `/games` `/challenge name ttt\|damka\|math [bet]` `/accept` `/decline` `/board` `/resign` `/wordle` `/g word` `/giveup` `/rematch` (same person, game and bet) `/claim` (win if they stopped moving for 2 min) |
+| 🎮 Games | `/games` `/challenge name ttt\|damka\|math [bet]` `/accept` `/decline` `/board` `/resign` `/wordle` `/g word` `/giveup` `/rematch` (same person, game and bet) `/claim` (win if they stopped moving for 2 min) `/watch name` (spectate; `/watch` stops) `/leaderboard [elo\|wins\|tokens]` |
+| ⚔️ Group wars | `/war group` (an admin declares) `/war accept group` (their admin, within 10 min) `/war` (the score) |
 | 🛠️ Admin | `/admin password` `/admintokens [name]` |
 | 📁 Files | `/sendfile name path/to/file` |
 
@@ -145,6 +146,19 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 - Math Duel: the number, like `42`
 
 The admin password is `ADMIN_PASSWORD` in `chatserver/config.py`. **Change it from 123**, or your friends will guess it.
+
+## New games and more 🎲
+
+- 🔴🟡 **Connect 4** (`/challenge name connect4`): type a column 1-7, four in a row wins.
+- 🚢 **Battleship** (`/challenge name battleship`): your ships are placed for you; fire like `c3`. Nobody, not even spectators, sees your ships.
+- 📈 **ELO**: everyone starts at 1000; beating a stronger player gains more. `/leaderboard` shows the best.
+- 👀 **Spectating**: `/watch name` follows their game; `/watch` alone stops.
+- 📬 **Offline messages**: `/send` to someone offline waits for them (up to 20) and arrives when they log in.
+- ✏️ **Edit/delete** (website): ✏️ or 🗑️ under your own message, for 10 minutes.
+- 💰 **Jackpot**: 10% of every casino loss goes into a pot; three 💎 on `/slots` wins it. `/jackpot` shows it.
+- 🧠 **Trivia**: `/trivia` (costs like `/ask`): Hashbrown asks the room a question; the first right answer in 60 seconds wins 40 🪙.
+- ⚔️ **Group wars**: for 30 minutes, every game a member wins against the other group is a point; the winner takes 300 🪙 from the loser's bank.
+- 📦 **Big files** (website): up to 15 MB, sent in 1 MB pieces with a progress bar. Each piece waits for the server's "got it" before the next one goes (flow control). The terminal client still sends up to 2 MB.
 
 ## Hashbrown extras 🥔
 

@@ -24,13 +24,13 @@
 - 💬 **Chat**: a lobby, group rooms, private messages (`/send`), `/me` actions, nicknames, Hebrew (right-to-left) text, reactions, "is typing…" and `/poll`.
 - 👥 **Groups**: public groups, or 🔒 private groups where an admin approves you. Admins can kick, ban, mute, promote and demote.
 - 💬 **Chat switcher** (website): 🌍 the Lobby and all your groups in one list, with unread counts and the last message, like a messaging app.
-- 🏦 **Group bank**: every group earns its own tokens and spends them on upgrades.
+- 🏦 **Group bank**: every group earns its own tokens and spends them on upgrades; ⚔️ group wars for the bank.
 - 🪙 **Tokens**: earn them by being online, with a `/daily` streak, winning games and achievements. Spend them in the badge shop or the casino (fake tokens only).
-- 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel and solo Wordle. Challenge a friend, with an optional token bet; `/rematch`, and `/claim` if they stop moving.
+- 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel, Connect 4, Battleship and solo Wordle; ELO ratings and `/leaderboard`, `/watch` someone's game. Challenge a friend, with an optional token bet; `/rematch`, and `/claim` if they stop moving.
 - 🥔 **Hashbrown**: an AI member. Type `@hashbrown` in chat, or `/ask` for a private answer; it also comments on your games, judges arguments (`/judge`), translates (`/tr`), gives Wordle hints and asks a question of the day. Each question costs tokens. Without an API key, Hashbrown is simply off.
 - 🌐 **Website**: chat from any phone or laptop on the same Wi-Fi. Light and dark mode, clickable game boards, file sharing.
 - ⌨️ **Terminal client**: `client.py` works in Terminal, Windows CMD and PyCharm.
-- 📁 **Files**: send a file of up to 2 MB.
+- 📁 **Files**: send a file of up to 15 MB (in 1 MB chunks with a progress bar on the website).
 - 🔬 **For the networking class**: a Packet X-ray window on the website (every packet, and the raw TCP chunks `recv()` got), `client.py --packets`, UDP auto-discovery, `/ping`, `/netstats`, and a network lab (the host types `lag 300` or `loss 10` in the server window to make the network worse on purpose).
 
 ## 🚀 Quick start
@@ -144,6 +144,8 @@ Every packet is **one JSON object on one line**, ending with `\n`. That's called
 | client → server | `ping` | `t` (any number; it comes straight back) |
 | client → server | `typing` | (none): passed on as `typing` + `name` to clients with the `typing` feature |
 | client → server | `react` | `id` (a chat message), `emoji`: the room gets `reactions` with `id` and `counts` |
+| client → server | `edit` / `delete` | `id` (your own message, for 10 min), `text`: the room gets `edited` / `deleted` |
+| both ways | `file_start`, `file_chunk`, `file_ack`, `file_end`, `file_cancel` | big files in 1 MB chunks; the next chunk only after its `file_ack` (flow control) |
 | server → client | `pong` | `t` (the same number: now minus `t` is the round trip) |
 | UDP, client → everyone | `discover` | (none) — broadcast to port 8821 |
 | UDP, server → client | `server` | `name`, `port`, `web_port` — the client uses the IP the answer came from |
