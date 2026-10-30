@@ -72,6 +72,7 @@ BIG_FILE_STALL = 60             # seconds: a transfer with no new chunk for this
 BIG_FILE_EVERY = 2              # seconds: how often one person may start a big file
 OFFER_SECONDS = 120             # 📎 a file offer nobody accepts or declines expires after this long
 OFFERS_WAITING_MAX = 3          # 📎 offers waiting for one person at once (each sender has one at a time)
+TOPIC_MAX = 120                 # 📌 characters of a pinned topic
 REMIND_MAX = 5                  # ⏰ reminders waiting per person
 REMIND_MAX_HOURS = 24           # ⏰ how far ahead
 REMIND_TEXT_MAX = 200           # ⏰ characters of a reminder

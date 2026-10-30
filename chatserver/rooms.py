@@ -140,6 +140,16 @@ def send_history(client, room):
     client.send({"type": "history", "room": room_title(room), "key": room, "messages": history.recent(room)})
 
 
+def topic_of(room):
+    """📌 The room's pinned topic ("" = none)."""
+    return state.lobby_topic if room == "lobby" else state.groups.get(room, {}).get("topic", "")
+
+
+def topic_packet(room):
+    """{"type": "topic"}: the website shows it at the top of the chat ("" = take it away)."""
+    return {"type": "topic", "room": room, "text": topic_of(room)}
+
+
 def move_to_room(client, room):
     old = client.room
     client.room = room
@@ -150,6 +160,9 @@ def move_to_room(client, room):
             notify_room(room, f"➡️ {shown(client.key)} entered", exclude=client)
     send_history(client, room)
     send_room_list(client.key)
+    client.send(topic_packet(room))   # 📌 (an empty one clears the last room's)
+    if topic_of(room):
+        client.say(f"📌 Topic: {topic_of(room)}")
 
 
 def spam_ok(client):

@@ -76,6 +76,30 @@ def cmd_remind(client, args):
         client.say(error, "error")
 
 
+@registry.command("/pin", "/pin text", "pin this room's topic 📌 (/pin alone: see it, /pin clear)", "💬 Chat")
+def cmd_pin(client, args):
+    room, text = client.room, args.strip()
+    if not text:
+        topic = rooms.topic_of(room)
+        client.say(f"📌 Topic: {topic}" if topic else "📌 No topic pinned here. Admins can /pin one.")
+        return
+    if room == "lobby" and not state.accounts[client.key]["admin"]:
+        client.say("📌 Only a server admin can pin the lobby's topic.", "error")
+        return
+    if room != "lobby" and not rooms.is_admin(state.groups[room], client.key):
+        client.say("📌 Only group admins can pin the topic.", "error")
+        return
+    topic = "" if text.lower() == "clear" else text[:config.TOPIC_MAX]
+    if room == "lobby":
+        state.lobby_topic = topic
+    else:
+        state.groups[room]["topic"] = topic
+    storage.save_data()
+    rooms.send_room(room, rooms.topic_packet(room))
+    rooms.notify_room(room, f"📌 {rooms.nick(client.key)} pinned: {topic}" if topic
+                      else f"📌 {rooms.nick(client.key)} took the topic down.")
+
+
 @registry.command("/me", "/me action", "act it out: * Yaniv dances", "💬 Chat")
 def cmd_me(client, args):
     if args:

@@ -22,6 +22,8 @@ def load_data():
             state.jackpot = pot if isinstance(pot, int) and pot >= 0 else 0
             qotd.load_saved(data.get("qotd"))   # ❓💡 added later too
             reminders.load_saved(data.get("reminders", []))   # ⏰ and this
+            topic = data.get("lobby_topic", "")   # 📌 and this
+            state.lobby_topic = topic[:config.TOPIC_MAX] if isinstance(topic, str) else ""
         except (OSError, ValueError, AttributeError, TypeError) as e:
             textutil.log(f"[SERVER] ❌ Can't read {config.DATA_FILE} ({type(e).__name__}). It may be damaged. "
                          f"The server did not start, so nothing was overwritten. Fix the file or move it away.")
@@ -46,7 +48,8 @@ def save_data():
         try:
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump({"accounts": state.accounts, "groups": state.groups, "jackpot": state.jackpot,
-                           "qotd": qotd.to_saved(), "reminders": state.reminders},
+                           "qotd": qotd.to_saved(), "reminders": state.reminders,
+                           "lobby_topic": state.lobby_topic},
                           f, ensure_ascii=False, indent=1)
                 f.flush()
                 os.fsync(f.fileno())  # really on the disk, even if the power goes out right after
@@ -79,4 +82,5 @@ def new_account(username, salt, digest):
 
 def new_group(name, owner, private):
     return {"name": name, "owner": owner, "admins": [], "members": [owner] if owner else [],
-            "banned": [], "requests": [], "private": private, "bank": 0, "upgrades": [], "emoji": ""}
+            "banned": [], "requests": [], "private": private, "bank": 0, "upgrades": [], "emoji": "",
+            "topic": ""}   # 📌 /pin

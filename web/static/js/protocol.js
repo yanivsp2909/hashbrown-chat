@@ -12,7 +12,7 @@ import { noteTarget } from "./games/panel.js";
 import * as online from "./online.js";
 import * as rooms from "./rooms.js";
 import { startsNewList } from "./roomlogic.js";
-import { showLab } from "./banners.js";
+import { showLab, showTopic } from "./banners.js";
 import { applyReceipt } from "./receipts.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
@@ -228,6 +228,8 @@ export function handleMessage(msg, live, sendLine) {
       return live ? typing.someoneTyping(str(msg.name)) : undefined;
     case "lab":
       return showLab(msg);
+    case "topic":
+      return showTopic(msg);
     case "receipt":
       return applyReceipt(msg);
     case "typing_stop":

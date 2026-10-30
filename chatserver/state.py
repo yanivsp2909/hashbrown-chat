@@ -25,6 +25,7 @@ commentator_today = ("", 0)   # 🎙️ (day, how many comments)
 transfers = {}  # 📦 big file transfers on their way: their key -> details
 offers = {}     # 📎 files waiting for their receiver to /accept: offer number -> details (see offers.py)
 offer_count = 0   # 📎 the last offer number given out
+lobby_topic = ""   # 📌 the lobby's pinned topic (saved in chat_data.json; groups keep theirs in "topic")
 reminders = []  # ⏰ [{login, due (time), text}] (saved in chat_data.json)
 pms = {}        # ✓✓ private message number -> {from, to}, until it's seen (the last RECEIPTS_KEEP)
 pm_count = 0    # ✓✓ the last private message number
@@ -57,7 +58,7 @@ lab_loss_percent = 0    # this % of packets arrive LAB_RESEND_MS late, like a TC
 def reset_state():
     """Forget everything in memory (the tests use this to start each test from zero)."""
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
-    global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers, offer_count, pm_count, reminders
+    global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers, offer_count, pm_count, reminders, lobby_topic
     with lock:
         for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, trivia, war_invites, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
@@ -67,4 +68,4 @@ def reset_state():
         lab_lag_ms, lab_loss_percent = 0, 0
         qotd, commentator_today, jackpot, wars = None, ("", 0), 0, []
         qotd_answers = {"day": "", "answers": []}
-        offer_count, pm_count, reminders = 0, 0, []
+        offer_count, pm_count, reminders, lobby_topic = 0, 0, [], ""
