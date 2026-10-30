@@ -1,8 +1,8 @@
 """
 💬 Chat client
 
-Run:   python client.py               -> connects to Yaniv's server at 127.0.0.1
-       python client.py 127.0.0.1     -> connects to a server on this same computer
+Run:   python client.py 192.168.1.20  -> connects to the server at that IP (ask the host for it)
+       python client.py               -> connects to a server on this same computer (127.0.0.1)
 Files people send you are saved in a folder called received_files.
 """
 import base64
