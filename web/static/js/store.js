@@ -12,6 +12,10 @@ let state = Object.freeze({
   knownNames: [],
   online: null,          // [{name, shown, room, playing}] from a quiet /users, null = not known yet
   balance: null,         // your tokens from a quiet /balance, null = not known yet
+  rooms: [],             // 💬 [{key, name, title}] the chat switcher's list (from the server's "rooms" packet)
+  currentRoom: "",       // the key of the room you're in
+  unread: {},            // room key -> messages you haven't seen there
+  previews: {},          // room key -> "Name: last message"
 });
 
 export const getState = () => state;

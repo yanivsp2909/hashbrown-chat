@@ -54,7 +54,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 | # | Feature | Status |
 |---|---|---|
-| 8 | Chat switcher (b): the room list (a) first, then all-rooms messages for clients that ask for it | not started |
+| 8 | Chat switcher (b): the room list (a) first, then all-rooms messages for clients that ask for it | done: login feature \"rooms\" → `rooms` packet + other rooms' chat tagged \"room\"; website 💬 Chats list with unread + preview; clicking = /join (history from SQLite) |
 
 ## Group 4: first round
 

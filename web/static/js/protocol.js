@@ -10,6 +10,7 @@ import { inviteFrom, isPresence, isWordleOver, matchResult, myBalance, parseHelp
 import { clearPasswords, showLoginError } from "./login.js";
 import { noteTarget } from "./games/panel.js";
 import * as online from "./online.js";
+import * as rooms from "./rooms.js";
 
 const MAX_NAMES = 60;
 const NICK_KEY = "hashbrown.nick";
@@ -157,9 +158,12 @@ function onServerText(msg, live) {
 }
 
 export function handleMessage(msg, live, sendLine) {
+  if (rooms.fromOtherRoom(msg, live)) return undefined;   // 💬 another room's chat: only counted as unread
   if (msg.replaces) chat.removeTemp(str(msg.replaces));   // the answer takes the place of "thinking..."
   if (msg.stream_id && (msg.failed || (msg.done && msg.type !== "chat"))) chat.removeStream(str(msg.stream_id));
   switch (msg.type) {
+    case "rooms":
+      return rooms.setRooms(msg);
     case "stream":
       return msg.done ? undefined : chat.addStreamPiece(msg, { live });
     case "auth_result":
@@ -169,6 +173,7 @@ export function handleMessage(msg, live, sendLine) {
     case "chat": {
       const name = str(msg.name);
       remember(name);
+      rooms.notePreview(msg);
       return chat.addChat(msg, { live, mine: name === getState().nick });
     }
     case "pong":

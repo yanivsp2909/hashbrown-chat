@@ -348,3 +348,12 @@ class TestPing(BridgeTestCase):
         status, _ = a.send({"type": "ping", "t": 1712.5})
         self.assertEqual(status, 202)
         self.assertEqual(a.wait(lambda e: e["data"].get("type") == "pong", what="the pong")["t"], 1712.5)
+
+
+class TestChatSwitcher(BridgeTestCase):
+    def test_a_tab_that_asks_for_rooms_gets_its_room_list(self):
+        browser = self.tab()
+        self.assertTrue(browser.auth(next(names), PASSWORD, "register", ["stream", "rooms"])["ok"])
+        rooms = browser.wait(lambda e: e["data"].get("type") == "rooms", what="the room list")
+        self.assertEqual(rooms["current"], "lobby")
+        self.assertEqual([r["key"] for r in rooms["rooms"]], ["lobby"])

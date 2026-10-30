@@ -13,6 +13,7 @@ import { initRail } from "./js/rail.js";
 import { focusChallenge, initSidebar } from "./js/sidebar.js";
 import { initPanel } from "./js/games/panel.js";
 import { initXray } from "./js/xray.js";
+import { initRooms } from "./js/rooms.js";
 
 const THEME_KEY = "hashbrown.theme";
 const SCREENS = ["loading", "login", "chat", "closed"];
@@ -193,7 +194,7 @@ initLogin({
     }
     await api.whenLive();  // otherwise the reply could arrive mixed into the replay and get lost
     setPendingUsername(username);
-    const error = await api.send({ type: "auth", action, username, password, features: ["stream"] });
+    const error = await api.send({ type: "auth", action, username, password, features: ["stream", "rooms"] });
     if (error) showLoginError(error);
   },
 });
@@ -229,6 +230,7 @@ initFiles({ onSent: () => {} });
 initSidebar({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
 initRail({ openGame });
 initXray();
+initRooms({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
 initOnline({
   sendLine: api.sendLine,
   onChallenge: (name) => {

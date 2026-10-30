@@ -532,3 +532,21 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .xray-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .xray-count { margin-right: auto; color: var(--muted); font-size: 13px; }
 @media (max-width: 600px) { .xray { padding: 14px; } .xray-panel { min-height: 50vh; } }
+
+/* ----- 💬 The chat switcher: the lobby and your groups, with unread counts */
+.chat-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.room-btn {
+  width: 100%; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+  border: 1px solid transparent; border-radius: 12px; background: none; color: var(--text); text-align: start; cursor: pointer;
+}
+.room-btn:hover { background: var(--panel-2); }
+.room-btn.here { background: var(--panel-2); border-color: var(--line); }
+.room-main { flex: 1; min-width: 0; display: grid; }
+.room-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room-preview { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.has-unread .room-name { color: var(--text); }
+.has-unread .room-preview { color: var(--text-2); }
+.room-unread {
+  flex: none; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--gold); color: var(--gold-ink); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
