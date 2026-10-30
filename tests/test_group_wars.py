@@ -26,9 +26,12 @@ def start_war(adi, ben):
 
 
 def win(winner, loser):
+    """A win in a game that was really played (resigning at once doesn't count)."""
     with state.lock:
         matches.start_match(games.TicTacToe, winner, loser, 0)
-        matches.finish_match(state.matches[winner], winner)
+        match = state.matches[winner]
+        match.moves = {winner: config.MIN_MOVES_FOR_BONUS, loser: config.MIN_MOVES_FOR_BONUS}
+        matches.finish_match(match, winner)
 
 
 def test_declaring_and_accepting_starts_a_war(user):
@@ -93,3 +96,22 @@ def test_wars_end_by_themselves(user):
     with state.lock:
         wars.end_due()
     assert state.wars == []
+
+
+def test_a_resign_before_playing_scores_nothing(user):
+    adi, ben = two_groups(user)
+    war = start_war(adi, ben)
+    with state.lock:
+        matches.start_match(games.TicTacToe, "adi", "ben", 0)
+    ben.line("/resign")                     # no moves at all
+    adi.expect_text("YOU WON")
+    assert war["points"] == {"red": 0, "blue": 0}
+
+
+def test_disbanding_a_group_ends_its_war(user):
+    adi, ben = two_groups(user)
+    start_war(adi, ben)
+    with state.lock:
+        wars.forget_group("blue")
+    assert state.wars == []
+    adi.expect_text("war is over")

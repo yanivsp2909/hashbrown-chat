@@ -77,3 +77,12 @@ def test_an_old_history_db_gets_the_new_columns(tmp_path, monkeypatch):
     history.close()
     monkeypatch.setattr(config, "HISTORY_DB", str(path))
     assert [m["text"] for m in history.recent("lobby")] == ["kept"]   # nothing lost, and no crash
+
+
+def test_you_can_only_change_messages_in_the_room_youre_in(user):
+    adi = user("Adi")
+    message_id = post(adi, "lobby words")
+    adi.line("/create Tmp")
+    adi.expect_text("Created")
+    adi.send({"type": "edit", "id": message_id, "text": "changed from elsewhere"})
+    adi.expect_text("room you're in", kind="error")

@@ -153,7 +153,9 @@ def start_trivia(client):
                                                     f"(first right answer wins {config.TRIVIA_REWARD} 🪙)")
         history.add(room, msg)
         rooms.send_room(room, msg)
-        threading.Timer(config.TRIVIA_SECONDS, time_up_later, args=(room, trivia)).start()
+        timer = threading.Timer(config.TRIVIA_SECONDS, time_up_later, args=(room, trivia))
+        timer.daemon = True   # never keeps a stopping server waiting
+        timer.start()
 
     ask_in_background(TRIVIA_TASK, deliver,
                       lambda: refund("🧠 Hashbrown couldn't think of a question. Your tokens were refunded."))

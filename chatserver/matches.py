@@ -61,7 +61,21 @@ def spectator_render(game):
     return game.render(game.players[0]).rsplit("\n", 1)[0]   # without "your turn" (that's for player 1)
 
 
+def was_played(match):
+    """A real game: it ended by itself, or both made MIN_MOVES_FOR_BONUS moves (not an instant resign).
+    Only real games pay the win bonus, move ELO and score war points, so they can't be farmed."""
+    return match.game.finished or min(match.moves.values()) >= config.MIN_MOVES_FOR_BONUS
+
+
+def stop_watching(key):
+    """👀 Stop watching any match (you started your own, or you left)."""
+    for match in set(state.matches.values()):
+        match.spectators.discard(key)
+
+
 def start_match(game_class, p1, p2, bet):
+    stop_watching(p1)
+    stop_watching(p2)
     match = Match(game_class, p1, p2, bet)
     for p in (p1, p2):
         state.accounts[p]["tokens"] -= bet  # both bets go into the pot
@@ -99,7 +113,7 @@ def finish_match(match, winner, reason=""):
         # A resign or disconnect before both really played earns no reward (only the pot).
         if account["win_day"] != textutil.today():
             account["win_day"], account["rewarded_wins"] = textutil.today(), 0
-        really_played = match.game.finished or min(match.moves.values()) >= config.MIN_MOVES_FOR_BONUS
+        really_played = was_played(match)
         bonus = ""
         if really_played and account["rewarded_wins"] < config.MAX_REWARDED_WINS:
             account["rewarded_wins"] += 1
@@ -114,7 +128,8 @@ def finish_match(match, winner, reason=""):
         if account["wins"] >= 10:
             achievements.unlock(winner, "ten_wins")
         achievements.check_rich(winner)
-    update_elo(match, winner)
+    if was_played(match):
+        update_elo(match, winner)
     outcome = "a draw" if winner in ("draw", None) else f"{rooms.nick(winner)} won"
     for watcher in match.spectators:
         rooms.tell(watcher, f"🏁 {title}: {rooms.nick(p1)} vs {rooms.nick(p2)}, {outcome}{reason}", "game")

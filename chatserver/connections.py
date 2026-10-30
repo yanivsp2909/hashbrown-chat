@@ -25,6 +25,7 @@ def disconnect(client):
                 if match:
                     matches.finish_match(match, match.opponent(key), f"{rooms.nick(key)} disconnected")
                 state.invites.pop(key, None)
+                matches.stop_watching(key)
                 transfers.drop_all_of(key)
                 state.solo.pop(key, None)
                 for waiting in state.invites.values():

@@ -28,7 +28,7 @@ def start_war(a, b):
 
 def score(match, winner):
     """After every match: a win against a member of the enemy group is a point."""
-    if winner in ("draw", None):
+    if winner in ("draw", None) or not matches.was_played(match):
         return
     loser = match.opponent(winner)
     for war in state.wars:
@@ -65,6 +65,17 @@ def end_war(war):
                 f"({war['points'][winner]} to {war['points'][loser]}) and took {prize} 🪙 from their bank!")
     for key in (a, b):
         tell_group(key, text)
+
+
+def forget_group(key):
+    """A group was disbanded: its war ends with no winner, and its war invites go."""
+    for war in [w for w in state.wars if key in (w["a"], w["b"])]:
+        state.wars.remove(war)
+        other = war["b"] if war["a"] == key else war["a"]
+        tell_group(other, "⚔️ The war is over: the other group was disbanded. Nobody pays.")
+    for target, (attacker, _) in list(state.war_invites.items()):
+        if key in (target, attacker):
+            del state.war_invites[target]
 
 
 def end_due():

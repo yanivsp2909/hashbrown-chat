@@ -96,6 +96,9 @@ def change(client, msg):
         client.say("✏️ Can't find that message.", "error")
         return
     room, author, age = info
+    if room != client.room or state.mutes.get((room, client.key), 0) > time.time():
+        client.say("✏️ You can only change messages in the room you're in (and not while muted).", "error")
+        return
     if author != client.key:
         client.say("✏️ You can only edit or delete your own messages.", "error")
         return

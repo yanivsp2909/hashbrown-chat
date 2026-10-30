@@ -86,7 +86,7 @@ function matchCard(match, prev) {
       s.spectating ? el("p", { class: "players", text: "👀 Watching (you can't move)" })
         : game && YOU[game] ? el("p", { class: "players", text: YOU[game](s) }) : null,
       game ? turnPill(game, s, match.result) : null),
-    game ? el("div", { class: "plate" }, BOARDS[game](s, send, prev?.state)) : null,
+    game ? el("div", { class: game === "battleship" ? "plate auto" : "plate" }, BOARDS[game](s, send, prev?.state)) : null,
     match.note ? el("p", { class: "game-error", text: match.note }) : null,
     pre, foot);
 }

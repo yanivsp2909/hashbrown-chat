@@ -10,8 +10,10 @@ pytestmark = pytest.mark.integration
 
 
 def play_and_resign(loser_client, winner_name="ben"):
+    """Ben beats Adi in a game that was really played (ELO ignores a resign before any moves)."""
     with state.lock:
         matches.start_match(games.TicTacToe, "adi", "ben", 0)
+        state.matches["adi"].moves = {"adi": config.MIN_MOVES_FOR_BONUS, "ben": config.MIN_MOVES_FOR_BONUS}
     loser_client.line("/resign")
 
 
@@ -68,3 +70,12 @@ def test_whois_shows_the_rating(user):
     adi, _ = user("Adi"), user("Ben")
     adi.line("/whois Ben")
     assert "📈 ELO 1000" in adi.expect_text("👤")["text"]
+
+
+def test_a_resign_before_playing_doesnt_change_elo(user):
+    adi, ben = user("Adi"), user("Ben")
+    with state.lock:
+        matches.start_match(games.TicTacToe, "adi", "ben", 0)
+    adi.line("/resign")
+    ben.expect_text("YOU WON")
+    assert state.accounts["ben"]["elo"] == state.accounts["adi"]["elo"] == 1000

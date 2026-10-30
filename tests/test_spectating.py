@@ -64,3 +64,25 @@ def test_watch_alone_stops_watching(user):
     cat.line("/watch")
     cat.expect_text("stopped watching")
     assert "cat" not in match.spectators
+
+
+def test_starting_your_own_game_stops_watching(user):
+    adi, ben, cat = user("Adi"), user("Ben"), user("Cat")
+    match = start()
+    cat.line("/watch Adi")
+    board(cat)
+    dan = user("Dan")
+    with state.lock:
+        matches.start_match(games.TicTacToe, "cat", "dan", 0)
+    assert "cat" not in match.spectators
+
+
+def test_leaving_stops_watching(user):
+    adi, ben, cat = user("Adi"), user("Ben"), user("Cat")
+    match = start()
+    cat.line("/watch Adi")
+    board(cat)
+    cat.close()
+    adi.line("/users")
+    adi.expect_text("Online now")
+    assert "cat" not in match.spectators

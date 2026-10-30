@@ -18,7 +18,7 @@ function sea(title, cells, size, fire) {
   });
   return el("section", { class: "bs-sea", "aria-label": title },
     el("h3", { class: "bs-title", text: title }),
-    el("div", { class: "bs-grid", style: `--size: ${size}` }, squares));
+    el("div", { class: "bs-grid" }, squares));   // 6 columns, set in games.css (the page allows no inline styles)
 }
 
 export function renderBattleship(s, send) {
