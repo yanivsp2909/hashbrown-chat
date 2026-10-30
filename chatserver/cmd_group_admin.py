@@ -44,6 +44,7 @@ def remove_from_group(key, group, target):
         group["admins"].remove(target)
     if target in state.online and state.online[target].room == key:
         rooms.move_to_room(state.online[target], "lobby")
+    rooms.send_room_list(target)
 
 
 @registry.command("/kick", "/kick name", "remove from group", "🛡️ Group admin")
@@ -154,8 +155,11 @@ def cmd_disband(client, args):
         if c.room == key:
             c.room = "lobby"
             c.send({"type": "history", "room": rooms.room_title("lobby"), "messages": history.recent("lobby")})
+    members = list(group["members"])
     del state.groups[key]
     history.delete_room(key)
+    for member in members:
+        rooms.send_room_list(member)
     for mute in [m for m in state.mutes if m[0] == key]:
         del state.mutes[mute]
     storage.save_data()

@@ -177,6 +177,7 @@ def cmd_approve(client, args):
     group["requests"].remove(target)
     group["members"].append(target)
     storage.save_data()
+    rooms.send_room_list(target)
     rooms.tell(target, f"✅ You were accepted into {rooms.room_title(key)}! Type /join {group['name']}", "event")
     client.say(f"✅ {rooms.shown(target)} can now join.")
     rooms.notify_room(key, f"🎉 {rooms.shown(target)} is now a member of {rooms.room_title(key)}", exclude=client)

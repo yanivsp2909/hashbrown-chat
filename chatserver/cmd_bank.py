@@ -86,6 +86,8 @@ def cmd_groupemoji(client, args):
         client.say("🎨 Send a single emoji, like /groupemoji 🔥", "error")
         return
     group["emoji"] = emoji
+    for member in group["members"]:   # the room's name changed in everyone's chat switcher
+        rooms.send_room_list(member)
     storage.save_data()
     rooms.notify_room(key, f"🎨 The group is now {rooms.room_title(key)}", kind="event")
 

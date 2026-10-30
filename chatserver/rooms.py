@@ -48,10 +48,34 @@ def room_title(room):
     return emoji + ("🔒" if group["private"] else "#") + group["name"]
 
 
+def is_member(key, room):
+    """Everyone is in the lobby; a group's rooms belong to its members."""
+    return room == "lobby" or (room in state.groups and key in state.groups[room]["members"])
+
+
 def send_room(room, obj, exclude=None):
+    """Send to everyone in the room. Clients that said "rooms" at login (the chat switcher) also get the
+    chat of their OTHER rooms, and every packet tells them which room it's from with "room"."""
+    tagged = {**obj, "room": room}
     for c in list(state.online.values()):
-        if c.room == room and c is not exclude:
-            c.send(obj)
+        if c is exclude:
+            continue
+        switcher = "rooms" in c.features
+        if c.room == room:
+            c.send(tagged if switcher else obj)
+        elif switcher and obj.get("type") == "chat" and is_member(c.key, room):
+            c.send(tagged)
+
+
+def send_room_list(key):
+    """💬 The chat switcher's list: the lobby and your groups, and where you are now."""
+    client = state.online.get(key)
+    if client is None or "rooms" not in client.features:
+        return
+    mine = ["lobby"] + [k for k, g in state.groups.items() if key in g["members"]]
+    client.send({"type": "rooms", "current": client.room,
+                 "rooms": [{"key": k, "name": "Lobby" if k == "lobby" else state.groups[k]["name"],
+                            "title": room_title(k)} for k in mine]})
 
 
 def notify_room(room, text, exclude=None, kind="system", **extra):
@@ -98,6 +122,7 @@ def move_to_room(client, room):
         if room != "lobby":
             notify_room(room, f"➡️ {shown(client.key)} entered", exclude=client)
     client.send({"type": "history", "room": room_title(room), "messages": history.recent(room)})
+    send_room_list(client.key)
 
 
 def spam_ok(client):
