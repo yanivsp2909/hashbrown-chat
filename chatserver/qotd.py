@@ -5,7 +5,7 @@ reactions, and when the next question comes the answer with the most votes wins 
 """
 import time
 
-from chatserver import config, history, rooms, state, textutil
+from chatserver import config, history, rooms, state, storage, textutil
 
 
 def empty():
@@ -39,6 +39,7 @@ def post_answer(client, text):
     rooms.send_room("lobby", msg)
     answers = state.qotd_answers["answers"] + [{"login": client.key, "id": msg["id"], "text": msg["text"]}]
     state.qotd_answers = {**state.qotd_answers, "answers": answers}
+    storage.save_data()   # on disk now: a crash mustn't lose an answer people vote on
     return None
 
 
@@ -65,6 +66,7 @@ def settle():
                              f"({best_votes} vote{'' if best_votes == 1 else 's'}). +{config.QOTD_PRIZE} 🪙!")
     history.add("lobby", msg)
     rooms.send_room("lobby", msg)
+    storage.save_data()
 
 
 def to_saved():

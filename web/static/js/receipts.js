@@ -29,6 +29,7 @@ export function applyReceipt(msg) {
 function tellSeen(node) {
   const id = watching.get(node);
   watching.delete(node);
+  delete node.dataset.waiting;
   observer.unobserve(node);
   send({ type: "seen", id });
 }

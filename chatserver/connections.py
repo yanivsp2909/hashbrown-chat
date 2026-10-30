@@ -20,6 +20,7 @@ def disconnect(client):
         with state.lock:
             key = client.key
             if key and state.online.get(key) is client:
+                rooms.end_typing(client)
                 del state.online[key]
                 match = state.matches.get(key)
                 if match:
@@ -88,8 +89,8 @@ def pass_on_typing(client, stopped=False):
     now = time.time()
     while client.typing_times and now - client.typing_times[0] > config.TYPING_WINDOW:
         client.typing_times.popleft()
-    if len(client.typing_times) >= config.TYPING_LIMIT:
-        return
+    if not stopped and len(client.typing_times) >= config.TYPING_LIMIT:
+        return   # (a stop always goes: there's never more of them than starts)
     client.typing_times.append(now)
     if not stopped:
         client.last_typing = now

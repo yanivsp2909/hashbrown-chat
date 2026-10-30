@@ -101,3 +101,18 @@ def test_start_stop_flooding_is_still_limited(typer):
     settle(ben)
     passed = [m for m in ben.messages if str(m.get("type", "")).startswith("typing")]
     assert len(passed) == config.TYPING_LIMIT            # then nothing until TYPING_WINDOW has passed
+
+
+def test_switching_rooms_or_leaving_while_typing_stops_it(typer):
+    """Code review: nobody keeps "is typing…" for someone who went to another room or left."""
+    adi, ben = typer("Adi"), typer("Ben")
+    adi.send({"type": "typing"})
+    ben.expect(lambda m: m.get("type") == "typing")
+    adi.line("/create Potatoes")
+    assert ben.expect(lambda m: m.get("type") == "typing_stop")["name"] == "Adi"
+    adi.line("/lobby")
+    adi.expect(lambda m: m.get("type") == "history" and m.get("key") == "lobby")
+    adi.send({"type": "typing"})                 # back in the lobby: a fresh start goes out at once
+    assert ben.expect(lambda m: m.get("type") == "typing")["name"] == "Adi"
+    adi.close()
+    assert ben.expect(lambda m: m.get("type") == "typing_stop")["name"] == "Adi"

@@ -73,3 +73,9 @@ def test_an_old_account_with_a_short_password_still_logs_in(connect):
     client = connect()
     client.send({"type": "auth", "action": "login", "username": "Old", "password": "1234"})
     assert client.expect(lambda m: m.get("type") == "auth_result")["ok"]
+
+
+def test_file_is_reserved_because_of_accept_file(connect):
+    client = connect()
+    client.send({"type": "auth", "action": "register", "username": "File", "password": "pass1234"})
+    assert not client.expect(lambda m: m.get("type") == "auth_result")["ok"]

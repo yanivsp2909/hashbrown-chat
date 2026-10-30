@@ -100,3 +100,13 @@ def test_topics_are_short(user):
     group(adi)
     adi.line("/pin " + "x" * 500)
     assert len(topic_packet(adi)["text"]) == config.TOPIC_MAX
+
+
+def test_disbanding_takes_the_groups_banner_away(user):
+    """Code review: members moved to the lobby by /disband get the lobby's (empty) topic, not the group's."""
+    adi = user("Adi")
+    group(adi)
+    adi.line("/pin Snacks")
+    topic_packet(adi)
+    adi.line("/disband")
+    assert topic_packet(adi, empty=True)["room"] == "lobby"

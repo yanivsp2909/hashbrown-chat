@@ -155,6 +155,7 @@ def cmd_disband(client, args):
         if c.room == key:
             c.room = "lobby"
             rooms.send_history(c, "lobby")
+            c.send(rooms.topic_packet("lobby"))   # 📌 the gone group's banner goes, the lobby's (if any) comes
     members = list(group["members"])
     del state.groups[key]
     history.delete_room(key)

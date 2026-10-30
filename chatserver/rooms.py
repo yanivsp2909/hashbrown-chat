@@ -150,7 +150,19 @@ def topic_packet(room):
     return {"type": "topic", "room": room, "text": topic_of(room)}
 
 
+def end_typing(client):
+    """⌨️ They switched rooms or left while typing: the room stops showing "is typing…" right away."""
+    if not client.is_typing:
+        return
+    client.is_typing, client.last_typing = False, 0.0
+    note = {"type": "typing_stop", "name": nick(client.key)}
+    for other in list(state.online.values()):
+        if other is not client and other.room == client.room and "typing" in other.features:
+            other.send({**note, "room": client.room} if "rooms" in other.features else note)
+
+
 def move_to_room(client, room):
+    end_typing(client)
     old = client.room
     client.room = room
     if old != room:  # groups get enter/leave notices; the lobby would be too noisy

@@ -247,7 +247,10 @@ function privateNode(pm, { receipt = null, pmId = null } = {}) {
   const head = cardHead(`💌 ${mine ? `You → ${pm.to}` : `${pm.from} → you`}`, pm.time);
   if (mine && receipt && Number.isInteger(receipt.id)) head.append(receiptMark(receipt));   // ✓ / ✓✓
   const node = el("li", { class: "msg card kind-private" }, head, textPara("card-text private-text", pm.text));
-  if (!mine && Number.isInteger(pmId)) watchSeen(node, pmId);   // tell them when it's on screen
+  if (!mine && Number.isInteger(pmId)) {   // tell them when it's on screen (until then it survives room switches)
+    node.dataset.waiting = "1";
+    watchSeen(node, pmId);
+  }
   return node;
 }
 
@@ -347,6 +350,18 @@ export function endTransferCard(id, { file = null, text = "" } = {}) {
 /** Lit private messages stay highlighted until you send something. */
 export function clearLit() {
   for (const node of list.querySelectorAll(".msg.lit")) node.classList.remove("lit");
+}
+
+/** Cards still waiting for you (a private message you haven't seen yet, a file offer you haven't answered):
+ *  taken out before a room switch empties the list, so they can come along to the new room's list. */
+export function takeWaitingCards() {
+  const cards = [...list.querySelectorAll("[data-waiting]")];
+  for (const card of cards) card.remove();
+  return cards;
+}
+
+export function putBackWaitingCards(cards) {
+  for (const card of cards) addOther(card, { live: false });
 }
 
 export function clearMessages() {

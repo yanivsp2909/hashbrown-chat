@@ -1,6 +1,6 @@
 # 🧭 Build progress
 
-**Status (2026-10-30): all 29 features done and pushed. 695 server tests + 29 website tests, 90% coverage.**
+**Status (2026-10-30): all 29 features and the 19 round-3 items done and pushed. 813 server tests + 39 website tests.**
 
 The checklist for the big build run. Each feature: **not started**, **in progress**, **done** (with the commit) or **skipped** (with the reason).
 If you're picking this up after a break: read the rules, then continue from the first item that isn't done or skipped.
@@ -143,6 +143,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 ### Round 3 reviews
 
 - a11y-architect (the @ list, the file offer buttons): all findings fixed (see R4; offer buttons keep focus, announce the answer, come back on failure, live only).
+- code-reviewer (the whole round, APPROVE, no critical/high): fixed /disband leaving the group's 📌 banner, logout not resetting the switcher and banners, waiting private messages and file offers vanishing on a room switch (they now come along), "is typing…" staying after a room switch or leaving, /answer and /remind saved right away, "file" is now a reserved name. Left: with history.db unusable (in-memory history), saved /answer ids could point at other messages after a restart.
 - security-reviewer (Parts B and C): no critical issues, no secret leaks. Fixed: a bare /accept now prefers a waiting game challenge (a file only with "file", its sender's name or the website button); a 60 MB cap on all waiting small files; a waiting big file no longer blocks other senders; logging in again ends the old window's offers and transfers; accept re-checks the app can take big files. Left for the owner: look-alikes inside one alphabet still pass (I/l/1, O/0, rn/m, Hebrew ס/ם); any user can lock /admin for 10 minutes with 3 wrong tries (the chosen trade-off); a filename is free text in the offer line; tokens can still move between accounts without the /give limits through game bets, /rob, and /donate + /disband.
 
 ## Decisions made on the way

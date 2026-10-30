@@ -16,6 +16,7 @@ import { initXray } from "./js/xray.js";
 import { initRooms } from "./js/rooms.js";
 import { initTyping } from "./js/typing.js";
 import { initEdits, submitEdit } from "./js/edits.js";
+import { showLab, showTopic } from "./js/banners.js";
 
 const THEME_KEY = "hashbrown.theme";
 const SCREENS = ["loading", "login", "chat", "closed"];
@@ -113,7 +114,10 @@ function resetChat() {
   closeDrawer();
   resetOnline();
   resetCommands();
-  setState({ nick: "", room: "🏠 Lobby", commands: [], match: null, wordle: null, invites: [], online: null, balance: null });
+  setState({ nick: "", room: "🏠 Lobby", commands: [], match: null, wordle: null, invites: [], online: null, balance: null,
+    currentRoom: "", rooms: [], unread: {}, previews: {} });   // 💬 the next login starts with a clean switcher
+  showTopic({});
+  showLab({});
 }
 
 function showClosed(reason) {

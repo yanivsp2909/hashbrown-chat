@@ -164,9 +164,10 @@ function onServerText(msg, live) {
   const poll = msg.poll && Array.isArray(msg.poll.options) && live ? msg.poll.options.slice(0, 6).map((option, i) =>
     el("button", { class: "btn btn-ghost", type: "button", text: `${i + 1}) ${str(option)}`, onclick: () => sendLine(`/vote ${i + 1}`) }))
     : [];   // 📊 a poll: one button per option
-  chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions: offer.length ? offer : poll.length ? poll : actions, label: result ? "Game over" : "",
+  const card = chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions: offer.length ? offer : poll.length ? poll : actions, label: result ? "Game over" : "",
     actionsLabel: offer.length ? `Answer: ${offerWhat(msg.offer)}` : "",
     tempId: str(msg.temp_id), receipt: msg.pm && typeof msg.pm === "object" ? msg.pm : null, pmId: msg.pm_id });
+  if (offer.length) card.dataset.waiting = "1";   // 📎 not answered yet: comes along to the next room you open
 }
 
 /** "Accept photo.jpg from Dana" (also the name of the button group). */
@@ -185,6 +186,7 @@ function fileOfferButtons(offer, live) {
       text: word === "accept" ? `Accepting ${what}…` : `Declining ${what}…` });
     group.replaceChildren(note);
     note.focus();
+    delete group.closest("[data-waiting]")?.dataset.waiting;
     let error;
     try {
       error = await sendLine(`/${word} file ${offer.id}`);
@@ -250,13 +252,17 @@ export function handleMessage(msg, live, sendLine) {
     case "pong":
       if (typeof msg.t === "number" && live) chat.addNotice("system", `🏓 Pong: ${Math.max(0, Date.now() - msg.t)} ms there and back`);
       return undefined;
-    case "history":
+    case "history": {
       chat.removeAllStreams();
-      if (startsNewList(msg, getState().currentRoom)) chat.clearMessages();   // 💬 each room has its own list
+      const fresh = startsNewList(msg, getState().currentRoom);   // 💬 each room has its own list
+      const waiting = fresh ? chat.takeWaitingCards() : [];
+      if (fresh) chat.clearMessages();
       rooms.notePreview(msg);
       setState({ room: str(msg.room, "🏠 Lobby") });
       for (const old of Array.isArray(msg.messages) ? msg.messages : []) remember(str(old?.name));
-      return chat.addHistory(str(msg.room), msg.messages, { live, isMine: (n) => n === getState().nick });
+      chat.addHistory(str(msg.room), msg.messages, { live, isMine: (n) => n === getState().nick });
+      return chat.putBackWaitingCards(waiting);
+    }
     case "file": {
       const file = receive(msg);
       if (file.error) return chat.addNotice("error", `📁 ${str(msg.from, "Someone")} ${file.error}`, { live });

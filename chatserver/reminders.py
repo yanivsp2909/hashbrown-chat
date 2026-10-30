@@ -7,7 +7,7 @@ import re
 import time
 from datetime import datetime
 
-from chatserver import config, rooms, state
+from chatserver import config, rooms, state, storage
 
 DURATION = re.compile(r"(?:(\d{1,3})h)?(?:(\d{1,4})m)?(?:(\d{1,5})s)?", re.IGNORECASE)
 
@@ -39,6 +39,7 @@ def add(client, args):
     if sum(1 for r in state.reminders if r["login"] == client.key) >= config.REMIND_MAX:
         return f"⏰ You can have at most {config.REMIND_MAX} reminders waiting."
     state.reminders = state.reminders + [{"login": client.key, "due": time.time() + seconds, "text": text}]
+    storage.save_data()
     client.say(f"⏰ OK! I'll remind you in {how_long(seconds)}.")
     return None
 
@@ -64,6 +65,7 @@ def deliver_due(now=None):
         state.reminders = [r for r in state.reminders if r not in due]
         for reminder in due:
             remind(reminder["login"], reminder)
+        storage.save_data()
 
 
 def deliver_at_login(key):
@@ -74,6 +76,7 @@ def deliver_at_login(key):
         state.reminders = [r for r in state.reminders if r not in due]
         for reminder in due:
             remind(key, reminder, late=True)
+        storage.save_data()
 
 
 def load_saved(saved):
