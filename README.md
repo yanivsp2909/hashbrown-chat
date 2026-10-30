@@ -30,6 +30,7 @@
 - 🌐 **Website**: chat from any phone or laptop on the same Wi-Fi. Light and dark mode, clickable game boards, file sharing.
 - ⌨️ **Terminal client**: `client.py` works in Terminal, Windows CMD and PyCharm.
 - 📁 **Files**: send a file of up to 2 MB.
+- 🔬 **For the networking class**: a Packet X-ray window on the website (every packet, and the raw TCP chunks `recv()` got), `client.py --packets`, UDP auto-discovery, `/ping`, `/netstats`, and a network lab (the host types `lag 300` or `loss 10` in the server window to make the network worse on purpose).
 
 ## 🚀 Quick start
 
@@ -53,7 +54,7 @@ It also starts the website on port 8080 (set `START_WEBSITE = False` in `chatser
 **3. Join**
 
 - 🌐 **Website**: open the link that `web_server.py` prints, for example `http://192.168.1.20:8080`.
-- ⌨️ **Terminal**: run `python client.py <host IP>` with the host's IP address. Press Enter to play in the terminal (or **2** to open the website; `--web` skips the question), then choose **2** to create an account or **1** to log in.
+- ⌨️ **Terminal**: run `python client.py` (it finds the server on the Wi-Fi by itself, or asks for the IP) or `python client.py <host IP>`. Press Enter to play in the terminal (or **2** to open the website; `--web` skips the question), then choose **2** to create an account or **1** to log in.
 
 Type `/help` once you're in to see every command. The full list is in the [user guide](docs/GUIDE.md).
 
@@ -138,6 +139,10 @@ Every packet is **one JSON object on one line**, ending with `\n`. That's called
 | server → client | `msg` | `kind`, `text` (board messages also have a `state` object) |
 | server → client | `chat` | `time`, `name`, `badge`, `text`, `action`, `id` |
 | server → client | `stream` | `stream_id`, `append` (a piece of Hashbrown's answer, only for clients with the `stream` feature) |
+| client → server | `ping` | `t` (any number; it comes straight back) |
+| server → client | `pong` | `t` (the same number: now minus `t` is the round trip) |
+| UDP, client → everyone | `discover` | (none) — broadcast to port 8821 |
+| UDP, server → client | `server` | `name`, `port`, `web_port` — the client uses the IP the answer came from |
 | server → client | `history` | `room`, `messages` |
 | server → client | `file` | `from`, `filename`, `data` |
 

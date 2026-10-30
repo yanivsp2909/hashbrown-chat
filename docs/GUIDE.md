@@ -145,6 +145,15 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 
 The admin password is `ADMIN_PASSWORD` in `chatserver/config.py`. **Change it from 123**, or your friends will guess it.
 
+## For the networking class 🔬
+
+- **Packet X-ray** (website, bottom of the sidebar): the **Packets** tab shows every JSON packet your tab sends ⬆ and gets ⬇. The **TCP** tab shows the raw bytes of each `recv()` the website's bridge did: newlines are shown as ⏎, and a chunk that ends in the middle of a packet says so. Login packets (your password) are never recorded.
+- **`python client.py --packets`**: the terminal client prints every packet (password hidden), every `recv()` chunk and the UDP discovery packets.
+- **UDP auto-discovery**: `python client.py` with no IP broadcasts `{"type": "discover"}` to UDP port 8821. Every server on the Wi-Fi answers; you confirm the one you want (anyone can answer a broadcast).
+- **`/ping`**: a `ping` packet goes to the server and comes straight back as `pong`: the time it took is the round trip.
+- **`/netstats`**: how many packets and bytes the server got from you and sent you.
+- **Network lab** (type these in the server window): `lag 300` delays every packet the server sends by 300 ms; `loss 10` makes 10% of them "get lost". TCP never really loses data: it sends a lost packet again, so it arrives late and everything after it waits too (head-of-line blocking). `lab` shows the settings, `lab off` turns it off.
+
 ## Server console
 
 Type these in the server window:
