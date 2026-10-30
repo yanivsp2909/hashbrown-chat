@@ -160,24 +160,43 @@ function onServerText(msg, live) {
   ] : wordleOver && wordle.state ? [  // the grid lives in the game panel: one click away
     el("button", { class: "btn btn-ghost", type: "button", text: "🟩 Show grid", onclick: () => hooks.showGame() }),
   ] : [];
-  const offer = fileOfferButtons(msg.offer);   // 📎 someone wants to send you a file
+  const offer = fileOfferButtons(msg.offer, live);   // 📎 someone wants to send you a file
   const poll = msg.poll && Array.isArray(msg.poll.options) && live ? msg.poll.options.slice(0, 6).map((option, i) =>
     el("button", { class: "btn btn-ghost", type: "button", text: `${i + 1}) ${str(option)}`, onclick: () => sendLine(`/vote ${i + 1}`) }))
     : [];   // 📊 a poll: one button per option
   chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions: offer.length ? offer : poll.length ? poll : actions, label: result ? "Game over" : "",
+    actionsLabel: offer.length ? `Answer: ${offerWhat(msg.offer)}` : "",
     tempId: str(msg.temp_id), receipt: msg.pm && typeof msg.pm === "object" ? msg.pm : null, pmId: msg.pm_id });
 }
 
+/** "Accept photo.jpg from Dana" (also the name of the button group). */
+const offerWhat = (offer) => `${str(offer.filename, "a file")} from ${str(offer.from, "someone")}`;
+
 /** 📎 Accept / Decline for a file offer ({"id", "from", "filename", "size"}). They name the offer by its number,
- *  so a challenge from the same person can't get in the way. After one click both go grey. */
-function fileOfferButtons(offer) {
-  if (!offer || !Number.isInteger(offer.id)) return [];
-  const what = `${str(offer.filename, "a file")} from ${str(offer.from, "someone")}`;
+ *  so a challenge from the same person can't get in the way. One click: the buttons become a line saying what
+ *  you answered (focus moves to it, and screen readers hear it); if it didn't reach the server, they come back. */
+function fileOfferButtons(offer, live) {
+  if (!live || !offer || !Number.isInteger(offer.id)) return [];   // after a reload: type /accept (it may be gone)
+  const what = offerWhat(offer);
   const answer = (word) => async (event) => {
-    const buttons = [...(event.currentTarget.parentElement?.querySelectorAll("button") || [])];
-    for (const button of buttons) button.disabled = true;
-    const error = await sendLine(`/${word} file ${offer.id}`);
-    if (error) for (const button of buttons) button.disabled = false;   // didn't reach the server: try again
+    const group = event.currentTarget.parentElement;
+    const buttons = [...group.children];
+    const note = el("span", { class: "offer-answer", role: "status", tabindex: "-1",
+      text: word === "accept" ? `Accepting ${what}…` : `Declining ${what}…` });
+    group.replaceChildren(note);
+    note.focus();
+    let error;
+    try {
+      error = await sendLine(`/${word} file ${offer.id}`);
+    } catch {
+      error = "failed";
+    }
+    if (error) {
+      group.replaceChildren(...buttons, el("span", { class: "offer-answer", role: "status", text: "Couldn't send that. Try again." }));
+      buttons[word === "accept" ? 0 : 1].focus();
+    } else {
+      note.textContent = word === "accept" ? `You accepted ${what}.` : `You declined ${what}.`;
+    }
   };
   return [
     el("button", { class: "btn btn-primary", type: "button", text: "Accept", "aria-label": `Accept ${what}`, onclick: answer("accept") }),

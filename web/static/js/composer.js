@@ -16,8 +16,19 @@ let historyPos = 0;
 let draft = "";
 let matches = [];
 let selected = 0;
+let arrowed = false;        // did you move through the list with the arrow keys?
+let shownStatus = "";
+
+/** "3 people to mention" for screen readers, only when the count or the kind of list changes. */
+function announce(text) {
+  if (text === shownStatus) return;
+  shownStatus = text;
+  $("suggest-status").textContent = text;
+}
 
 function closeSuggestions() {
+  announce("");
+  arrowed = false;
   box.hidden = true;
   input.setAttribute("aria-expanded", "false");
   input.removeAttribute("aria-activedescendant");
@@ -38,7 +49,7 @@ function mentionMatches() {
   if (!mention || input.value.startsWith("/")) return [];
   return matchingNames(mentionNames(getState()), mention.word).slice(0, MAX_SUGGESTIONS)
     .map((name) => ({
-      label: `@${name}`, desc: name === "hashbrown" ? "ask Hashbrown 🥔" : "",
+      label: `@${name}`, desc: name === "hashbrown" ? "ask Hashbrown" : "",
       done: () => mention.word === name,
       apply: () => {
         const after = input.value.slice(mention.end).replace(/^\s*/u, " ");
@@ -66,6 +77,17 @@ function renderSuggestions() {
   box.hidden = false;
   input.setAttribute("aria-expanded", "true");
   input.setAttribute("aria-activedescendant", `suggestion-${selected}`);
+  const n = matches.length;
+  announce(commands.length ? `${n} command${n === 1 ? "" : "s"}` : `${n} ${n === 1 ? "person" : "people"} to mention`);
+}
+
+/** Arrow keys: move the highlight without rebuilding the list (screen readers keep their place). */
+function moveSelection(step) {
+  selected = (selected + step + matches.length) % matches.length;
+  arrowed = true;
+  for (const [i, option] of [...box.children].entries()) option.setAttribute("aria-selected", String(i === selected));
+  input.setAttribute("aria-activedescendant", `suggestion-${selected}`);
+  box.children[selected]?.scrollIntoView({ block: "nearest" });
 }
 
 function pick(i) {
@@ -90,20 +112,28 @@ export function initComposer({ onSubmit }) {
     selected = 0;
     renderSuggestions();
   });
-  input.addEventListener("blur", () => setTimeout(closeSuggestions, 100));
+  input.addEventListener("blur", () => setTimeout(() => {   // only if you really left the box
+    if (document.activeElement !== input) closeSuggestions();
+  }, 100));
   input.addEventListener("keydown", (event) => {
     if (event.isComposing) return;   // Enter that finishes an IME composition isn't a command
     if (!box.hidden && matches.length) {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
-        selected = (selected + (event.key === "ArrowDown" ? 1 : -1) + matches.length) % matches.length;
-        return renderSuggestions();
+        return moveSelection(event.key === "ArrowDown" ? 1 : -1);
       }
-      if (event.key === "Tab" || (event.key === "Enter" && !matches[selected].done())) {
+      // Tab inserts a command, or a person you chose with the arrows; otherwise it leaves the box as usual
+      const tabPicks = event.key === "Tab" && (input.value.startsWith("/") || arrowed);
+      if (tabPicks || (event.key === "Enter" && !matches[selected].done())) {
         event.preventDefault();
         return pick(selected);
       }
-      if (event.key === "Escape") return closeSuggestions();
+      if (event.key === "Tab") return closeSuggestions();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();   // only the list closes, nothing else that listens for Escape
+        return closeSuggestions();
+      }
     }
     if (event.key === "ArrowUp" && !input.value.includes("\n")) {
       event.preventDefault();

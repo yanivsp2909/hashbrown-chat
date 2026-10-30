@@ -154,7 +154,10 @@
         <button id="attach" class="icon-btn" type="button" aria-label="Send a file">📎</button>
         <label for="input" class="visually-hidden">Message</label>
         <input id="input" class="input" maxlength="500" placeholder="Message, or / for commands…"
-               role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" enterkeyhint="send">
+               role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" aria-haspopup="listbox"
+               aria-describedby="input-hint" enterkeyhint="send">
+        <span id="input-hint" class="visually-hidden">Type / for commands or @ for people. Arrow keys choose, Enter or Tab inserts, Escape closes.</span>
+        <span id="suggest-status" class="visually-hidden" role="status"></span>
         <button class="btn btn-primary" type="submit">Send</button>
       </form>
     </main>

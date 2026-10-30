@@ -383,6 +383,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .msg.lit { box-shadow: 0 0 0 2px var(--lavender) inset; }
 .msg .actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .msg .actions .btn { min-height: 34px; padding: 0 14px; font-size: 14px; }
+.offer-answer { font-size: 14px; color: var(--text-2); align-self: center; }
 
 /* list cards: /groups, /top, /achievements, /shop, /help... one row per line */
 .list-title { color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
@@ -443,7 +444,8 @@ a { color: var(--gold); text-underline-offset: 3px; }
   display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 14px; align-items: baseline;
   padding: 8px 10px; border-radius: 9px; cursor: pointer;
 }
-.suggestions li[aria-selected="true"] { background: var(--gold-soft); }
+.suggestions li[aria-selected="true"] { background: var(--gold-soft); box-shadow: inset 3px 0 0 var(--gold); }   /* not colour alone */
+@media (forced-colors: active) { .suggestions li[aria-selected="true"] { outline: 2px solid Highlight; } }
 .suggestions .usage { font-family: var(--mono); font-size: 13px; color: var(--text); white-space: nowrap; }
 .suggestions .desc { color: var(--muted); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -495,6 +497,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
   .bubble { max-width: min(88%, 68ch); }
   .msg.chat:not(.mine) .bubble { max-width: 100%; }
   .suggestions .desc { display: none; }
+  .msg .actions .btn { min-height: 44px; }   /* easier to hit with a thumb */
   .composer .btn-primary { padding: 0 14px; }
 }
 

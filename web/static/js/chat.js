@@ -254,7 +254,7 @@ function privateNode(pm, { receipt = null, pmId = null } = {}) {
 /** A server notice. `actions` are extra buttons, like Accept / Decline on a challenge;
  *  `label` replaces the kind's usual header word (like "Game over" for a loss). */
 export function addNotice(kind, text, { live = true, lit = false, actions = [], label = "", tempId = "", receipt = null,
-  pmId = null } = {}) {
+  pmId = null, actionsLabel = "" } = {}) {
   const safeKind = Object.hasOwn(LABELS, kind) ? kind : "system";
   let body = str(text);
   const time = live ? nowTime() : "";
@@ -276,7 +276,9 @@ export function addNotice(kind, text, { live = true, lit = false, actions = [], 
       cardHead(label || LABELS[safeKind], time), textPara("card-text", body));
   }
   if (lit) node.classList.add("lit");
-  if (actions.length) node.append(el("div", { class: "actions" }, actions));
+  if (actions.length) {
+    node.append(el("div", { class: "actions", role: actionsLabel ? "group" : null, "aria-label": actionsLabel || null }, actions));
+  }
   if (tempId) {   // a temporary notice ("Hashbrown is thinking..."): the answer removes it, or the timer does
     node.dataset.tempId = tempId;
     setTimeout(() => node.remove(), THINKING_MS);
