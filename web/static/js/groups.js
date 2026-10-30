@@ -17,6 +17,10 @@ let info = null;              // the open group's details
 let view = null;              // null = closed, "" = the list, a group key = that group
 let query = "";
 let creating = false;
+let loaded = false;           // has the first list arrived? (until then: "Loading groups…", not a false "no groups")
+let detailsTimer = null;
+const DETAILS_WAIT = 5000;    // ms before "Couldn't load this group"
+const inFlight = new Set();   // buttons still sending (action:target), so a double click doesn't send twice
 let replyTimer = null;
 let hooks = { onError: () => {}, closeDrawer: () => {} };
 
@@ -33,20 +37,41 @@ export function badge(card) {
 
 /** Send the lines one button means, one after another (stop at the first that doesn't get through). */
 export async function act(action, group, extra = {}) {
+  const id = `${action}:${group.key ?? group.name}:${extra.target || ""}`;
+  if (inFlight.has(id)) return false;   // still sending the last click
+  inFlight.add(id);
   lastAct = Date.now();
-  for (const line of G.commandsFor(action, group, { currentRoom: getState().currentRoom, ...extra })) {
-    const error = await sendLine(line);
-    if (error) {
-      noteServerText("error", `⚠️ ${error}`);
-      hooks.onError(error);
-      return false;
+  markBusy();
+  try {
+    for (const line of G.commandsFor(action, group, { currentRoom: getState().currentRoom, ...extra })) {
+      const error = await sendLine(line);
+      if (error) {
+        noteServerText("error", `⚠️ ${error}`, true);
+        hooks.onError(error);
+        return false;
+      }
     }
+    return true;
+  } finally {
+    inFlight.delete(id);
+    markBusy();
   }
-  return true;
 }
 
+/** Buttons whose action is still on its way are disabled (render() draws new ones: this runs after it too). */
+function markBusy() {
+  for (const button of $("groups-body").querySelectorAll("[data-act]")) {
+    const busy = inFlight.has(button.dataset.act);
+    button.disabled = busy || button.dataset.locked === "1";
+    button.toggleAttribute("aria-busy", busy);
+  }
+}
+
+/** The data-act key act() uses, for a button that runs it. */
+export const actKey = (action, group, target = "") => `${action}:${group.key ?? group.name}:${target}`;
+
 /** A confirm step in a small dialog. requireText: they must type it (like the group's name) first. */
-export function confirmStep({ title, text, yes, requireText = "", label = "" }) {
+export function confirmStep({ title, text, yes, requireText = "", label = "", danger = false }) {
   const dialog = $("groups-confirm");
   const opener = document.activeElement;
   $("gs-confirm-title").textContent = title;
@@ -57,6 +82,7 @@ export function confirmStep({ title, text, yes, requireText = "", label = "" }) 
   const input = $("gs-confirm-input");
   input.value = "";
   const yesButton = $("gs-confirm-yes");
+  yesButton.className = `btn ${danger ? "btn-danger" : "btn-primary"}`;   // losing something is ketchup, not gold
   yesButton.disabled = Boolean(requireText);
   input.oninput = () => { yesButton.disabled = input.value.trim().toLowerCase() !== requireText.toLowerCase(); };
   dialog.returnValue = "";
@@ -71,8 +97,8 @@ export function confirmStep({ title, text, yes, requireText = "", label = "" }) 
 }
 
 /** The latest server reply, shown at the bottom of the screen (the chat behind it is hidden). */
-export function noteServerText(kind, text) {
-  if (!isOpen() || Date.now() - lastAct > REPLY_WINDOW) return;
+export function noteServerText(kind, text, force = false) {
+  if (!isOpen() || (!force && Date.now() - lastAct > REPLY_WINDOW)) return;
   const line = $("groups-reply");
   line.textContent = str(text).split("\n")[0];
   line.className = `gs-reply gs-reply-${["error", "money", "event"].includes(kind) ? kind : "system"}`;
@@ -80,6 +106,10 @@ export function noteServerText(kind, text) {
   clearTimeout(replyTimer);
   replyTimer = setTimeout(() => { line.hidden = true; }, REPLY_MS);
 }
+
+/** The confirm step before leaving a group (from its row or its details). */
+export const confirmLeave = (card) => confirmStep({ title: `Leave ${str(card.name)}?`, danger: true, yes: "Leave",
+  text: card.private ? "It's private: you'd have to ask to come back." : "You can join again any time." });
 
 // ---------------------------------------------------------------- the list
 
@@ -93,14 +123,16 @@ function groupRow(card) {
   const upgrades = Array.isArray(card.upgrades) && card.upgrades.length ? card.upgrades.map(str).join(" · ") : "";
   const actions = member
     ? [el("button", { class: "btn btn-primary", type: "button", text: "Open chat", "aria-label": `Open the chat of ${name}`,
+      "data-act": actKey("open", card),
       onclick: async () => { if (await act("open", card)) close(); } }),
     role !== "owner" ? el("button", { class: "btn btn-ghost", type: "button", text: "Leave", "aria-label": `Leave ${name}`,
       onclick: async () => {
-        if (await confirmStep({ title: `Leave ${name}?`, text: card.private ? "It's private: you'd have to ask to come back." : "You can join again any time.", yes: "Leave" })) act("leave", card);
+        if (await confirmLeave(card)) act("leave", card);
       } }) : null]
     : role === "requested" ? [el("span", { class: "gs-waiting", text: "⏳ Waiting for an admin" })]
       : [el("button", { class: "btn btn-primary", type: "button", text: card.private ? "Request to join" : "Join",
-        "aria-label": `${card.private ? "Request to join" : "Join"} ${name}`, onclick: () => act("join", card) })];
+        "aria-label": `${card.private ? "Request to join" : "Join"} ${name}`, "data-act": actKey("join", card),
+        onclick: () => act("join", card) })];
   return el("li", { class: "gs-row" },
     badge(card),
     el("div", { class: "gs-row-main" },
@@ -126,7 +158,7 @@ function createForm() {
     event.preventDefault();
     const name = $("gs-create-name").value.trim();
     if (!name) return $("gs-create-name").focus();
-    if (await act("create", { name }, { private: $("gs-create-private").checked })) {
+    if (await act("create", { key: "", name }, { private: $("gs-create-private").checked })) {
       creating = false;
       render();
     }
@@ -139,7 +171,7 @@ function createForm() {
       el("span", { text: "🔒 Private: people ask to join and an admin approves them" })),
     el("p", { id: "gs-create-hint", class: "field-hint", text: "3-16 English or Hebrew letters, digits or _. Creating a group costs tokens." }),
     el("div", { class: "gs-create-actions" },
-      el("button", { class: "btn btn-primary", type: "submit", text: "Create group" }),
+      el("button", { class: "btn btn-primary", type: "submit", text: "Create group", "data-act": actKey("create", { name: "" }) }),
       el("button", { class: "btn btn-ghost", type: "button", text: "Cancel", onclick: () => { creating = false; render(); } })));
 }
 
@@ -155,7 +187,11 @@ function renderList(body) {
     el("label", { class: "gs-search" }, el("span", { class: "visually-hidden", text: "Search groups" }),
       el("input", { id: "gs-search", class: "input", type: "search", placeholder: "🔍 Search groups…", value: query,
         autocomplete: "off", oninput: (event) => { query = event.target.value; render(); } })),
-    cards.length ? null : el("p", { class: "gs-empty", text: "No groups yet. Create the first one! 🎉" }),
+    !loaded ? el("p", { class: "loading-text", text: "Loading groups…" }) : null,
+    loaded && !cards.length ? el("div", { class: "empty-grill" }, el("span", { class: "big", "aria-hidden": "true", text: "👥" }),
+      el("h2", { text: "No groups yet" }), el("p", { text: "Make the first one and invite your friends. 🎉" }),
+      el("div", { class: "row" }, el("button", { class: "btn btn-primary", type: "button", text: "+ Create group",
+        onclick: () => { creating = true; render(); $("gs-create-name").focus(); } }))) : null,
     cards.length ? section("Your groups", mine, query ? "None of yours match." : "You're not in a group yet. Join one below!") : null,
     cards.length ? section("Other groups", others, query ? `No other group matches "${query}".` : "That's every group.") : null,
   ].filter(Boolean));
@@ -177,6 +213,7 @@ function render() {
     const field = document.getElementById(id);
     if (field && body.contains(field) && field.type !== "checkbox" && id !== "gs-search") field.value = value;
   }
+  markBusy();
   if (focusKey) {
     const again = body.querySelector(`#${CSS.escape(focusKey)}`) || body.querySelector(`[data-focus="${CSS.escape(focusKey)}"]`);
     if (again) {
@@ -197,6 +234,7 @@ export function open() {
   hooks.closeDrawer();
   view = "";
   info = null;
+  loaded = false;
   setOpen(true);
   render();
   send({ type: "get_groups" });
@@ -217,6 +255,15 @@ function openGroup(key) {
   info = null;
   render();
   send({ type: "get_group", group: key });
+  clearTimeout(detailsTimer);
+  detailsTimer = setTimeout(() => {
+    if (view !== key || info) return;
+    const body = $("groups-body");
+    body.append(el("div", { class: "empty-grill" }, el("p", { text: "Couldn't load this group." }),
+      el("div", { class: "row" },
+        el("button", { class: "btn btn-primary", type: "button", text: "Try again", onclick: () => openGroup(key) }),
+        el("button", { class: "btn btn-ghost", type: "button", text: "Back", onclick: showList }))));
+  }, DETAILS_WAIT);
 }
 
 function showList() {
@@ -231,6 +278,12 @@ function showList() {
 /** {"type": "groups"} from the server. */
 export function onGroups(msg) {
   cards = Array.isArray(msg.groups) ? msg.groups.filter((c) => c && typeof c.key === "string") : [];
+  loaded = true;
+  if (view && !cards.some((c) => c.key === view)) {   // the group you were looking at is gone (disbanded)
+    showList();
+    noteServerText("event", "💥 That group is gone.", true);
+    return;
+  }
   if (view === "") render();
 }
 

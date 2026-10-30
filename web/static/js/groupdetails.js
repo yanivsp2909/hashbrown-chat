@@ -5,7 +5,7 @@
 import { $, el, nameClass, str } from "./dom.js";
 import { getState } from "./store.js";
 import * as G from "./grouplogic.js";
-import { act, badge, confirmStep } from "./groups.js";
+import { act, actKey, badge, confirmLeave, confirmStep } from "./groups.js";
 
 const SVG = "http://www.w3.org/2000/svg";
 const CHART_W = 320;
@@ -52,15 +52,15 @@ function memberTools(info, member) {
   if (!info.admin || target === me || member.role === "owner") return null;
   const owner = info.your_role === "owner";
   const muteId = `gs-mute-${target}`;
-  const ask = (action, title, text, yes, extra = {}) => async () => {
-    if (await confirmStep({ title, text, yes })) act(action, info, { target, ...extra });
+  const ask = (action, title, text, yes) => async () => {
+    if (await confirmStep({ title, text, yes, danger: true })) act(action, info, { target });
   };
   return el("div", { class: "gs-tools", role: "group", "aria-label": `Manage ${target}` },
     el("button", { class: "mini-btn gs-tool", type: "button", text: "Kick", "aria-label": `Kick ${target}`,
       onclick: ask("kick", `Kick ${target}?`, `${target} leaves ${str(info.name)} but can join again.`, "Kick") }),
     el("label", { class: "visually-hidden", for: muteId, text: `Mute ${target} for how many minutes` }),
     el("select", { id: muteId, class: "gs-select" }, MUTE_CHOICES.map((m) => el("option", { value: String(m), text: `${m} min` }))),
-    el("button", { class: "mini-btn gs-tool", type: "button", text: "Mute", "aria-label": `Mute ${target}`,
+    el("button", { class: "mini-btn gs-tool", type: "button", text: "Mute", "aria-label": `Mute ${target}`, "data-act": actKey("mute", info, target),
       onclick: () => act("mute", info, { target, value: $(muteId).value }) }),
     el("button", { class: "mini-btn gs-tool gs-danger", type: "button", text: "Ban", "aria-label": `Ban ${target}`,
       onclick: ask("ban", `Ban ${target}?`, `${target} is kicked and can't come back until an admin unbans them.`, "Ban") }),
@@ -110,7 +110,7 @@ function donateForm(info) {
   return el("form", { class: "gs-donate", onsubmit: submit },
     el("label", { class: "visually-hidden", for: "gs-donate", text: "Tokens to donate" }),
     el("input", { id: "gs-donate", class: "input", type: "number", min: "1", step: "1", inputmode: "numeric", placeholder: "Amount 🪙" }),
-    el("button", { class: "btn btn-primary", type: "submit", text: "Donate" }));
+    el("button", { class: "btn btn-primary", type: "submit", text: "Donate", "data-act": actKey("donate", info) }));
 }
 
 function bankBlock(info) {
@@ -163,7 +163,7 @@ function upgradesBlock(info) {
         el("p", { class: "gs-upgrade-does", text: str(u.does) }),
         el("p", { class: "gs-upgrade-state", text: G.upgradeStatus(u) })),
       admin && u.state === "can_buy" ? el("button", { class: "btn btn-primary gs-buy", type: "button", text: "Buy",
-        "aria-label": `Buy ${str(u.name)} for ${u.price} tokens`, onclick: buy(u) }) : null))));
+        "aria-label": `Buy ${str(u.name)} for ${u.price} tokens`, "data-act": actKey("upgrade", info), onclick: buy(u) }) : null))));
 }
 
 // ---------------------------------------------------------------- 🛡️ admin tools (only sent to admins)
@@ -179,7 +179,8 @@ function settingForm(info, { id, label, action, value, placeholder, needs, max }
     el("div", { class: "gs-setting-row" },
       el("input", { id, class: "input", value: value || "", placeholder, maxlength: String(max), disabled: locked,
         "aria-describedby": locked ? `${id}-why` : null, autocomplete: "off" }),
-      el("button", { class: "btn btn-ghost", type: "submit", text: "Save", disabled: locked })),
+      el("button", { class: "btn btn-ghost", type: "submit", text: "Save", disabled: locked, "data-locked": locked ? "1" : null,
+        "data-act": actKey(action, info) })),
     locked ? el("p", { id: `${id}-why`, class: "field-hint", text: `Needs the ${needs} upgrade first.` }) : null);
 }
 
@@ -187,20 +188,12 @@ function adminBlock(info) {
   const admin = info.admin;
   if (!admin) return null;
   const name = str(info.name);
-  const requests = Array.isArray(admin.requests) ? admin.requests.map(str) : [];
   const muted = Array.isArray(admin.muted) ? admin.muted : [];
   const banned = Array.isArray(admin.banned) ? admin.banned.map(str) : [];
   const person = (who, ...buttons) => el("li", { class: "gs-person" }, el("span", { dir: "auto", text: who }),
     el("div", { class: "gs-tools", role: "group", "aria-label": who }, buttons));
   return block("gs-admin-title", "🛡️ Admin tools",
     el("p", { class: "gs-muted", text: `These act in the group's room, so they open ${name} first if you're somewhere else.` }),
-    el("div", { class: "gs-sub" }, el("h4", { class: "gs-h4", text: `📨 Join requests (${requests.length})` }),
-      requests.length ? el("ul", { class: "gs-people" }, requests.map((who) => person(who,
-        el("button", { class: "btn btn-primary gs-small", type: "button", text: "Approve", "aria-label": `Approve ${who}`,
-          onclick: () => act("approve", info, { target: who }) }),
-        el("button", { class: "btn btn-ghost gs-small", type: "button", text: "Reject", "aria-label": `Reject ${who}`,
-          onclick: () => act("reject", info, { target: who }) }))))
-        : el("p", { class: "gs-muted", text: "No one is waiting." })),
     muted.length ? el("div", { class: "gs-sub" }, el("h4", { class: "gs-h4", text: "🔇 Muted" }),
       el("ul", { class: "gs-people" }, muted.map((m) => person(`${str(m.name)} · ${m.minutes} min left`,
         el("button", { class: "btn btn-ghost gs-small", type: "button", text: "Unmute", "aria-label": `Unmute ${str(m.name)}`,
@@ -219,9 +212,24 @@ function adminBlock(info) {
       el("button", { class: "btn btn-ghost gs-danger", type: "button", text: `Disband ${name}…`,
         onclick: async () => {
           const ok = await confirmStep({ title: `Disband ${name}?`, text: "This can't be undone: the group, its chat and its bank history are deleted.",
-            yes: "Disband", requireText: name, label: `Type ${name} to confirm` });
-          if (ok) act("disband", info);
+            yes: "Disband", requireText: name, label: `Type ${name} to confirm`, danger: true });
+          if (ok && await act("disband", info)) $("gs-details-title")?.closest(".gs-body")?.querySelector(".gs-back")?.click();
         } })) : null);
+}
+
+/** 📨 Join requests hang on paper tickets above everything (in this world, what needs you is a ticket). */
+function requestTickets(info) {
+  const requests = info.admin && Array.isArray(info.admin.requests) ? info.admin.requests.map(str) : [];
+  if (!requests.length) return null;
+  return el("section", { class: "gs-tickets", "aria-labelledby": "gs-requests-title" },
+    el("h3", { id: "gs-requests-title", class: "gs-h3", text: `📨 Join requests (${requests.length})` }),
+    el("ul", { class: "gs-ticket-list" }, requests.map((who) => el("li", { class: "gs-ticket" },
+      el("span", { class: "gs-ticket-name", dir: "auto", text: `${who} wants to join` }),
+      el("div", { class: "gs-tools", role: "group", "aria-label": `Answer ${who}` },
+        el("button", { class: "btn btn-primary gs-small", type: "button", text: "Approve", "aria-label": `Approve ${who}`,
+          "data-act": actKey("approve", info, who), onclick: () => act("approve", info, { target: who }) }),
+        el("button", { class: "btn btn-ghost gs-small gs-ticket-reject", type: "button", text: "Reject", "aria-label": `Reject ${who}`,
+          "data-act": actKey("reject", info, who), onclick: () => act("reject", info, { target: who }) }))))));
 }
 
 // ---------------------------------------------------------------- the whole view
@@ -237,15 +245,19 @@ export function renderDetails(body, info, { back }) {
   const role = str(info.your_role, "none");
   const member = G.isMember(role);
   const joinRow = member ? el("div", { class: "gs-row-actions" },
-    el("button", { class: "btn btn-primary", type: "button", text: "Open chat", onclick: () => act("open", info) }))
+    el("button", { class: "btn btn-primary", type: "button", text: "Open chat", "data-act": actKey("open", info), onclick: () => act("open", info) }),
+    role !== "owner" ? el("button", { class: "btn btn-ghost", type: "button", text: "Leave", "data-act": actKey("leave", info),
+      onclick: async () => { if (await confirmLeave(info)) act("leave", info); } }) : null)
     : role === "requested" ? el("p", { class: "gs-waiting", text: "⏳ Your request is waiting for an admin." })
       : el("div", { class: "gs-row-actions" }, el("button", { class: "btn btn-primary", type: "button",
-        text: info.private ? "Request to join" : "Join", onclick: () => act("join", info) }));
+        text: info.private ? "Request to join" : "Join", "data-act": actKey("join", info), onclick: () => act("join", info) }));
   const inside = Array.isArray(info.members_list);
   const people = `👥 ${info.members} member${info.members === 1 ? "" : "s"}${Number.isInteger(info.online) ? ` · 🟢 ${info.online} online` : ""}`;
   body.append(el("div", { class: "gs-summary" }, el("div", { class: "gs-summary-text" }, el("p", { class: "gs-meta", text: people }),
     inside ? about(info) : el("p", { class: "gs-muted", text: "🔒 A private group: only its members see what's inside." })), joinRow));
   if (!inside) return;
+  const tickets = requestTickets(info);
+  if (tickets) body.append(tickets);
   body.append(el("div", { class: "gs-columns" },   // (el() skips the parts that are null)
     el("div", { class: "gs-col" }, members(info), adminBlock(info)),
     el("div", { class: "gs-col" }, bankBlock(info), upgradesBlock(info))));
