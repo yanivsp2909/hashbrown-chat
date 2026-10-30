@@ -7,7 +7,7 @@
 //   list  a card whose rows came in as indented lines (/groups, /top, /help...).
 //   meta  a short grey line in the middle ("👋 Noa joined the chat").
 
-import { $, clear, el, nameClass, str } from "./dom.js";
+import { $, clear, el, initial, nameClass, str } from "./dom.js";
 import { isHashbrown, parsePrivate } from "./patterns.js";
 
 const MAX_MESSAGES = 500;
@@ -131,7 +131,6 @@ function addOther(node, options) {
 
 function avatar(name, bot) {
   if (bot) return el("img", { class: "avatar avatar-bot", src: "/logo.svg", alt: "", width: "32", height: "32" });
-  // (initial() is in dom.js, shared with the Online list)
   return el("span", { class: `avatar ${nameClass(name)}`, "aria-hidden": "true", text: initial(name) });
 }
 
