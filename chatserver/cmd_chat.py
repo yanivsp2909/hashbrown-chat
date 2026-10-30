@@ -82,7 +82,7 @@ def cmd_whois(client, args):
     status = f"🟢 online in {rooms.room_title(state.online[key].room)}" if key in state.online else "⚫ offline"
     member_of = [g["name"] for g in state.groups.values() if key in g["members"]]
     client.say(f"👤 {rooms.shown(key)}\n"
-               f"   🪙 {a['tokens']} tokens   🏆 {a['wins']}W {a['losses']}L {a['draws']}D\n"
+               f"   🪙 {a['tokens']} tokens   🏆 {a['wins']}W {a['losses']}L {a['draws']}D   📈 ELO {a['elo']}\n"
                f"   {status}\n"
                f"   👥 groups: {', '.join(member_of) or 'none'}\n"
                f"   📅 joined {a['joined']}   🔥 daily streak: {a['streak']}\n"

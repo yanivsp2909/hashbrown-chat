@@ -85,7 +85,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | 21 | Connect 4 | done: games.Connect4 (columns 1-7, gravity, 4 in a row, draw when full), /challenge name connect4 (or c4), website column buttons |
 | 22 | Battleship | done: 6x6 seas, ships 3-2-2-1 placed for you, fire like c3; each player's state hides the other's ships; website: their sea = buttons |
 | 23 | Spectating | not started |
-| 24 | ELO + leaderboards | not started |
+| 24 | ELO + leaderboards | done: START_ELO 1000, K 32, after every match (old saves get 1000 on load), /leaderboard [elo|wins|tokens], ELO in /whois |
 | 25 | Offline messages | not started |
 | 26 | Edit/delete | not started |
 | 27 | Jackpot pool | not started |

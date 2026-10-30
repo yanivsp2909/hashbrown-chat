@@ -90,9 +90,23 @@ def finish_match(match, winner, reason=""):
         if account["wins"] >= 10:
             achievements.unlock(winner, "ten_wins")
         achievements.check_rich(winner)
+    update_elo(match, winner)
     storage.save_data()
     for hook in finish_hooks:
         hook(match, winner)
+
+
+def update_elo(match, winner):
+    """📈 ELO: you gain more for beating a stronger player, and lose less to one. A draw counts as half a win.
+    expected = 1 / (1 + 10 ** ((their rating - your rating) / 400)); change = K * (result - expected)."""
+    p1, p2 = match.players
+    r1, r2 = state.accounts[p1]["elo"], state.accounts[p2]["elo"]
+    expected1 = 1 / (1 + 10 ** ((r2 - r1) / 400))
+    result1 = 0.5 if winner in ("draw", None) else (1.0 if winner == p1 else 0.0)
+    change = round(config.ELO_K * (result1 - expected1))
+    for player, delta in ((p1, change), (p2, -change)):
+        state.accounts[player]["elo"] += delta
+        rooms.tell(player, f"📈 ELO: {state.accounts[player]['elo']} ({delta:+d})", "game")
 
 
 def end_all_matches():

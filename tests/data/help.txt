@@ -63,6 +63,7 @@
   /accept [name]                   accept a challenge
   /decline [name]                  say no to a challenge
   /move ...                        a move (or just type it)
+  /leaderboard [elo|wins|tokens]   the best players (ELO by default) 📈
   /hint                            a Wordle hint from Hashbrown, one per game (20 🪙)
   /rematch                         challenge your last opponent again 🔁
   /claim                           win if the other player hasn't moved for 2 min ⏰

@@ -76,6 +76,7 @@ HISTORY_SIZE, BIG_HISTORY_SIZE = 15, 50
 SPAM_LIMIT, SPAM_WINDOW = 8, 5   # at most 8 messages per 5 seconds
 MAX_OWNED_GROUPS = 2             # groups one person can own
 TEAM_PLAYER_DONATION = 50        # one donation this big unlocks 🤝 Team Player
+START_ELO, ELO_K = 1000, 32   # 📈 everyone's first rating, and how much one game can move it
 CLAIM_AFTER = 120   # seconds: if the other player doesn't move on their turn, /claim wins
 MIN_MOVES_FOR_BONUS = 2          # moves EACH player must make before a resign/disconnect win earns the +25
 

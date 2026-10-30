@@ -117,6 +117,18 @@ def cmd_move(client, args):
     matches.do_move(client, args)
 
 
+LEADERBOARDS = {"elo": ("elo", "📈 ELO"), "wins": ("wins", "🏆 wins"), "tokens": ("tokens", "🪙 tokens")}
+
+
+@registry.command("/leaderboard", "/leaderboard [elo|wins|tokens]", "the best players (ELO by default) 📈", "🎮 Games")
+def cmd_leaderboard(client, args):
+    field, label = LEADERBOARDS.get(args.strip().lower(), LEADERBOARDS["elo"])
+    ranking = sorted(state.accounts, key=lambda k: state.accounts[k][field], reverse=True)
+    rows = [f"  {i}. {rooms.shown(k)}  {state.accounts[k][field]}" for i, k in enumerate(ranking[:10], 1)]
+    place = ranking.index(client.key) + 1
+    client.say(f"🏆 Leaderboard: {label}\n" + "\n".join(rows) + f"\nYou are #{place} of {len(ranking)}.")
+
+
 @registry.command("/hint", "/hint", f"a Wordle hint from Hashbrown, one per game ({config.HASHBROWN_COST} 🪙)",
                   "🎮 Games")
 def cmd_hint(client, args):
