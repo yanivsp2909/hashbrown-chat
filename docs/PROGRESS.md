@@ -101,7 +101,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | # | Item | Status |
 |---|---|---|
 | R1 | Chats switcher: each chat its own conversation | done: root cause: the website had ONE message list and a room switch added the new history under the old room's messages; now a switch starts a fresh list, history packets carry an optional `key`, previews per room (roomlogic.js, tested in Node) |
-| R2 | Sidebar scrolls on its own | not started |
+| R2 | Sidebar scrolls on its own | done: the app grid has one screen-tall row, the sidebar scrolls on its own (contained, sections never squeezed, no scrollbar jump), the phone drawer is exactly the screen with home-bar padding and freezes the chat behind it; checked at 375, 900 and 1280 wide |
 | R3 | Faster "is typing…" | not started |
 | R4 | @ autocomplete | not started |
 | R5 | `/answer` for the question of the day | not started |

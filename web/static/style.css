@@ -234,6 +234,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .app {
   display: grid; height: 100dvh;
   grid-template-columns: 264px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);   /* one row exactly as tall as the screen: each column scrolls on its own */
 }
 .app.has-game { grid-template-columns: 264px minmax(0, 1fr) 380px; }
 @media (min-width: 1100px) {
@@ -242,10 +243,14 @@ a { color: var(--gold); text-underline-offset: 3px; }
 }
 @keyframes panel-in { from { opacity: 0; transform: translateX(16px); } }
 .sidebar {
-  overflow-x: hidden; overscroll-behavior: contain;
-  display: flex; flex-direction: column; gap: 22px; padding: 18px 16px;
-  background: var(--panel); border-right: 1px solid var(--line-soft); overflow-y: auto;
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; min-height: 0;
+  -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  scrollbar-gutter: stable; scrollbar-width: thin;   /* the scrollbar coming and going doesn't move things */
+  display: flex; flex-direction: column; gap: 22px;
+  padding: 18px 16px max(18px, env(safe-area-inset-bottom));   /* the last buttons clear a phone's home bar */
+  background: var(--panel); border-right: 1px solid var(--line-soft);
 }
+.sidebar > * { flex: none; }   /* sections keep their size: the sidebar scrolls instead of squeezing them */
 .side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .brand { font-weight: 800; font-size: 19px; letter-spacing: -0.01em; }
 .side-head .brand { display: inline-flex; align-items: center; gap: 9px; }
@@ -484,6 +489,8 @@ a { color: var(--gold); text-underline-offset: 3px; }
     transition: transform 280ms var(--ease-drawer), visibility 0s linear 280ms;
   }
   .app.side-open .sidebar { transform: none; visibility: visible; transition: transform 280ms var(--ease-drawer), visibility 0s; }
+  .sidebar { height: 100dvh; scrollbar-gutter: auto; }   /* the open drawer is exactly the visible screen */
+  .app.side-open .messages { overflow-y: hidden; }   /* the chat behind the open drawer stays still */
   .bubble { max-width: min(88%, 68ch); }
   .msg.chat:not(.mine) .bubble { max-width: 100%; }
   .suggestions .desc { display: none; }
