@@ -140,6 +140,11 @@ If you're picking this up after a break: read the rules, then continue from the 
 | R18 | Tip Hashbrown | done: /give hashbrown N (any case, @ ok): the usual /give limits, tokens go to state.hashbrown_tokens (saved as "hashbrown_tokens"), "🥔 Hashbrown" in /top, a canned thanks from Hashbrown in your room (random of 3, no AI) |
 | R19 | `/hbstats` | done: /hbstats (server admins): answers today, the server-wide cap used, tokens from the API's own usage numbers (read on response.completed), cost = in x HASHBROWN_PRICE_IN + out x HASHBROWN_PRICE_OUT per million (example prices 0.25 / 2.00 $: set your deployment's). Counted in memory per day (a restart starts from zero); the fake test AI now sends usage too |
 
+### Round 3 reviews
+
+- a11y-architect (the @ list, the file offer buttons): all findings fixed (see R4; offer buttons keep focus, announce the answer, come back on failure, live only).
+- security-reviewer (Parts B and C): no critical issues, no secret leaks. Fixed: a bare /accept now prefers a waiting game challenge (a file only with "file", its sender's name or the website button); a 60 MB cap on all waiting small files; a waiting big file no longer blocks other senders; logging in again ends the old window's offers and transfers; accept re-checks the app can take big files. Left for the owner: look-alikes inside one alphabet still pass (I/l/1, O/0, rn/m, Hebrew ס/ם); any user can lock /admin for 10 minutes with 3 wrong tries (the chosen trade-off); a filename is free text in the offer line; tokens can still move between accounts without the /give limits through game bets, /rob, and /donate + /disband.
+
 ## Decisions made on the way
 
 (Choices made without asking, so the owner can review them.)

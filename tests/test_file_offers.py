@@ -42,7 +42,7 @@ def test_a_small_file_waits_for_accept(user, asker):
     adi, ben = user("Adi"), asker("Ben")
     send_small(adi)
     offer = offer_of(ben)
-    assert offer["text"].startswith("📎 Adi wants to send you a.txt (1 KB)") and "/accept" in offer["text"]
+    assert offer["text"].startswith("📎 Adi wants to send you a.txt (1 KB)") and "/accept file" in offer["text"]
     assert offer["offer"]["from"] == "Adi" and offer["offer"]["filename"] == "a.txt"
     adi.expect_text("Waiting for Ben")
     assert files_of(ben) == []
@@ -80,17 +80,18 @@ def test_offers_expire(user, asker):
     ben.expect_text("No file offers", kind="error")
 
 
-def test_accept_takes_the_newest_of_a_challenge_and_a_file(user, asker):
+def test_a_waiting_challenge_wins_over_a_file_unless_you_say_file(user, asker):
+    """Security review: a file sent last must not steal the /accept you meant for a game."""
     adi, ben = user("Adi"), asker("Ben")
     adi.line("/challenge Ben ttt")
     ben.expect_text("challenges you")
     send_small(adi)
     offer_of(ben)
-    ben.line("/accept Adi")                         # the file came last
-    ben.expect(lambda m: m.get("type") == "file")
-    assert "adi" not in state.matches
-    ben.line("/accept Adi")                         # now the challenge
+    ben.line("/accept")                             # the game, even though the file came last
     ben.expect(lambda m: m.get("kind") == "board")
+    assert files_of(ben) == []
+    ben.line("/accept file")
+    ben.expect(lambda m: m.get("type") == "file")
 
 
 def test_accept_file_with_the_offer_number(user, asker):
@@ -175,3 +176,29 @@ def test_the_sender_cancelling_a_waiting_big_file_removes_the_offer(asker):
     adi.send({"type": "file_cancel", "id": "t1"})
     ben.expect_text("cancelled", kind="error")
     assert state.offers == {} and state.transfers == {}
+
+
+def test_all_waiting_small_files_together_have_a_cap(user, asker, monkeypatch):
+    monkeypatch.setattr(config, "OFFERS_BYTES_MAX", len(SMALL) + 10)
+    adi, cat, _ = user("Adi"), user("Cat"), asker("Ben")
+    send_small(adi)
+    adi.expect_text("Waiting for Ben")
+    send_small(cat)
+    cat.expect_text("Too many files are waiting", kind="error")
+
+
+def test_a_waiting_big_file_doesnt_block_other_senders(asker):
+    adi, cat, ben = asker("Adi"), asker("Cat"), asker("Ben")
+    start_big(adi)
+    offer_of(ben)
+    cat.send({"type": "file_start", "id": "c1", "to": "Ben", "filename": "two.bin",
+              "size": config.CHUNK_SIZE + 10, "chunks": 2})
+    cat.expect_text("Waiting for Ben")
+
+
+def test_logging_in_again_ends_the_old_windows_offers(user, asker, connect):
+    adi, ben = user("Adi"), asker("Ben")
+    send_small(adi)
+    offer_of(ben)
+    user("Adi", action="login")                     # the same account from a new window
+    assert state.offers == {}

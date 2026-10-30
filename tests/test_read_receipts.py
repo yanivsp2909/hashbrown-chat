@@ -48,8 +48,7 @@ def test_only_the_receiver_can_say_seen_and_only_once(user):
 def test_offline_messages_have_no_receipts(user):
     adi, ben = user("Adi"), user("Ben")
     ben.close()
-    adi.line("/users")
-    adi.expect_text("Online now (1)")
+    adi.expect_text("Ben left the chat")
     adi.line("/send Ben later")
     note = adi.expect_text("offline")
     assert "pm" not in note

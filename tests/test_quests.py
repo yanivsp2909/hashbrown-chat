@@ -11,14 +11,14 @@ pytestmark = pytest.mark.integration
 def these_quests(monkeypatch):
     """Make today's quests these, so the test doesn't depend on the date."""
     def pick(*ids):
-        monkeypatch.setattr(quests, "todays", lambda day=None: list(ids))
+        monkeypatch.setattr(quests, "todays", lambda: list(ids))
     return pick
 
 
 def test_three_a_day_the_same_for_everyone_and_new_tomorrow():
-    assert len(quests.todays("2026-10-30")) == 3 == len(set(quests.todays("2026-10-30")))
-    assert quests.todays("2026-10-30") == quests.todays("2026-10-30")
-    assert any(quests.todays(f"2026-11-{d:02}") != quests.todays("2026-10-30") for d in range(1, 10))
+    assert len(quests.pick_for("2026-10-30")) == 3 == len(set(quests.pick_for("2026-10-30")))
+    assert quests.pick_for("2026-10-30") == quests.pick_for("2026-10-30")
+    assert any(quests.pick_for(f"2026-11-{d:02}") != quests.pick_for("2026-10-30") for d in range(1, 10))
 
 
 def test_quests_lists_progress(user, these_quests):

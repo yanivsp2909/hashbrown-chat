@@ -55,7 +55,7 @@ def start(client, msg):
     if target == client.key:
         client.say("🙃 You can't send a file to yourself.", "error")
         return
-    if any(t["to"] == target for t in state.transfers.values()):
+    if any(t["to"] == target and not t["waiting"] for t in state.transfers.values()):   # (offers don't count)
         client.say(f"📦 {rooms.nick(target)} is already getting a big file. Try again when it's done.", "error")
         return
     if "chunks" not in state.online[target].features:
@@ -90,6 +90,14 @@ def go_ahead(key):
     transfer = state.transfers.get(key)
     if transfer is None or transfer["from"] not in state.online or transfer["to"] not in state.online:
         return False
+    getter = state.online[transfer["to"]]
+    if "chunks" not in getter.features:   # they logged in again from an app that can't take big files
+        cancel_waiting(key, f"📦 {rooms.nick(transfer['to'])}'s app can't receive big files. Send them up to 2 MB.")
+        return True
+    if any(t["to"] == transfer["to"] and not t["waiting"] for t in state.transfers.values()):
+        cancel_waiting(key, f"📦 {rooms.nick(transfer['to'])} was already getting another big file. Try again soon.")
+        getter.say("📦 You're getting another big file right now, so that one was cancelled.", "error")
+        return True
     transfer["waiting"], transfer["active"] = False, time.time()
     begin(transfer)
     return True

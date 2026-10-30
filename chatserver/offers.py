@@ -31,6 +31,10 @@ def make(sender, target, filename, size, packet=None, transfer_key=None):
     if any(o["from"] == sender for o in waiting):
         rooms.tell(sender, "📎 Wait until your last file is accepted or declined.", "error")
         return False
+    if packet is not None and sum(len(o["packet"]["data"]) for o in waiting if o["packet"]) + len(packet["data"]) \
+            > config.OFFERS_BYTES_MAX:   # all the small files waiting here together (they're kept in memory)
+        rooms.tell(sender, "📎 Too many files are waiting on the server right now. Try again in a minute.", "error")
+        return False
     if sum(1 for o in waiting if o["to"] == target) >= config.OFFERS_WAITING_MAX:
         rooms.tell(sender, f"📎 {rooms.nick(target)} already has {config.OFFERS_WAITING_MAX} files waiting. "
                            "Try again later.", "error")
@@ -40,7 +44,7 @@ def make(sender, target, filename, size, packet=None, transfer_key=None):
              "time": time.time(), "packet": packet, "transfer": transfer_key}
     state.offers[offer["id"]] = offer
     name = rooms.nick(sender)
-    rooms.tell(target, f"📎 {name} wants to send you {filename} ({size_text(size)}).  /accept {name}  or  /decline {name}",
+    rooms.tell(target, f"📎 {name} wants to send you {filename} ({size_text(size)}).  /accept file  or  /decline file",
                "event", offer={"id": offer["id"], "from": name, "filename": filename, "size": size})
     rooms.tell(sender, f"📨 Waiting for {rooms.nick(target)} to accept {filename}…")
     return True
@@ -61,17 +65,16 @@ def find(client, args):
 
 
 def is_file_answer(client, args):
-    """Does this /accept or /decline mean a file? Yes for "file ...", or when the newest matching offer is newer
-    than the newest matching game challenge."""
+    """Does this /accept or /decline mean a file? Yes for "file ..." (the website's buttons). Otherwise only if
+    there's no game challenge it could mean: a waiting challenge always wins, so nobody can sneak a file in
+    front of the game you meant to accept."""
     if args.split()[:1] == ["file"]:
         return True
-    offer = find(client, args)
-    if offer is None:
+    if find(client, args) is None:
         return False
     name = args.strip().lower().lstrip("@")
-    challenges = [i for i in state.invites.get(client.key, []) if time.time() - i["time"] < 180
-                  and (not name or rooms.nick(i["from"]).lower() == name)]
-    return not challenges or offer["time"] >= max(i["time"] for i in challenges)
+    return not any(time.time() - i["time"] < 180 and (not name or rooms.nick(i["from"]).lower() == name)
+                   for i in state.invites.get(client.key, []))
 
 
 def accept(client, args):

@@ -12,7 +12,7 @@ import urllib.request
 
 import pytest
 
-from chatserver import config, connections, history, session, state
+from chatserver import config, connections, history, quests, session, state
 from helpers import FakeClient, FakeFoundry, auth
 
 
@@ -27,6 +27,8 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "HISTORY_DB", str(tmp_path / "history.db"))
     monkeypatch.setattr(config, "SPAM_LIMIT", 1000)  # tests type fast; the spam test sets it back
     monkeypatch.setattr(config, "ACCEPT_WAKEUP", 0.1)  # stop each test's server quickly
+    monkeypatch.setattr(quests, "todays", lambda: [])   # 🎯 no quest rewards unless a test picks some (they'd
+                                                        # change token counts depending on the date)
     for path in (config.DATA_FILE, config.HASHBROWN_CONFIG, config.HISTORY_DB):
         assert os.path.realpath(path).startswith(os.path.realpath(str(tmp_path)))
 

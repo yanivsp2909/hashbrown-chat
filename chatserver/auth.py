@@ -5,7 +5,7 @@ import hashlib
 import secrets
 import time
 
-from chatserver import config, reminders, rooms, state, storage, textutil
+from chatserver import config, offers, reminders, rooms, state, storage, textutil, transfers
 
 
 # ---------------------------------------------------------------- passwords
@@ -111,6 +111,8 @@ def handle_auth(client, msg):
             # (with key None it's treated as logged out until it's hung up half a second later).
             rooms.notify_room(old.room, f"👋 {rooms.shown(key)} left the chat", exclude=old)
             old.key = None
+            offers.drop_all_of(key)      # the old window's file offers and transfers end with it
+            transfers.drop_all_of(key)
             old.kick("🔁 You logged in from another window, so this one was disconnected.")
             textutil.log(f"[SERVER] {rooms.nick(key)} logged in again, closing the old connection")
         client.key = key

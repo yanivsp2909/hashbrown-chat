@@ -17,10 +17,13 @@ QUESTS = {
 PER_DAY = 3
 
 
-def todays(day=None):
-    """The three quest ids for this day (the date is the seed, so everyone gets the same ones)."""
-    day = day or textutil.today()
+def pick_for(day):
+    """The three quest ids for a day (the date is the seed, so everyone gets the same ones)."""
     return random.Random(day).sample(sorted(QUESTS), PER_DAY)
+
+
+def todays():
+    return pick_for(textutil.today())
 
 
 def progress_of(key):
