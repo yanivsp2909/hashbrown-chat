@@ -129,7 +129,7 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 |---|---|
 | 💬 Chat | `/help` `/users` `/send name msg` `/me action` `/nick name` `/whois name` `/quit` |
 | 📊 Polls | `/poll question \| option \| option` (2-6 options) `/vote 2` `/poll` (see the votes) `/endpoll` |
-| 🥔 Hashbrown | `@hashbrown question` (everyone sees the answer) or `/ask question` (only you see it, you pay), `/tldr` (a summary of the chat, only for you) |
+| 🥔 Hashbrown | `@hashbrown question` (everyone sees the answer) or `/ask question` (only you see it, you pay), `/tldr` (a summary of the chat, only for you), `/judge` (Hashbrown settles the argument, everyone sees it), `/tr text` (Hebrew ↔ English, only you), `/qotd` (today's question of the day), `/hint` in a Wordle (one per game) |
 | 👥 Groups | `/groups` `/create name [private]` `/join name` `/lobby` `/leave` `/members` `/requests` `/approve name` `/reject name` |
 | 🛡️ Admin | `/kick` `/ban` `/unban` `/mute name [min]` `/unmute` `/promote` `/demote` `/disband` |
 | 🏦 Group bank | `/bank` `/donate amount` `/upgrade name` `/groupemoji 🍟` `/topgroups` |
@@ -145,6 +145,13 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 - Math Duel: the number, like `42`
 
 The admin password is `ADMIN_PASSWORD` in `chatserver/config.py`. **Change it from 123**, or your friends will guess it.
+
+## Hashbrown extras 🥔
+
+- 🎙️ **Commentator:** after every match, Hashbrown sends both players one funny line about it.
+- ❓ **Question of the day:** once a day (after 10:00 Israel time, when at least two people are online) Hashbrown asks the lobby a fun question. `/qotd` shows it again.
+- 🎭 **Group personality:** buy the 🎭 upgrade for your group (`/upgrade personality`), then a group admin types `/personality a pirate who loves potatoes`. Hashbrown plays that role in your group (all its rules still apply). `/personality` with nothing turns it off.
+- These cost the server, not you, and count toward the server's daily Hashbrown limit.
 
 ## On the website: reactions and typing 😂
 

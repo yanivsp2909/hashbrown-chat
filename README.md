@@ -27,7 +27,7 @@
 - 🏦 **Group bank**: every group earns its own tokens and spends them on upgrades.
 - 🪙 **Tokens**: earn them by being online, with a `/daily` streak, winning games and achievements. Spend them in the badge shop or the casino (fake tokens only).
 - 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel and solo Wordle. Challenge a friend, with an optional token bet; `/rematch`, and `/claim` if they stop moving.
-- 🥔 **Hashbrown**: an AI member. Type `@hashbrown` in chat, or `/ask` for a private answer. Each question costs tokens. Without an API key, Hashbrown is simply off.
+- 🥔 **Hashbrown**: an AI member. Type `@hashbrown` in chat, or `/ask` for a private answer; it also comments on your games, judges arguments (`/judge`), translates (`/tr`), gives Wordle hints and asks a question of the day. Each question costs tokens. Without an API key, Hashbrown is simply off.
 - 🌐 **Website**: chat from any phone or laptop on the same Wi-Fi. Light and dark mode, clickable game boards, file sharing.
 - ⌨️ **Terminal client**: `client.py` works in Terminal, Windows CMD and PyCharm.
 - 📁 **Files**: send a file of up to 2 MB.
