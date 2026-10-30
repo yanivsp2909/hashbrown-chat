@@ -4,8 +4,8 @@
 import os
 import time
 
-from chatserver import (achievements, config, hashbrown_ai, hashbrown_extras, history, matches, registry, rooms,
-                        state, storage, textutil)
+from chatserver import (achievements, config, hashbrown_ai, hashbrown_extras, history, matches, offers, registry,
+                        rooms, state, storage, textutil)
 
 
 def handle_file(client, msg):
@@ -20,7 +20,11 @@ def handle_file(client, msg):
         client.say("📁 Files must be 2 MB or less.", "error")
         return
     filename = os.path.basename(textutil.clean_text(msg.get("filename", "")).replace("\\", "/"))[:100] or "file"
-    state.online[target].send({"type": "file", "from": rooms.nick(client.key), "filename": filename, "data": data})
+    packet = {"type": "file", "from": rooms.nick(client.key), "filename": filename, "data": data}
+    if offers.wants_offers(target):   # 📎 ask first; the file waits here until they /accept
+        offers.make(client.key, target, filename, len(data) * 3 // 4, packet=packet)
+        return
+    state.online[target].send(packet)
     client.say(f"📤 Sent {filename} ({len(data) * 3 // 4 // 1024 + 1} KB) to {rooms.shown(target)}.")
 
 

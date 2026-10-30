@@ -441,3 +441,8 @@ def test_a_pong_shows_the_round_trip_in_milliseconds(monkeypatch):
     monkeypatch.setattr(client.time, "time", lambda: 100.25)
     client.show_message({"type": "pong", "t": 100.0})
     assert "🏓 Pong: 250 ms" in printed[0]
+
+
+def test_the_client_asks_to_be_asked_before_files_arrive():
+    """📎 It says "offers" at login, so a file waits for /accept (old copies without it get files directly)."""
+    assert "offers" in client.FEATURES

@@ -61,8 +61,8 @@
 🎮 Games
   /games                           what you can play
   /challenge name game [bet]       invite to a 1v1
-  /accept [name]                   accept a challenge
-  /decline [name]                  say no to a challenge
+  /accept [name]                   accept a challenge or a file 📎
+  /decline [name]                  say no to a challenge or a file
   /move ...                        a move (or just type it)
   /watch [name]                    watch someone's game 👀 (/watch alone: stop)
   /leaderboard [elo|wins|tokens]   the best players (ELO by default) 📈

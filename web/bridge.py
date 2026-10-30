@@ -350,9 +350,10 @@ class Session:
 class Registry:
     """All live sessions, the caps, and a cleanup thread."""
 
-    def __init__(self, chat_address, max_sessions):
+    def __init__(self, chat_address, max_sessions, creates_per_minute=CREATES_PER_MINUTE):
         self.chat_address = chat_address
         self.max_sessions = max_sessions
+        self.creates_per_minute = creates_per_minute
         self.lock = threading.Lock()
         self.sessions = {}
         self.reserved = {}      # ip -> sessions being connected right now (counted against the caps)
@@ -367,7 +368,7 @@ class Registry:
             mine = sum(1 for s in self.sessions.values() if s.ip == ip) + self.reserved.get(ip, 0)
             if mine >= SESSIONS_PER_IP:
                 raise BridgeError(429, "Too many tabs open from this device. Close some first.")
-            if not allow(self.creates.setdefault(ip, deque()), CREATES_PER_MINUTE, 60):
+            if not allow(self.creates.setdefault(ip, deque()), self.creates_per_minute, 60):
                 raise BridgeError(429, "🐢 Too many reconnects. Wait a minute.")
             self.reserved[ip] = self.reserved.get(ip, 0) + 1
         try:

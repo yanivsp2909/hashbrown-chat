@@ -22,6 +22,9 @@ import webbrowser
 
 PORT = 8820
 WEB_PORT = 8080   # where the host's website runs (server.py starts it)
+# What this client understands, told to the server at login. "offers": ask me before sending me a file
+# (I answer with /accept or /decline). Older copies of this file don't send it and get files straight away.
+FEATURES = ["offers"]
 
 
 DISCOVERY_PORT = 8821   # UDP port where servers answer {"type": "discover"}
@@ -455,7 +458,7 @@ def login(sock, messages):
             print(paint("Passwords don't match, try again.", KIND_COLORS["error"]))
             continue
         send(sock, {"type": "auth", "action": "login" if choice == "1" else "register",
-                    "username": username, "password": password})
+                    "username": username, "password": password, "features": FEATURES})
         print(paint("⏳ Checking...", DIM))
         sock.settimeout(15)  # don't wait forever if the server never answers
         for msg in messages:

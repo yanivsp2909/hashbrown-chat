@@ -64,7 +64,8 @@ class Stack:
         self.web_log = open(self.tmp / "web_server.log", "w", encoding="utf-8")
         self.web = subprocess.Popen(
             [sys.executable, str(WEB / "web_server.py"), "--port", str(self.web_port),
-             "--chat-port", str(self.chat_port), "--max-sessions", str(max_sessions)],
+             "--chat-port", str(self.chat_port), "--max-sessions", str(max_sessions),
+             "--new-sessions-per-minute", "200"],   # the tests open far more tabs than a person would
             env=env, stdin=subprocess.DEVNULL, stdout=self.web_log, stderr=subprocess.STDOUT)
         wait_port(self.web_port, self.web)
 

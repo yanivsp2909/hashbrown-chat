@@ -23,7 +23,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
-from bridge import BridgeError, Registry
+from bridge import CREATES_PER_MINUTE, BridgeError, Registry
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 MAX_BODY = 4 * 1024 * 1024
@@ -320,12 +320,14 @@ def main():
     parser.add_argument("--chat-host", default="127.0.0.1")
     parser.add_argument("--chat-port", type=int, default=8820)
     parser.add_argument("--max-sessions", type=int, default=50)
+    parser.add_argument("--new-sessions-per-minute", type=int, default=CREATES_PER_MINUTE,
+                        help="new tabs one device may open per minute (the tests open many)")
     parser.add_argument("--allow-host", action="append", default=[],
                         help="a host name the site may be opened with, besides IP addresses")
     args = parser.parse_args()
 
     server = Server(("0.0.0.0", args.port), Handler)
-    server.registry = Registry((args.chat_host, args.chat_port), args.max_sessions)
+    server.registry = Registry((args.chat_host, args.chat_port), args.max_sessions, args.new_sessions_per_minute)
     server.static = load_static()
     server.allowed_hosts = {"localhost", *args.allow_host}
     if "/" not in server.static:

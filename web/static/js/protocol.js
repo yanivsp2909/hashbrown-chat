@@ -159,11 +159,29 @@ function onServerText(msg, live) {
   ] : wordleOver && wordle.state ? [  // the grid lives in the game panel: one click away
     el("button", { class: "btn btn-ghost", type: "button", text: "🟩 Show grid", onclick: () => hooks.showGame() }),
   ] : [];
+  const offer = fileOfferButtons(msg.offer);   // 📎 someone wants to send you a file
   const poll = msg.poll && Array.isArray(msg.poll.options) && live ? msg.poll.options.slice(0, 6).map((option, i) =>
     el("button", { class: "btn btn-ghost", type: "button", text: `${i + 1}) ${str(option)}`, onclick: () => sendLine(`/vote ${i + 1}`) }))
     : [];   // 📊 a poll: one button per option
-  chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions: poll.length ? poll : actions, label: result ? "Game over" : "",
+  chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions: offer.length ? offer : poll.length ? poll : actions, label: result ? "Game over" : "",
     tempId: str(msg.temp_id) });
+}
+
+/** 📎 Accept / Decline for a file offer ({"id", "from", "filename", "size"}). They name the offer by its number,
+ *  so a challenge from the same person can't get in the way. After one click both go grey. */
+function fileOfferButtons(offer) {
+  if (!offer || !Number.isInteger(offer.id)) return [];
+  const what = `${str(offer.filename, "a file")} from ${str(offer.from, "someone")}`;
+  const answer = (word) => async (event) => {
+    const buttons = [...(event.currentTarget.parentElement?.querySelectorAll("button") || [])];
+    for (const button of buttons) button.disabled = true;
+    const error = await sendLine(`/${word} file ${offer.id}`);
+    if (error) for (const button of buttons) button.disabled = false;   // didn't reach the server: try again
+  };
+  return [
+    el("button", { class: "btn btn-primary", type: "button", text: "Accept", "aria-label": `Accept ${what}`, onclick: answer("accept") }),
+    el("button", { class: "btn btn-ghost", type: "button", text: "Decline", "aria-label": `Decline ${what}`, onclick: answer("decline") }),
+  ];
 }
 
 export function handleMessage(msg, live, sendLine) {

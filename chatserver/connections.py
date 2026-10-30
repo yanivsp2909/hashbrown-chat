@@ -8,8 +8,8 @@ import threading
 import time
 import traceback
 
-from chatserver import (auth, background, chat, config, discovery, hashbrown_ai, matches, rooms, session, state,
-                        storage, textutil, transfers, website)
+from chatserver import (auth, background, chat, config, discovery, hashbrown_ai, matches, offers, rooms, session,
+                        state, storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
 
 
@@ -26,6 +26,7 @@ def disconnect(client):
                     matches.finish_match(match, match.opponent(key), f"{rooms.nick(key)} disconnected")
                 state.invites.pop(key, None)
                 matches.stop_watching(key)
+                offers.drop_all_of(key)   # (before the transfers: a waiting big file is cancelled with a reason)
                 transfers.drop_all_of(key)
                 state.solo.pop(key, None)
                 for waiting in state.invites.values():
@@ -196,7 +197,8 @@ def start_server(host=config.HOST, port=config.PORT, run_loops=True, run_console
     elif len(password) < config.ADMIN_PASSWORD_WARN_UNDER:
         textutil.log(f"[SERVER] ⚠️ The admin password is shorter than {config.ADMIN_PASSWORD_WARN_UNDER} characters. "
                      "It works, but a longer one is much harder to guess.")
-    loops = (([background.income_loop, background.quiz_loop, background.qotd_loop] if run_loops else [])
+    loops = (([background.income_loop, background.quiz_loop, background.qotd_loop,
+                background.offers_loop] if run_loops else [])
              + ([background.console_loop] if run_console else []))
     for loop in loops:
         threading.Thread(target=loop, daemon=True).start()

@@ -121,6 +121,18 @@ class TestGamesAndFiles(BridgeTestCase):
         self.assertEqual(got["filename"], "evil.txt")
         self.assertEqual(base64.b64decode(got["data"]), payload)
 
+    def test_a_tab_that_says_offers_is_asked_first(self):
+        a, a_name = self.user()
+        b = self.tab()
+        b_name = next(names)
+        self.assertTrue(b.auth(b_name, PASSWORD, "register", ["offers"])["ok"])
+        a.send({"type": "file", "to": b_name, "filename": "x.txt", "data": base64.b64encode(b"hi").decode()})
+        offer = b.wait(lambda e: "offer" in e["data"], what="the file offer")["offer"]
+        self.assertEqual((offer["from"], offer["filename"]), (a_name, "x.txt"))
+        self.assertFalse([e for e in b.stream.seen if e["data"].get("type") == "file"])
+        b.line(f"/accept file {offer['id']}")
+        self.assertEqual(b.wait(lambda e: e["data"].get("type") == "file", what="the file")["data"], "aGk=")
+
 
 class TestServerStrings(BridgeTestCase):
     """patterns.js depends on exact server wording. If the server changes, this fails loudly."""

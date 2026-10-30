@@ -23,6 +23,8 @@ qotd = None      # ❓ (day, question) of the question of the day (saved in chat
 qotd_answers = {"day": "", "answers": []}   # 💡 /answer cards for that question, see qotd.py (saved too)
 commentator_today = ("", 0)   # 🎙️ (day, how many comments)
 transfers = {}  # 📦 big file transfers on their way: their key -> details
+offers = {}     # 📎 files waiting for their receiver to /accept: offer number -> details (see offers.py)
+offer_count = 0   # 📎 the last offer number given out
 jackpot = 0     # 💰 the casino's pot (saved in chat_data.json)
 trivia = {}     # 🧠 room -> its trivia question: {answer (normalized), shown} or {pending: True}
 wars = []       # ⚔️ wars going on: {a, b (group keys), points, until}
@@ -52,9 +54,9 @@ lab_loss_percent = 0    # this % of packets arrive LAB_RESEND_MS late, like a TC
 def reset_state():
     """Forget everything in memory (the tests use this to start each test from zero)."""
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
-    global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers
+    global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers, offer_count
     with lock:
-        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, trivia, war_invites, solo, login_fails,
+        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, trivia, war_invites, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)
@@ -62,3 +64,4 @@ def reset_state():
         lab_lag_ms, lab_loss_percent = 0, 0
         qotd, commentator_today, jackpot, wars = None, ("", 0), 0, []
         qotd_answers = {"day": "", "answers": []}
+        offer_count = 0

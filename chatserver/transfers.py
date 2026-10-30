@@ -16,12 +16,14 @@ import binascii
 import os
 import time
 
-from chatserver import config, rooms, state, textutil
+from chatserver import config, offers, rooms, state, textutil
 
 
 def _cancel(transfer, why_sender, why_getter=None):
     """Stop a transfer and tell both sides (if they're still here)."""
     state.transfers.pop(transfer["key"], None)
+    if transfer.get("waiting"):
+        offers.forget_transfer(transfer["key"])
     for login, why in ((transfer["from"], why_sender), (transfer["to"], why_getter)):
         client = state.online.get(login)
         if client is not None:
@@ -61,18 +63,50 @@ def start(client, msg):
         return
     filename = os.path.basename(textutil.clean_text(msg.get("filename", "")).replace("\\", "/"))[:100] or "file"
     key = f"{client.key}-{transfer_id}"   # what the receiver calls it (two senders could pick the same id)
-    state.transfers[key] = {"key": key, "sender_id": transfer_id, "from": client.key, "to": target,
-                            "filename": filename, "size": size, "chunks": chunks, "next": 0,
-                            "in_flight": False, "active": time.time()}
-    state.online[target].send({"type": "file_start", "id": key, "from": rooms.nick(client.key),
-                               "filename": filename, "size": size, "chunks": chunks})
-    client.send({"type": "file_ack", "id": transfer_id, "next": 0})
+    transfer = {"key": key, "sender_id": transfer_id, "from": client.key, "to": target,
+                "filename": filename, "size": size, "chunks": chunks, "next": 0,
+                "in_flight": False, "active": time.time(), "waiting": offers.wants_offers(target)}
+    if not transfer["waiting"]:
+        state.transfers[key] = transfer
+        begin(transfer)
+        return
+    # 📎 Ask first: no file_start and no ack (so no chunks) until they /accept
+    state.transfers[key] = transfer
+    if not offers.make(client.key, target, filename, size, transfer_key=key):
+        state.transfers.pop(key, None)
+        client.send({"type": "file_cancel", "id": transfer_id})
+
+
+def begin(transfer):
+    """Tell the receiver a big file is coming and ask the sender for chunk 0."""
+    state.online[transfer["to"]].send({"type": "file_start", "id": transfer["key"], "from": rooms.nick(transfer["from"]),
+                                       "filename": transfer["filename"], "size": transfer["size"],
+                                       "chunks": transfer["chunks"]})
+    state.online[transfer["from"]].send({"type": "file_ack", "id": transfer["sender_id"], "next": 0})
+
+
+def go_ahead(key):
+    """📎 The receiver accepted a waiting big file. False if it's gone meanwhile."""
+    transfer = state.transfers.get(key)
+    if transfer is None or transfer["from"] not in state.online or transfer["to"] not in state.online:
+        return False
+    transfer["waiting"], transfer["active"] = False, time.time()
+    begin(transfer)
+    return True
+
+
+def cancel_waiting(key, why):
+    """📎 A waiting big file was declined or expired: the sender's app stops waiting."""
+    transfer = state.transfers.pop(key, None)
+    if transfer is not None:
+        transfer["waiting"] = False
+        _cancel(transfer, why)
 
 
 def chunk(client, msg):
     transfer = state.transfers.get(f"{client.key}-{str(msg.get('id', ''))[:40]}")
-    if transfer is None:
-        return  # cancelled already: late chunks are just dropped
+    if transfer is None or transfer["waiting"]:
+        return  # cancelled already (late chunks are just dropped), or not accepted yet
     data = msg.get("data")
     # The next chunk only after the ack of this one (flow control): a sender who doesn't wait is cut off,
     # so nobody can fill the server's memory with someone else's chunks.
@@ -120,7 +154,7 @@ def expire_stalled(now=None):
     """Transfers with no chunk for BIG_FILE_STALL seconds are cancelled (called once a minute)."""
     now = time.time() if now is None else now
     for transfer in list(state.transfers.values()):
-        if now - transfer["active"] > config.BIG_FILE_STALL:
+        if not transfer["waiting"] and now - transfer["active"] > config.BIG_FILE_STALL:   # (offers expire alone)
             _cancel(transfer, "📦 The file transfer stalled and was cancelled.", "📦 The file transfer was cancelled.")
 
 
@@ -130,9 +164,11 @@ def cancel(client, msg):
     for transfer in list(state.transfers.values()):
         if (client.key == transfer["from"] and wanted == transfer["sender_id"]) or \
                 (client.key == transfer["to"] and wanted == transfer["key"]):
+            was_waiting = transfer["waiting"]   # (then the offer's own notice tells the receiver)
             _cancel(transfer, None, None)
             other = transfer["to"] if client.key == transfer["from"] else transfer["from"]
-            rooms.tell(other, "📦 The file transfer was cancelled.", "error")
+            if not (was_waiting and other == transfer["to"]):
+                rooms.tell(other, "📦 The file transfer was cancelled.", "error")
 
 
 def drop_all_of(key):

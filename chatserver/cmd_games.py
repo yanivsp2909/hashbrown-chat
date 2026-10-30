@@ -11,7 +11,7 @@ import time
 
 import games
 
-from chatserver import achievements, config, hashbrown_ai, matches, registry, rooms, state, storage, textutil
+from chatserver import achievements, config, hashbrown_ai, matches, offers, registry, rooms, state, storage, textutil
 
 
 GAMES = {"ttt": games.TicTacToe, "tictactoe": games.TicTacToe,
@@ -86,8 +86,11 @@ def pick_invite(client, args):
     return invite
 
 
-@registry.command("/accept", "/accept [name]", "accept a challenge", "🎮 Games")
+@registry.command("/accept", "/accept [name]", "accept a challenge or a file 📎", "🎮 Games")
 def cmd_accept(client, args):
+    if offers.is_file_answer(client, args):   # 📎 a file offer (the newest of offers and challenges wins)
+        offers.accept(client, args)
+        return
     invite = pick_invite(client, args)
     if invite is None:
         return
@@ -104,8 +107,11 @@ def cmd_accept(client, args):
     matches.start_match(invite["game"], challenger, client.key, bet)
 
 
-@registry.command("/decline", "/decline [name]", "say no to a challenge", "🎮 Games")
+@registry.command("/decline", "/decline [name]", "say no to a challenge or a file", "🎮 Games")
 def cmd_decline(client, args):
+    if offers.is_file_answer(client, args):
+        offers.decline(client, args)
+        return
     invite = pick_invite(client, args)
     if invite:
         client.say("👎 Declined.")

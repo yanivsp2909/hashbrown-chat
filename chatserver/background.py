@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, config, hashbrown_extras, rooms, state, storage, textutil, transfers, wars
+from chatserver import achievements, config, hashbrown_extras, offers, rooms, state, storage, textutil, transfers, wars
 
 
 # ---------------------------------------------------------------- background threads
@@ -83,6 +83,14 @@ def quiz_loop():
         if opened:
             time.sleep(45)
             run_safely(quiz_close, *opened)
+
+
+def offers_loop():
+    """📎 Every few seconds: file offers nobody answered in time are dropped."""
+    while True:
+        time.sleep(config.OFFER_CHECK_EVERY)
+        with state.lock:
+            run_safely(offers.expire)
 
 
 def qotd_loop():
