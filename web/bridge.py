@@ -22,7 +22,7 @@ LOG_MAX_EVENTS = 1000        # events kept per session for replay after a reload
 LOG_MAX_BYTES = 6 * 1024 * 1024
 XRAY_MAX_TEXT = 2000           # 🔬 bytes of each raw chunk shown in the Packet X-ray (big files are cut)
 CHUNK_B64 = 1_400_000          # 📦 one chunk of a big file, after base64 (as in the chat server)
-LIVE_ONLY_MAX_BYTES = 8 * 1024 * 1024    # 📦 big file chunks waiting for a tab (never replayed; one is on its way at a time)
+LIVE_ONLY_MAX_BYTES = 8 * 1024 * 1024    # 📦 big file chunks waiting for a tab (never replayed)
 XRAY_KEEP = 100                # 🔬 X-ray events kept in the replay log, so chat messages aren't pushed out
 DETACHED_GRACE = 90          # seconds a session lives with no tab attached (reload / phone in pocket)
 LOGIN_GRACE = 120            # seconds to log in before an unused session is closed
@@ -83,6 +83,10 @@ def clean_features(value):
     return value
 
 
+# What a browser may send (everything else is refused before it reaches the chat server)
+BROWSER_PACKETS = ("line", "file", "ping", "typing", "react", "edit", "delete", "file_start", "file_chunk", "file_cancel")
+
+
 def validate(msg, logged_in):
     """Turn what the browser sent into a fresh dict with only the fields the chat server knows."""
     if not isinstance(msg, dict):
@@ -99,7 +103,7 @@ def validate(msg, logged_in):
         if "features" in msg:   # optional: what this browser understands, like ["stream"]
             auth["features"] = clean_features(msg["features"])
         return auth
-    if kind not in ("line", "file", "ping", "typing", "react", "file_start", "file_chunk", "file_cancel"):
+    if kind not in BROWSER_PACKETS:
         raise BridgeError(400, "Unknown message type.")
     if not logged_in:
         raise BridgeError(403, "Log in first.")
@@ -110,6 +114,11 @@ def validate(msg, logged_in):
         if not isinstance(message_id, int) or isinstance(message_id, bool):
             raise BridgeError(400, "Bad reaction.")
         return {"type": "react", "id": message_id, "emoji": clean(msg.get("emoji"), 8, "Emoji")}
+    if kind in ("edit", "delete"):   # ✏️ 🗑️ a message id (and the new text); the server checks it's yours
+        packet = {"type": kind, "id": whole_number(msg.get("id"), "message id")}
+        if kind == "edit":
+            packet["text"] = clean(msg.get("text"), MAX_TEXT, "Message")
+        return packet
     if kind == "ping":   # 🏓 only a number travels with it
         t = msg.get("t")
         return {"type": "ping", **({"t": t} if isinstance(t, (int, float)) and not isinstance(t, bool) else {})}

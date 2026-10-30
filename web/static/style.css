@@ -567,3 +567,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .reaction-picker { display: inline-flex; gap: 2px; }
 .reaction-picker[hidden] { display: none; }
 .reaction-pick { padding: 0 6px; font-size: 16px; }
+
+/* ----- ✏️ edited messages, and the "editing" note above the message box */
+.edited { margin-left: 6px; color: var(--muted); font-size: 12px; }
+.edit-banner { font-style: normal; color: var(--text-2); }

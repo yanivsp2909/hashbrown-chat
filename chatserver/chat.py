@@ -32,7 +32,7 @@ def post_chat(client, text, action=False):
         return False
     account = state.accounts[client.key]
     msg = rooms.chat_message(account["nick"], account["badge"], text, action)
-    history.add(room, msg)  # gives msg its "id"
+    history.add(room, msg, client.key)  # gives msg its "id"
     rooms.send_room(room, msg)  # the sender gets it too, so they see their own line with the time
     textutil.log(f"[{room}] {account['nick']}: {text}")
     account["messages"] += 1
@@ -83,3 +83,30 @@ def react(client, msg):
         return
     counts = history.toggle_reaction(message_id, client.key, emoji)
     rooms.send_room(room, {"type": "reactions", "id": message_id, "counts": counts})
+
+
+def change(client, msg):
+    """✏️ {"type": "edit", "id", "text"} or 🗑️ {"type": "delete", "id"}: only your own, only for EDIT_MINUTES."""
+    message_id = msg.get("id")
+    valid_id = isinstance(message_id, int) and not isinstance(message_id, bool)
+    info = history.message_info(message_id) if valid_id else None
+    if info is None:
+        client.say("✏️ Can't find that message.", "error")
+        return
+    room, author, age = info
+    if author != client.key:
+        client.say("✏️ You can only edit or delete your own messages.", "error")
+        return
+    if age > config.EDIT_MINUTES * 60:
+        client.say(f"✏️ That message is too old to change ({config.EDIT_MINUTES} minutes).", "error")
+        return
+    if msg.get("type") == "delete":
+        history.change_message(message_id, None)
+        rooms.send_room(room, {"type": "deleted", "id": message_id})
+        return
+    text = textutil.clean_text(msg.get("text", "")).strip()[:config.MAX_TEXT]
+    if not text:
+        client.say("✏️ The new text is empty. To remove a message, delete it.", "error")
+        return
+    history.change_message(message_id, text)
+    rooms.send_room(room, {"type": "edited", "id": message_id, "text": text})

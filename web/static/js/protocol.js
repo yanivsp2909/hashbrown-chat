@@ -14,6 +14,7 @@ import * as rooms from "./rooms.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
 import * as bigfiles from "./bigfiles.js";
+import { applyEdit } from "./edits.js";
 
 const MAX_NAMES = 60;
 const NICK_KEY = "hashbrown.nick";
@@ -178,6 +179,9 @@ export function handleMessage(msg, live, sendLine) {
       if (live) ({ file_start: bigfiles.onStart, file_chunk: bigfiles.onChunk, file_end: bigfiles.onEnd,
         file_cancel: bigfiles.onCancel, file_ack: bigfiles.onAck })[msg.type](msg);
       return undefined;
+    case "edited":
+    case "deleted":
+      return Number.isInteger(msg.id) ? applyEdit(msg) : undefined;
     case "reactions":
       return Number.isInteger(msg.id) ? updateReactions(msg) : undefined;
     case "typing":

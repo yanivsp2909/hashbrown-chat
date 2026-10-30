@@ -41,6 +41,13 @@ def _open():
                            "id INTEGER PRIMARY KEY AUTOINCREMENT, room TEXT, time TEXT, name TEXT, "
                            "badge TEXT, text TEXT, action INTEGER, created REAL)")
         connection.execute("CREATE INDEX IF NOT EXISTS messages_room ON messages (room, id)")
+        # ✏️ added later: who wrote it (their login, which never changes) and whether it was edited.
+        # An older history.db gets the new columns here, keeping every message.
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(messages)")}
+        if "login" not in columns:
+            connection.execute("ALTER TABLE messages ADD COLUMN login TEXT")
+        if "edited" not in columns:
+            connection.execute("ALTER TABLE messages ADD COLUMN edited INTEGER DEFAULT 0")
         # 😂 one row per (message, person, emoji): reacting again deletes the row
         connection.execute("CREATE TABLE IF NOT EXISTS reactions (message_id INTEGER, login TEXT, emoji TEXT, "
                            "PRIMARY KEY (message_id, login, emoji))")
@@ -80,17 +87,19 @@ def room_size(room):
     return config.HISTORY_SIZE
 
 
-def add(room, msg):
-    """Save a chat message (the dict from rooms.chat_message) and put its new "id" in it."""
+def add(room, msg, login=None):
+    """Save a chat message (the dict from rooms.chat_message) and put its new "id" in it.
+    login = who wrote it (None for Hashbrown), so only they can edit or delete it."""
     global _memory_ids
     with _lock:
         connection = _open()
         if connection is not None:
             try:
                 cursor = connection.execute(
-                    "INSERT INTO messages (room, time, name, badge, text, action, created) VALUES (?,?,?,?,?,?,?)",
+                    "INSERT INTO messages (room, time, name, badge, text, action, created, login) "
+                    "VALUES (?,?,?,?,?,?,?,?)",
                     (room, msg["time"], msg["name"], msg["badge"], msg["text"], int(bool(msg["action"])),
-                     time.time()))
+                     time.time(), login))
                 connection.commit()
                 msg["id"] = cursor.lastrowid
                 return
@@ -110,14 +119,15 @@ def recent(room, count=None):
             return list(_memory.get(room, ()))[-count:]
         try:
             rows = connection.execute(
-                "SELECT id, time, name, badge, text, action FROM messages WHERE room = ? "
+                "SELECT id, time, name, badge, text, action, edited FROM messages WHERE room = ? "
                 "ORDER BY id DESC LIMIT ?", (room, count)).fetchall()
         except sqlite3.Error as e:
             textutil.log(f"[SERVER] ⚠️ Couldn't read history.db ({e})")
             return list(_memory.get(room, ()))[-count:]
         counts = reaction_counts([row[0] for row in rows])
     messages = [{"type": "chat", "id": row[0], "time": row[1], "name": row[2], "badge": row[3],
-                 "text": row[4], "action": bool(row[5])} for row in reversed(rows)]
+                 "text": row[4], "action": bool(row[5]), **({"edited": True} if row[6] else {})}
+                for row in reversed(rows)]
     return [{**m, "reactions": counts[m["id"]]} if m["id"] in counts else m for m in messages]
 
 
@@ -183,3 +193,33 @@ def toggle_reaction(message_id, login, emoji):
             connection.rollback()   # never leave a half-done change on the shared connection
             textutil.log(f"[SERVER] ⚠️ Couldn't save a reaction in history.db ({e})")
     return reaction_counts([message_id]).get(message_id, {})
+
+
+# ---------------------------------------------------------------- ✏️ edit and delete
+
+def message_info(message_id):
+    """(room, author login, seconds since it was sent) of a saved message, or None."""
+    with _lock:
+        connection = _open()
+        if connection is None:
+            return None
+        row = connection.execute("SELECT room, login, created FROM messages WHERE id = ?", (message_id,)).fetchone()
+    return (row[0], row[1], time.time() - (row[2] or 0)) if row else None
+
+
+def change_message(message_id, text):
+    """Edit a message's text (it's marked as edited), or delete it (text=None) with its reactions."""
+    with _lock:
+        connection = _open()
+        if connection is None:
+            return
+        try:
+            if text is None:
+                connection.execute("DELETE FROM reactions WHERE message_id = ?", (message_id,))
+                connection.execute("DELETE FROM messages WHERE id = ?", (message_id,))
+            else:
+                connection.execute("UPDATE messages SET text = ?, edited = 1 WHERE id = ?", (text, message_id))
+            connection.commit()
+        except sqlite3.Error as e:
+            connection.rollback()
+            textutil.log(f"[SERVER] ⚠️ Couldn't change a message in history.db ({e})")

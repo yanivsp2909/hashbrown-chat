@@ -10,6 +10,7 @@
 import { $, clear, el, initial, nameClass, str } from "./dom.js";
 import { hashbrownPrivate, isHashbrown, parsePrivate } from "./patterns.js";
 import { reactionRow } from "./reactions.js";
+import { ownButtons } from "./edits.js";
 
 const MAX_MESSAGES = 500;
 const NEAR_BOTTOM = 80;     // px: closer than this to the bottom counts as "reading the latest"
@@ -156,10 +157,12 @@ function chatNode(msg, { mine = false, old = false } = {}) {
       el("span", { class: "time", text: time }));
   const text = textPara("msg-text", str(msg.text));
   const classes = ["msg", "chat", mine && "mine", bot && "bot", old && "old", msg.action && "action", grouped && "cont"];
-  return el("li", { class: classes.filter(Boolean).join(" ") },
+  const stored = Number.isInteger(msg.id);   // only stored messages have an id (to react to, edit, delete)
+  const row = stored ? reactionRow(msg.id, msg.reactions) : null;
+  if (row && mine) row.append(...ownButtons(msg.id, () => text.textContent));
+  return el("li", { class: classes.filter(Boolean).join(" "), "data-id": stored ? String(msg.id) : null },
     mine ? null : grouped ? el("span", { class: "avatar-gap" }) : avatar(name, bot),
-    el("div", { class: "bubble" }, head, text,
-      Number.isInteger(msg.id) ? reactionRow(msg.id, msg.reactions) : null));   // 😂 only stored messages have an id
+    el("div", { class: "bubble" }, head, text, msg.edited ? el("span", { class: "edited", text: "(edited)" }) : null, row));
 }
 
 export function addChat(msg, { live, mine }) {

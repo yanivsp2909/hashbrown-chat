@@ -15,6 +15,7 @@ import { initPanel } from "./js/games/panel.js";
 import { initXray } from "./js/xray.js";
 import { initRooms } from "./js/rooms.js";
 import { initTyping } from "./js/typing.js";
+import { initEdits, submitEdit } from "./js/edits.js";
 
 const THEME_KEY = "hashbrown.theme";
 const SCREENS = ["loading", "login", "chat", "closed"];
@@ -202,6 +203,7 @@ initLogin({
 
 initComposer({
   onSubmit: async (text) => {
+    if (submitEdit(text)) return true;   // ✏️ we were editing one of our messages
     const lower = text.toLowerCase();
     if (lower === "/sendfile" || lower.startsWith("/sendfile ")) {
       openFilePanel({ to: text.split(/\s+/)[1] || "" });
@@ -232,6 +234,7 @@ initSidebar({ onError: showError, closeDrawer: () => { if (narrow.matches) close
 initRail({ openGame });
 initXray();
 initTyping();
+initEdits();
 initRooms({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
 initOnline({
   sendLine: api.sendLine,
