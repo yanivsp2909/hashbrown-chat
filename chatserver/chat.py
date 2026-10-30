@@ -4,9 +4,8 @@
 import os
 import time
 
-from chatserver import (achievements, config, drawing, hashbrown_ai, hashbrown_extras, history, matches, offers, profiles,
-                        quests,
-                        registry, rooms, state, storage, textutil)
+from chatserver import (achievements, config, drawing, group_stocks, hashbrown_ai, hashbrown_extras, history,
+                        matches, offers, profiles, quests, registry, rooms, state, storage, textutil)
 
 
 def handle_file(client, msg):
@@ -47,6 +46,7 @@ def post_chat(client, text, action=False):
     client.is_typing, client.last_typing = False, 0.0   # ⌨️ the message ends "typing" (the others hide it)
     textutil.log(f"[{room}] {account['nick']}: {text}")
     account["messages"] += 1
+    group_stocks.note_message(room)   # 👥📈 a busy group's stock goes up
     quests.bump(client.key, "chat")
     if account["messages"] >= 100:
         achievements.unlock(client.key, "chatty")

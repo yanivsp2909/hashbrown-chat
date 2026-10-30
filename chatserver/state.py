@@ -33,6 +33,7 @@ bank_snapshots = {}   # 🏦 group key -> when its balance was last saved as a c
 groups_dirty = False  # 👥 something changed: the open Groups screens get fresh data (group_view.py)
 hashbrown_usage = {"day": "", "questions": 0, "in": 0, "out": 0}   # 📊 today's AI answers and tokens (/hbstats)
 hashbrown_tokens = 0   # 🥔 tips people gave Hashbrown with /give hashbrown (saved in chat_data.json)
+group_activity = {}   # 👥📈 group key -> times of chat lines in the last hour (its stock follows them)
 stocks = {}        # 📈 symbol -> {price, open, history (deque of (time, price))}  (saved: "economy")
 public_fund = 0    # 🧾 taxes and fees in, prizes out (saved: "economy")
 fund_today = {}    # 🧾 {"in", "out"} today
@@ -77,7 +78,7 @@ def reset_state():
     global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers, offer_count, pm_count, reminders, lobby_topic, hashbrown_tokens, hashbrown_usage, groups_dirty
     global public_fund, fund_today, supply_history, economy_day, economy_extra
     with lock:
-        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, drawings, draw_last, stocks, bank_snapshots, replays, resume_tokens, resume_fails, away, trivia, war_invites, solo, login_fails,
+        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, drawings, draw_last, stocks, group_activity, bank_snapshots, replays, resume_tokens, resume_fails, away, trivia, war_invites, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)

@@ -5,7 +5,7 @@
 """
 from collections import deque
 
-from chatserver import config, market, state, textutil
+from chatserver import config, group_stocks, market, state, textutil
 
 _daily_jobs = []   # functions run once a day (dividends, interest, loans...), in the order they were added
 
@@ -38,7 +38,7 @@ def load_saved(saved):
     state.public_fund = fund if isinstance(fund, int) and fund >= 0 else 0
     state.economy_day = saved.get("day") if isinstance(saved.get("day"), str) else ""
     for sym, s in (saved.get("stocks") or {}).items():
-        if sym in config.STOCKS and isinstance(s, dict) and isinstance(s.get("price"), int) and s["price"] >= 1:
+        if (sym in config.STOCKS or (sym.startswith("#") and sym[1:] in state.groups)) and isinstance(s, dict) and isinstance(s.get("price"), int) and s["price"] >= 1:
             history = [tuple(p) for p in s.get("history", []) if isinstance(p, list) and len(p) == 2]
             state.stocks[sym] = {"price": s["price"], "open": s.get("open") if isinstance(s.get("open"), int) else s["price"],
                                  "history": deque(history, maxlen=config.STOCK_HISTORY_POINTS)}
@@ -51,6 +51,9 @@ def load_saved(saved):
 
 def on_new_day(job):
     _daily_jobs.append(job)
+
+
+on_new_day(group_stocks.pay_dividends)   # 👥 growing groups pay their shareholders
 
 
 def daily_tick():

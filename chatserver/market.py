@@ -42,8 +42,11 @@ def tick(broadcast=True):
     old = prices()
     now = time.time()
     for sym, s in state.stocks.items():
-        s["price"] = step(s["price"], config.STOCKS[sym][2])
-        s["history"].append((int(now), s["price"]))
+        if sym in config.STOCKS:
+            s["price"] = step(s["price"], config.STOCKS[sym][2])
+            s["history"].append((int(now), s["price"]))
+    from chatserver import group_stocks   # (group_stocks uses the fund and rooms: importing it at the top would loop)
+    group_stocks.tick()
     for listener in list(_listeners):
         listener(old, prices())
     if broadcast:
@@ -59,8 +62,18 @@ def new_day():
 
 
 def symbol(text):
-    sym = text.strip().upper()
+    """"fry" -> "FRY"; "#Potatoes" -> "#potatoes" (a group stock); None if there's no such stock."""
+    text = text.strip()
+    if text.startswith("#"):
+        sym = "#" + text[1:].lower()
+        return sym if sym in state.stocks else None
+    sym = text.upper()
     return sym if sym in state.stocks else None
+
+
+def shown(sym):
+    """How a symbol is written to people: FRY, #POTATOES."""
+    return sym.upper()
 
 
 def trade(client, sym, shares, buying):
@@ -74,14 +87,14 @@ def trade(client, sym, shares, buying):
         if held + shares > config.MAX_SHARES:
             return f"📈 You can hold at most {config.MAX_SHARES} shares of one stock."
         if account["tokens"] < cost + charge:
-            return f"💸 {shares} {sym} cost {cost} 🪙 + {charge} 🪙 fee. You can't afford that."
+            return f"💸 {shares} {shown(sym)} cost {cost} 🪙 + {charge} 🪙 fee. You can't afford that."
         account["tokens"] -= cost + charge
         account["portfolio"] = {**account["portfolio"], sym: held + shares}
         account["spent"] = {**account["spent"], sym: account["spent"].get(sym, 0) + cost}
         verb = "bought"
     else:
         if held < shares:
-            return f"📈 You only have {held} {sym}."
+            return f"📈 You only have {held} {shown(sym)}."
         account["tokens"] += cost - charge
         left = held - shares
         spent = account["spent"].get(sym, 0)
@@ -89,7 +102,7 @@ def trade(client, sym, shares, buying):
         account["spent"] = {k: v for k, v in {**account["spent"], sym: spent * left // held if held else 0}.items() if v}
         verb = "sold"
     fund.collect(charge, "trade fee")
-    client.say(f"📈 You {verb} {shares} {sym} at {price} 🪙 = {cost} 🪙 (fee {charge} 🪙). "
+    client.say(f"📈 You {verb} {shares} {shown(sym)} at {price} 🪙 = {cost} 🪙 (fee {charge} 🪙). "
                f"You have {account['tokens']} 🪙.", "money")
     return None
 
@@ -100,6 +113,12 @@ def listing():
     for sym, (icon, name, _) in config.STOCKS.items():
         arrow = "▲" if change[sym] > 0 else "▼" if change[sym] < 0 else "·"
         lines.append(f"  {icon} {sym}  {name}  {state.stocks[sym]['price']} 🪙  {arrow} {change[sym]:+.1f}% today")
+    groups = [(sym, s) for sym, s in state.stocks.items() if sym.startswith("#") and sym[1:] in state.groups]
+    if groups:
+        lines.append("Group stocks (they follow the group's bank, members and chat; /buy #Name 3):")
+        for sym, s in sorted(groups, key=lambda pair: -pair[1]["price"])[:10]:
+            lines.append(f"  👥 #{state.groups[sym[1:]]['name']}  {s['price']} 🪙  "
+                         f"{(s['price'] - s['open']) * 100 / s['open'] if s['open'] else 0:+.1f}% today")
     lines.append(f"  Trading fee {config.TRADE_FEE_PERCENT}% (at least 1 🪙), into the public fund.")
     return "\n".join(lines)
 
@@ -128,7 +147,17 @@ def info_packet(key):
             "portfolio": dict(account["portfolio"]), "spent": dict(account["spent"]),
             "stocks": {sym: {"icon": icon, "name": name, "price": state.stocks[sym]["price"], "change": change[sym],
                              "history": [list(p) for p in list(state.stocks[sym]["history"])[-config.MARKET_CHART_POINTS:]]}
-                       for sym, (icon, name, _) in config.STOCKS.items()}}
+                       for sym, icon, name in all_listed()}}
+
+
+def all_listed():
+    """(symbol, icon, name) of the companies, then the groups."""
+    rows = [(sym, icon, name) for sym, (icon, name, _) in config.STOCKS.items()]
+    for sym in state.stocks:
+        if sym.startswith("#") and sym[1:] in state.groups:
+            group = state.groups[sym[1:]]
+            rows.append((sym, group["emoji"] or "👥", f"#{group['name']}"))
+    return rows
 
 
 def on_tick(listener):

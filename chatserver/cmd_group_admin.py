@@ -3,7 +3,7 @@
 """
 import time
 
-from chatserver import bank_log, history, registry, rooms, state, storage, wars
+from chatserver import bank_log, group_stocks, history, registry, rooms, state, storage, wars
 
 
 # ----- 🛡️ Group admin
@@ -160,6 +160,7 @@ def cmd_disband(client, args):
     del state.groups[key]
     history.delete_room(key)
     bank_log.forget(key)
+    group_stocks.forget(key)   # 👥📈 shareholders are paid out
     state.polls.pop(key, None)
     wars.forget_group(key)
     for member in members:
