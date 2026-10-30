@@ -38,7 +38,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | # | Feature | Status |
 |---|---|---|
 | 1 | SQLite chat history (`history.db`, message ids, survives restarts, room history + history upgrade keep working) | done |
-| 2 | Private `/ask`, "thinking" notice replaced by the answer (`temp_id` / `replaces`), Hashbrown prompt upgrade | not started |
+| 2 | Private `/ask`, "thinking" notice replaced by the answer (`temp_id` / `replaces`), Hashbrown prompt upgrade | done (`3003112` private /ask, `1cee762` temp_id/replaces, `cd6ee20` prompt upgrade) |
 | 3 | Streaming with the `openai` package (`requirements.txt`); old clients get one full message | not started |
 | 4 | `server.py` starts the website; `client.py` asks terminal or website (`--web`) | not started |
 
@@ -96,3 +96,4 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 (Choices made without asking, so the owner can review them.)
 - Item 1: `chat_data.json` never held history, so there was nothing to migrate and its format is unchanged. A disbanded group's rows are deleted from `history.db` so a new group with the same name starts empty. Falls back to in-memory history if the DB can't open.
+- Item 2: `/ask` is always paid by the asker (never the group bank) and works while muted. `temp_id` is `hb-N` from a counter in `state`; `replaces` is only on the copy sent to clients, the saved history line stays plain. The website removes the "thinking" card on `replaces`, or after 2 minutes. The private answer card is labelled "🥔 Only you" (`hashbrownPrivate` in `patterns.js`, a plain `startsWith`, not a regex). The prompt, `HASHBROWN_REASONING`, `HASHBROWN_MAX_OUTPUT`, `HASHBROWN_HISTORY` (15), `HASHBROWN_MAX_CHARS` (700) and `HASHBROWN_MAX_CODE_LINES` (50) are at the top of `config.py`. `clean_answer` and the Israel time (zoneinfo, with a UTC+2/+3 fallback for Python 3.8) live in `chatserver/hashbrown_text.py`. Any 400 while `reasoning` was sent means: retry once without it and never send it again until restart (one log line). The old 1500-character cut of raw answers is gone (it could cut a code block); `clean_answer` limits the length instead. A code block cut to 50 lines gets its note after the closing fence.
