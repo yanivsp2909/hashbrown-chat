@@ -258,9 +258,19 @@ def send(sock, obj):
     sock.sendall((line + "\n").encode())
 
 
+pong_waiting = threading.Event()   # 🏓 set while a ping is waiting for its pong
+
+
 def send_ping(sock):
     """🏓 Send the time now; the server sends it straight back, so the difference is the round trip."""
+    pong_waiting.set()
     send(sock, {"type": "ping", "t": time.time()})
+
+    def no_pong():   # an old server doesn't know ping packets: say so instead of staying silent
+        if pong_waiting.is_set():
+            pong_waiting.clear()
+            console.out(paint("🏓 No pong after 3 seconds. Maybe the server is older and doesn't know /ping.", DIM))
+    threading.Timer(3, no_pong).start()
 
 
 def describe_chunk(chunk):
@@ -350,6 +360,7 @@ def show_message(msg):
             lines.append(paint("─────────────────────────", DIM))
         console.out("\n".join(lines))
     elif kind == "pong" and isinstance(msg.get("t"), (int, float)):
+        pong_waiting.clear()
         ms = round((time.time() - msg["t"]) * 1000)
         console.out(paint(f"🏓 Pong: {ms} ms there and back", KIND_COLORS.get("system", "")))
     elif kind == "file":
@@ -513,6 +524,8 @@ def discover(targets=None, timeout=1.5):
         while True:
             try:
                 data, (ip, _port) = udp.recvfrom(2048)
+            except ConnectionResetError:
+                continue  # Windows: an earlier "port unreachable" from someone else, keep listening
             except (socket.timeout, OSError):
                 return found
             if "--packets" in FLAGS:
@@ -540,13 +553,19 @@ def find_server():
             return servers[0][0]
         servers = []
     if servers:
-        for number, (ip, name) in enumerate(servers, 1):
-            print(f"  {number}) {name} at {ip}")
-        answer = input("Which one? (Enter = 1)\n> ").strip()
-        index = int(answer) - 1 if answer.isdecimal() and 0 < int(answer) <= len(servers) else 0
-        return servers[index][0]
-    if not sys.stdin.isatty():
-        return "127.0.0.1"
+        return choose_server(servers)
+    return ask_for_ip() if sys.stdin.isatty() else "127.0.0.1"
+
+
+def choose_server(servers):
+    for number, (ip, name) in enumerate(servers, 1):
+        print(f"  {number}) {name} at {ip}")
+    answer = input("Which one? (Enter = 1)\n> ").strip()
+    index = int(answer) - 1 if answer.isdecimal() and 0 < int(answer) <= len(servers) else 0
+    return servers[index][0]
+
+
+def ask_for_ip():
     answer = input("No server found. The host's IP address (Enter = this computer): ").strip()
     return answer or "127.0.0.1"
 

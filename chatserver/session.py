@@ -70,14 +70,14 @@ class Client:
     def kick(self, text):
         """Tell them why, then hang up half a second later (so the message gets there first)."""
         self.say(text, "error")
-        threading.Timer(0.5, hang_up, args=(self,)).start()
+        threading.Timer(0.5 + state.lab_lag_ms / 1000, hang_up, args=(self,)).start()  # the lab may slow it down
 
     def close(self):
         try:
             self.outbox.put_nowait(None)
         except queue.Full:
             pass  # the writer is stuck or gone; closing the socket below stops it
-        self.writer.join(timeout=1)  # let the last messages go out first
+        self.writer.join(timeout=1 + state.lab_lag_ms / 1000)  # let the last messages go out first
         try:
             self.sock.close()
         except OSError:
@@ -88,9 +88,11 @@ def lab_delay(queued_at):
     """🧪 Network lab: wait as long as the host's "lag" says, and a bit more for a "lost" packet.
     A lost TCP packet is never really lost: TCP sends it again, so it just arrives late, and
     everything after it waits too (that's called head-of-line blocking)."""
-    wait = state.lab_lag_ms / 1000 - (time.monotonic() - queued_at)
+    delay = state.lab_lag_ms
     if state.lab_loss_percent and random.random() * 100 < state.lab_loss_percent:
-        wait += config.LAB_RESEND_MS / 1000
+        delay += config.LAB_RESEND_MS
+    # Counted from when the packet was queued, so packets travel side by side instead of one after another
+    wait = delay / 1000 - (time.monotonic() - queued_at)
     if wait > 0:
         time.sleep(wait)
 

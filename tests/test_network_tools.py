@@ -94,3 +94,15 @@ def test_loss_makes_tcp_resend_late_but_nothing_is_lost(user, monkeypatch):
     adi.line("one")
     adi.expect(lambda m: m.get("text") == "one")
     assert time.monotonic() - start >= 0.3              # it came, just late (like a TCP resend)
+
+
+def test_lost_packets_are_late_side_by_side_not_one_after_another(user, monkeypatch):
+    adi = user("Adi")
+    monkeypatch.setattr(background.random, "random", lambda: 0.0)
+    monkeypatch.setattr(config, "LAB_RESEND_MS", 300)
+    state.lab_loss_percent = 100
+    start = time.monotonic()
+    for word in ("one", "two", "three"):
+        adi.line(word)
+    adi.expect(lambda m: m.get("text") == "three")
+    assert time.monotonic() - start < 0.8          # about 0.3 s, not 3 x 0.3 s

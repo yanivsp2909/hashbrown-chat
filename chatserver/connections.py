@@ -8,8 +8,8 @@ import threading
 import time
 import traceback
 
-from chatserver import (auth, background, chat, config, hashbrown_ai, matches, rooms, session, state, storage,
-                        textutil, website, discovery)
+from chatserver import (auth, background, chat, config, discovery, hashbrown_ai, matches, rooms, session, state,
+                        storage, textutil, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
 
 

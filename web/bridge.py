@@ -161,6 +161,7 @@ class Session:
         self.rate_lock = threading.Lock()
         self.sends = deque()
         self.xray = False            # 🔬 the tab's Packet X-ray is open: show it the raw TCP traffic too
+        self.xray_ids = deque()      # 🔬 ids of the x-ray events still in the replay log
         self.auth_pending = False    # one login attempt at a time, so guesses can't be pipelined
         threading.Thread(target=self._read_loop, daemon=True).start()
 
@@ -226,10 +227,12 @@ class Session:
         if not self.xray:
             return
         with self.cond:   # keep only the newest XRAY_KEEP x-ray events: the log is for chat replay first
-            old = [event for event in self.events if event[1].startswith('{"type":"xray"')]
-            if len(old) >= XRAY_KEEP:
-                self.events.remove(old[0])
-                self.size -= len(old[0][1])
+            if len(self.xray_ids) >= XRAY_KEEP:
+                oldest = self.xray_ids.popleft()
+                for event in [e for e in self.events if e[0] == oldest]:   # (it may already be trimmed)
+                    self.events.remove(event)
+                    self.size -= len(event[1])
+            self.xray_ids.append(self.last_id + 1)   # the id _append is about to give it
         self._append(json.dumps({"type": "xray", "dir": direction, "bytes": len(data), "time": time.time(),
                                  "text": data[:XRAY_MAX_TEXT].decode("utf-8", "replace")},
                                 ensure_ascii=False, separators=(",", ":")))
