@@ -23,7 +23,7 @@ function chart(sym, stock) {
   const points = (Array.isArray(stock.history) ? stock.history : []).map(([time, balance]) => ({ time, balance }));
   const path = chartPath(points, W, H);
   if (!path) return el("p", { class: "mk-chart-empty", text: "The chart fills in as the minutes go by." });
-  const up = path.last >= path.first;
+  const up = (Number(stock.change) || 0) >= 0;   // the colour says the same as "today" next to it
   return svg("svg", { viewBox: `0 -4 ${W} ${H + 8}`, class: `mk-chart ${up ? "mk-up" : "mk-down"}`, role: "img",
     preserveAspectRatio: "none", "aria-label": `${sym} over the last ${points.length} minutes: from ${path.first} to ${path.last} tokens` },
   svg("path", { d: path.area, class: "mk-area" }), svg("path", { d: path.line, class: "mk-line" }));
@@ -50,14 +50,14 @@ function card(sym, stock) {
   return el("li", { class: "mk-card" },
     el("div", { class: "mk-head" },
       el("span", { class: "mk-icon", "aria-hidden": "true", text: str(stock.icon) }),
-      el("div", { class: "mk-names" }, el("h3", { class: "mk-sym", text: sym }), el("p", { class: "mk-name", text: str(stock.name) })),
+      el("div", { class: "mk-names" }, el("h3", { class: "mk-sym", text: sym.toUpperCase() }), el("p", { class: "mk-name", text: str(stock.name) })),
       el("div", { class: "mk-price" }, el("span", { class: "mk-num", text: `${stock.price} 🪙` }),
         el("span", { class: `mk-change ${change > 0 ? "mk-up" : change < 0 ? "mk-down" : ""}`, text: `${change > 0 ? "▲" : change < 0 ? "▼" : "·"} ${change.toFixed(1)}% today` }))),
     chart(sym, stock),
     el("p", { class: "mk-owned", text: owned ? `You have ${owned} (worth ${owned * stock.price} 🪙)` : "You have none" }),
     el("div", { class: "mk-trade" },
       el("label", { class: "visually-hidden", for: `mk-n-${sym}`, text: `How many ${sym} shares` }),
-      el("input", { id: `mk-n-${sym}`, class: "input mk-n", type: "number", min: "1", step: "1", inputmode: "numeric", placeholder: "How many", value: typed }),
+      el("input", { id: `mk-n-${sym}`, class: "input mk-n", type: "number", min: "1", step: "1", inputmode: "numeric", placeholder: "Shares", value: typed }),
       el("button", { class: "btn btn-primary", type: "button", text: "Buy", "aria-label": `Buy ${sym}`, onclick: () => trade("buy", sym) }),
       el("button", { class: "btn btn-ghost", type: "button", text: "Sell", "aria-label": `Sell ${sym}`, disabled: !owned, onclick: () => trade("sell", sym) })));
 }
