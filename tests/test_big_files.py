@@ -96,3 +96,59 @@ def test_chunks_dont_count_toward_the_spam_limit(chunky, monkeypatch):
         chunk(adi, i, b"z" * config.CHUNK_SIZE)
         adi.expect(lambda m, i=i: m.get("type") == "file_ack" and m.get("next") == i + 1)
     ben.expect(lambda m: m.get("type") == "file_end")
+
+
+# ---------------------------------------------------------------- safety (security review)
+
+def test_a_sender_who_doesnt_wait_for_the_ack_loses_the_transfer(chunky, monkeypatch):
+    adi, ben = chunky("Adi"), chunky("Ben")
+    real_send = state.online["ben"].__class__.send
+
+    def slow_send(self, obj, after=None):   # Ben's connection is slow: his chunks wait in the outbox
+        if obj.get("type") == "file_chunk":
+            self.held = (obj, after)
+            return
+        real_send(self, obj, after)
+    monkeypatch.setattr(state.online["ben"].__class__, "send", slow_send)
+    start(adi, size=3 * config.CHUNK_SIZE, chunks=3)
+    adi.expect(lambda m: m.get("type") == "file_ack" and m.get("next") == 0)
+    chunk(adi, 0)
+    chunk(adi, 1)                              # without waiting for the ack of chunk 0
+    adi.expect_text("cancelled", kind="error")
+    assert state.transfers == {}
+
+
+def test_one_big_file_at_a_time_to_each_person(chunky):
+    adi, cat, _ = chunky("Adi"), chunky("Cat"), chunky("Ben")
+    start(adi)
+    adi.expect(lambda m: m.get("type") == "file_ack")
+    start(cat, transfer_id="c1")
+    cat.expect_text("already getting a big file", kind="error")
+
+
+def test_starting_big_files_too_fast_is_refused(chunky):
+    adi, _ = chunky("Adi"), chunky("Ben")
+    start(adi, transfer_id="a")
+    adi.expect(lambda m: m.get("type") == "file_ack")
+    adi.send({"type": "file_cancel", "id": "a"})
+    start(adi, transfer_id="b")
+    adi.expect_text("Wait a moment", kind="error")
+
+
+def test_a_stalled_transfer_expires(chunky, monkeypatch):
+    from chatserver import transfers
+    adi, ben = chunky("Adi"), chunky("Ben")
+    start(adi)
+    adi.expect(lambda m: m.get("type") == "file_ack")
+    with state.lock:
+        transfers.expire_stalled(now=10 ** 12)
+    ben.expect(lambda m: m.get("type") == "file_cancel")
+    assert state.transfers == {}
+
+
+def test_a_chunk_that_isnt_base64_cancels_it(chunky):
+    adi, ben = chunky("Adi"), chunky("Ben")
+    start(adi)
+    adi.expect(lambda m: m.get("type") == "file_ack")
+    adi.send({"type": "file_chunk", "id": "t1", "index": 0, "data": "not base64!"})
+    ben.expect(lambda m: m.get("type") == "file_cancel")

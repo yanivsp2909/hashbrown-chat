@@ -9,6 +9,7 @@ import { str } from "./dom.js";
 
 export const MAX_BIG_FILE = 15 * 1024 * 1024;
 const CHUNK = 1024 * 1024;
+const MAX_INCOMING = 2;   // big files arriving at the same time (each one is kept in memory)
 const outgoing = {};   // our id -> {file, chunks, done(error)}
 const incoming = {};   // server id -> {from, filename, size, chunks, parts}
 
@@ -55,6 +56,10 @@ export async function onAck(msg) {
 
 export function onStart(msg) {
   const id = str(msg.id);
+  if (Object.keys(incoming).length >= MAX_INCOMING) {   // too many at once: say no to this one
+    send({ type: "file_cancel", id });
+    return;
+  }
   const chunks = Number(msg.chunks) || 0;
   incoming[id] = { from: str(msg.from, "Someone"), filename: sanitizeFilename(msg.filename || "file"),
     size: Number(msg.size) || 0, chunks, parts: [] };
@@ -75,6 +80,8 @@ export function onEnd(msg) {
   delete incoming[id];
   try {
     const pieces = transfer.parts.map((part) => Uint8Array.from(atob(part), (ch) => ch.charCodeAt(0)));
+    const total = pieces.reduce((sum, piece) => sum + piece.length, 0);
+    if (pieces.length !== transfer.chunks || total !== transfer.size) throw new Error("missing pieces");
     // octet-stream: the browser downloads it instead of opening HTML or SVG on our page
     const url = URL.createObjectURL(new Blob(pieces, { type: "application/octet-stream" }));
     keepUrl(url);

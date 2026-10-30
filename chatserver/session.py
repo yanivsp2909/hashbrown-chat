@@ -41,7 +41,7 @@ class Client:
             item = self.outbox.get()
             if item is None:
                 return
-            queued_at, obj = item
+            queued_at, obj, after = item
             lab_delay(queued_at)
             try:
                 # "replace": a broken character becomes "?" instead of killing this thread
@@ -49,6 +49,8 @@ class Client:
                 self.sock.sendall(data)
                 self.packets_out += 1
                 self.bytes_out += len(data)
+                if after is not None:   # e.g. 📦 "this chunk is really out: ack the sender"
+                    after()
             except OSError:  # the connection is gone: make the reading side notice too
                 hang_up(self)
                 return
@@ -57,9 +59,10 @@ class Client:
                 hang_up(self)
                 return
 
-    def send(self, obj):
+    def send(self, obj, after=None):
+        """Queue a message. after() runs (in the writer thread) once it has really gone out."""
         try:
-            self.outbox.put_nowait((time.monotonic(), obj))
+            self.outbox.put_nowait((time.monotonic(), obj, after))
         except queue.Full:
             # They stopped reading. Dropping messages would break their game board, so disconnect them.
             hang_up(self)

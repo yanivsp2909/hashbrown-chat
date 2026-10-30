@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, config, hashbrown_extras, rooms, state, storage, textutil
+from chatserver import achievements, config, hashbrown_extras, rooms, state, storage, textutil, transfers
 
 
 # ---------------------------------------------------------------- background threads
@@ -21,8 +21,9 @@ def run_safely(job, *args):
 
 
 def income_tick():
-    """Online users get tokens, and so does every group with a member online."""
+    """Online users get tokens, and so does every group with a member online. (And stalled big files stop.)"""
     with state.lock:
+        transfers.expire_stalled()
         for key, c in state.online.items():
             group = state.groups.get(c.room)
             bonus = 2 if group and "income" in group["upgrades"] else 0
