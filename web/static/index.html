@@ -112,6 +112,7 @@
       </section>
       <div class="side-foot">
         <button id="xray-open" class="btn btn-ghost xray-open" type="button" aria-haspopup="dialog"><span aria-hidden="true">🔬 </span>Packet X-ray</button>
+        <button id="netmap-open" class="btn btn-ghost xray-open" type="button" aria-haspopup="dialog"><span aria-hidden="true">🗺️ </span>Network map</button>
         <button id="theme-toggle" class="btn btn-ghost" type="button">☀️ Light mode</button>
         <button id="logout" class="btn btn-ghost" type="button">🚪 Log out</button>
       </div>
@@ -178,6 +179,17 @@
       <p id="game-status" class="visually-hidden" role="status"></p>
     </aside>
     <div id="scrim" class="scrim" hidden></div>
+
+    <dialog id="netmap" class="xray netmap" aria-labelledby="netmap-title">
+      <div class="xray-head">
+        <h2 id="netmap-title"><span aria-hidden="true">🗺️ </span>Network map</h2>
+        <button id="netmap-close" class="icon-btn" type="button" aria-label="Close the network map"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <p class="xray-hint">Everyone connected right now. Dots fly toward the server for packets a player sent and away from it for packets they got, one second at a time. Only the kinds of packets are shown, never what's in them. The ping is how long a tiny probe packet takes there and back.</p>
+      <svg id="netmap-svg" class="nm-svg" viewBox="0 0 640 420" role="img" aria-label="The server in the middle and each player around it. The table below has the same numbers."></svg>
+      <ul id="netmap-legend" class="nm-legend" aria-label="Colours"></ul>
+      <div class="nm-table-wrap"><table id="netmap-table" class="nm-table"></table></div>
+    </dialog>
 
     <dialog id="profile-card" class="xray pf-dialog" aria-labelledby="pf-card-title">
       <button id="pf-card-close" class="icon-btn pf-close" type="button" aria-label="Close the profile"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>

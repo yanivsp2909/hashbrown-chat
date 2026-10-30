@@ -8,7 +8,7 @@ import socket
 import threading
 import time
 import traceback
-from collections import deque
+from collections import Counter, deque
 
 from chatserver import config, resume, state, textutil
 
@@ -33,6 +33,9 @@ class Client:
         # 📊 for /netstats: what went over this connection
         self.connected_at = time.time()
         self.packets_in = self.bytes_in = self.packets_out = self.bytes_out = 0
+        # 🗺️ for the network map: packets per type since the last map, and the ping from the last probe
+        self.types_in, self.types_out = Counter(), Counter()
+        self.netmap_open, self.ping_ms, self.probes, self.probe_count = False, None, {}, 0
         self.pings = deque()     # times of recent pings, for their own small limit
         self.last_typing = 0.0   # when we last passed on their "is typing" (or "stopped")
         self.groups_sent = {}    # 👥 the last groups / group_info packet sent, so an unchanged one isn't sent again
@@ -54,6 +57,7 @@ class Client:
                 data = (json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8", "replace")
                 self.sock.sendall(data)
                 self.packets_out += 1
+                self.types_out[str(obj.get("type", "?"))[:20]] += 1
                 self.bytes_out += len(data)
                 if after is not None:   # e.g. 📦 "this chunk is really out: ack the sender"
                     after()

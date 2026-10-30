@@ -802,3 +802,27 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .person-name-btn:hover { text-decoration: underline; text-decoration-color: var(--gold); text-underline-offset: 3px; }
 .msg-head .who { cursor: pointer; }
 @media (max-width: 760px) { .pf-two { grid-template-columns: 1fr; } }
+
+/* ----- 🗺️ the live network map */
+.netmap { width: min(760px, calc(100vw - 32px)); }
+.nm-svg { width: 100%; height: auto; max-height: 52vh; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 12px; }
+.nm-server { fill: var(--crust); stroke: var(--crust-line); stroke-width: 2; }
+.nm-server-label { fill: var(--text); font-size: 13px; font-weight: 800; }
+.nm-link { stroke: var(--line); stroke-width: 2; }
+.nm-player { fill: var(--panel-3); stroke: var(--crisp); stroke-width: 2; }
+.nm-name { fill: var(--text); font-size: 13px; font-weight: 750; }
+.nm-ping { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.nm-dot { stroke: var(--bg); stroke-width: 1; }
+.nm-chat { fill: var(--gold); background: var(--gold); }
+.nm-game { fill: var(--pickle); background: var(--pickle); }
+.nm-file { fill: var(--lavender); background: var(--lavender); }
+.nm-net { fill: var(--mustard); background: var(--mustard); }
+.nm-other { fill: var(--muted); background: var(--muted); }
+.nm-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--text-2); }
+.nm-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.nm-key { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.nm-table-wrap { overflow-x: auto; }
+.nm-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.nm-table th, .nm-table td { padding: 5px 8px; text-align: start; border-bottom: 1px solid var(--line-soft); }
+.nm-table thead th { color: var(--muted); font-weight: 700; font-size: 12.5px; }
+.nm-num { font-variant-numeric: tabular-nums; text-align: end !important; }

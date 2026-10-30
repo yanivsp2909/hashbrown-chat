@@ -85,7 +85,7 @@ def clean_features(value):
 
 # What a browser may send (everything else is refused before it reaches the chat server)
 BROWSER_PACKETS = ("line", "file", "ping", "typing", "typing_stop", "seen", "get_groups", "get_group", "groups_closed",
-                   "get_profile", "change_password",
+                   "get_profile", "change_password", "get_netmap", "netmap_closed", "probe_back",
                    "react", "edit", "delete",
                    "file_start", "file_chunk", "file_cancel")
 
@@ -114,6 +114,10 @@ def validate(msg, logged_in):
         raise BridgeError(403, "Log in first.")
     if kind in ("typing", "typing_stop"):   # ⌨️ no fields at all
         return {"type": kind}
+    if kind in ("get_netmap", "netmap_closed"):   # 🗺️ the network map page opens / closes
+        return {"type": kind}
+    if kind == "probe_back":   # 🗺️ the answer to the server's ping probe
+        return {"type": "probe_back", "id": whole_number(msg.get("id"), "probe id")}
     if kind == "get_profile":   # 👤 someone's profile card, by name
         return {"type": "get_profile", "name": clean(msg.get("name"), 16, "Name")}
     if kind == "change_password":   # 👤 the old password first, then the new one (the server checks both)

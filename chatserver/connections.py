@@ -12,7 +12,7 @@ from chatserver import (auth, background, chat, config, discovery, group_view, h
                         resume, rooms,
                         session, state, storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
-from chatserver import cmd_profile, profiles
+from chatserver import cmd_profile, netmap, profiles
 
 
 # ---------------------------------------------------------------- connections
@@ -131,6 +131,10 @@ def handle_message(client, msg):
         if kind == "typing":     # ⌨️ the same: its own small limit
             keep_typing(client)
             return
+        client.types_in[str(kind)[:20]] += 1   # 🗺️ (the network map counts types, never content)
+        if kind in ("get_netmap", "netmap_closed", "probe_back"):   # 🗺️ the live network map: no spam limit
+            netmap.handle(client, msg)
+            return
         if kind in ("get_groups", "get_group", "groups_closed"):   # 👥 the website's Groups screen
             if kind == "groups_closed" or rooms.spam_ok(client):
                 group_view.handle(client, msg)
@@ -223,7 +227,7 @@ def start_server(host=config.HOST, port=config.PORT, run_loops=True, run_console
         textutil.log(f"[SERVER] ⚠️ The admin password is shorter than {config.ADMIN_PASSWORD_WARN_UNDER} characters. "
                      "It works, but a longer one is much harder to guess.")
     loops = (([background.income_loop, background.quiz_loop, background.qotd_loop,
-                background.offers_loop, background.groups_loop] if run_loops else [])
+                background.offers_loop, background.groups_loop, background.netmap_loop] if run_loops else [])
              + ([background.console_loop] if run_console else []))
     for loop in loops:
         threading.Thread(target=loop, daemon=True).start()

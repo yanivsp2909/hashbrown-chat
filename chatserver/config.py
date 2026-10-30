@@ -90,6 +90,7 @@ START_TOKENS = 100
 TOKENS_PER_MINUTE = 5        # every logged-in user
 GROUP_INCOME = 10            # every group bank, while at least one member is online
 BANK_HISTORY_SHOWN = 30      # 🏦 rows of a bank's history on the website's Groups screen
+NETMAP_PROBE_EVERY = 3       # 🗺️ seconds between ping probes while someone has the network map open
 GROUPS_PUSH_EVERY = 1        # 👥 seconds between refreshes of the website's open Groups screens (only if changed)
 BANK_CHART_DAYS = 7          # 🏦 days of balance in its chart
 BANK_CHART_POINTS = 200      # 🏦 at most this many points in it (one snapshot an hour)

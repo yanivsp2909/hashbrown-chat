@@ -24,7 +24,7 @@ PORT = 8820
 WEB_PORT = 8080   # where the host's website runs (server.py starts it)
 # What this client understands, told to the server at login. "offers": ask me before sending me a file
 # (I answer with /accept or /decline). Older copies of this file don't send it and get files straight away.
-FEATURES = ["offers"]
+FEATURES = ["offers", "probe"]   # "probe": we answer the server's ping probes (its 🗺️ network map shows our ping)
 
 
 DISCOVERY_PORT = 8821   # UDP port where servers answer {"type": "discover"}
@@ -61,6 +61,7 @@ ESC_WAIT = 0.05  # seconds to wait after Esc to see if it is the start of an arr
 TIMED_OUT = {"type": "timed_out"}  # made here (never sent by the server) when waiting took too long
 
 quitting = threading.Event()
+send_lock = threading.Lock()
 # 🔁 Reconnect and catch up: the connection we use now, the secret token the server gave at login, and the
 # last packet number we got. After a drop we log back in with them and get exactly what we missed.
 link = {"sock": None, "server": "", "username": "", "token": "", "seq": 0, "kicked": False}
@@ -263,7 +264,8 @@ def send(sock, obj):
         hidden = {k: "•••" for k in ("password", "token") if k in obj}
         shown = json.dumps({**obj, **hidden}, ensure_ascii=False) if hidden else line
         show_packet(f"⬆ {shown}")
-    sock.sendall((line + "\n").encode())
+    with send_lock:   # two threads (typing and answering probes) never mix their bytes
+        sock.sendall((line + "\n").encode())
 
 
 pong_waiting = threading.Event()   # 🏓 set while a ping is waiting for its pong
@@ -489,7 +491,14 @@ def login(sock, messages):
 # ---------------------------------------------------------------- main
 
 def keep(msg):
-    """🔁 Remember the token and the packet number. False for a packet we already have."""
+    """🔁 Remember the token and the packet number. False for a packet we already have.
+    (🗺️ A ping probe is answered here, straight away, and not shown.)"""
+    if msg.get("type") == "probe" and isinstance(msg.get("id"), int):
+        try:
+            send(link["sock"], {"type": "probe_back", "id": msg["id"]})
+        except OSError:
+            pass
+        return False
     if msg.get("kicked") is True:
         link["kicked"] = True
     if msg.get("type") == "auth_result" and msg.get("ok") and isinstance(msg.get("resume_token"), str):
