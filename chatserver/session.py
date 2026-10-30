@@ -33,6 +33,7 @@ class Client:
         self.packets_in = self.bytes_in = self.packets_out = self.bytes_out = 0
         self.pings = deque()     # times of recent pings, for their own small limit
         self.last_typing = 0.0   # when we last passed on their "is typing" (or "stopped")
+        self.groups_sent = {}    # 👥 the last groups / group_info packet sent, so an unchanged one isn't sent again
         self.groups_view = None  # 👥 the website's Groups screen: None = closed, "" = the list, a key = one group
         self.is_typing = False   # between a "typing" we passed on and their stop or message
         self.typing_times = deque()   # when we passed on their last typing / stopped packets

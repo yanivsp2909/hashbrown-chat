@@ -14,9 +14,11 @@ Privacy, all decided here:
 - "admin" (join requests, muted, banned): only for that group's owner and admins.
 Old clients never send get_groups, so they never get any of this.
 """
+import json
 import time
+import traceback
 
-from chatserver import bank_log, config, rooms, state
+from chatserver import bank_log, config, rooms, state, textutil
 
 
 def role_of(group, key):
@@ -39,10 +41,9 @@ def card(key, viewer):
     group = state.groups[key]
     role = role_of(group, viewer)
     shown = {"key": key, "name": group["name"], "emoji": group["emoji"], "private": group["private"],
-             "members": len(group["members"]), "online": sum(1 for m in group["members"] if m in state.online),
-             "your_role": role}
+             "members": len(group["members"]), "your_role": role}
     if sees_inside(group, role):
-        shown.update({"topic": group.get("topic", ""), "persona": group.get("personality") or "",
+        shown.update({"online": sum(1 for m in group["members"] if m in state.online),"topic": group.get("topic", ""), "persona": group.get("personality") or "",
                       "bank": group["bank"], "upgrades": list(group["upgrades"])})
     return shown
 
@@ -114,19 +115,32 @@ def details(key, viewer):
 
 # ---------------------------------------------------------------- the packets
 
-def send_view(client):
-    """What this client's open screen shows: the list, or the list and one group."""
+def send_view(client, cache=None, force=True):
+    """What this client's open screen shows: the list, or the list and one group. Packets that didn't change
+    since the last time aren't sent again. cache: details already built in this round, by (group, role)."""
     if client.groups_view is None or client.key is None:
         return
-    client.send({"type": "groups", "groups": cards(client.key)})
-    if client.groups_view in state.groups:
-        client.send({"type": "group_info", "group": details(client.groups_view, client.key)})
+    packets = [{"type": "groups", "groups": cards(client.key)}]
+    key = client.groups_view
+    if key in state.groups:
+        role = role_of(state.groups[key], client.key)
+        if cache is None or (key, role) not in cache:
+            built = details(key, client.key)
+            if cache is not None:
+                cache[(key, role)] = built
+        packets.append({"type": "group_info", "group": cache[(key, role)] if cache is not None else built})
+    for packet in packets:
+        text = json.dumps(packet, sort_keys=True)
+        if force or client.groups_sent.get(packet["type"]) != text:
+            client.groups_sent[packet["type"]] = text
+            client.send(packet)
 
 
 def handle(client, msg):
     kind = msg.get("type")
     if kind == "groups_closed":
         client.groups_view = None
+        client.groups_sent = {}
         return
     if kind == "get_groups":
         client.groups_view = ""
@@ -148,5 +162,9 @@ def push_updates():
     if not state.groups_dirty:
         return
     state.groups_dirty = False
+    cache = {}   # one group's details are built once per round for each role, however many people look
     for client in list(state.online.values()):
-        send_view(client)
+        try:
+            send_view(client, cache, force=False)
+        except Exception:   # one broken view mustn't stop everyone else's
+            textutil.log("[SERVER] Error while refreshing a Groups screen:\n" + traceback.format_exc())

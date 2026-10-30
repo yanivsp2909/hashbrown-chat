@@ -25,6 +25,7 @@
 - 👥 **Groups**: public groups, or 🔒 private groups where an admin approves you. Admins can kick, ban, mute, promote and demote.
 - 💬 **Chat switcher** (website): 🌍 the Lobby and all your groups in one list, each its own conversation with its own messages, unread count and last message, like a messaging app.
 - 🏦 **Group bank**: every group earns its own tokens and spends them on upgrades; ⚔️ group wars for the bank.
+- 👥 **Groups screen** (website): every group by clicking. Join or ask to join, open a chat, and see each group's members (who's online), bank (history, top donors, a chart, donate) and every upgrade (owned, can buy, or how much is missing). A group's admins also get its join requests and buttons to kick, mute, ban, promote, set the topic, emoji and persona, or disband. Every button sends the normal command, so the server's rules still decide.
 - 🪙 **Tokens**: earn them by being online, with a `/daily` streak, three daily `/quests`, winning games and achievements. Spend them in the badge shop or the casino (fake tokens only). `/give` has limits against farming with extra accounts (not in an account's first 24 hours, at most 500 a day).
 - 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel, Connect 4, Battleship and solo Wordle; ELO ratings and `/leaderboard`, `/watch` someone's game. Challenge a friend, with an optional token bet; `/rematch`, and `/claim` if they stop moving.
 - 🥔 **Hashbrown**: an AI member. Type `@hashbrown` in chat, or `/ask` for a private answer; it also comments on your games, judges arguments (`/judge`), translates (`/tr`), gives Wordle hints and asks a question of the day (answer it with `/answer`: the answer with the most reactions wins 50 🪙). Each question costs tokens; you can tip Hashbrown with `/give hashbrown 10`. Without an API key, Hashbrown is simply off.
@@ -152,6 +153,8 @@ Every packet is **one JSON object on one line**, ending with `\n`. That's called
 | client → server | `seen` | `id` (a private message's `pm_id`): its sender gets `receipt` |
 | server → client | `receipt` | `id`, `status` (`delivered` or `seen`); the sender's copy of a `/send` has `pm` (`id`, `status`), the receiver's has `pm_id` |
 | server → client | `topic` | `room`, `text` (the pinned topic; empty = none), on every room switch and when it changes |
+| client → server | `get_groups` / `get_group` / `groups_closed` | (none) / `group` (its key) / (none): the website's Groups screen opens, looks at one group, closes |
+| server → client | `groups` / `group_info` | `groups` (one card per group) / `group` (one group's details): sent when asked and once a second while the screen is open and something changed. A private group you're not in shows only its name, emoji and size; `bank_details` only goes to members, `admin` (requests, muted, banned) only to that group's admins |
 | server → client | `lab` | `lag_ms`, `loss_percent` (the network lab changed; 0 and 0 = off) |
 | client → server | `react` | `id` (a chat message), `emoji`: the room gets `reactions` with `id` and `counts` |
 | client → server | `edit` / `delete` | `id` (your own message, for 10 min), `text`: the room gets `edited` / `deleted` |

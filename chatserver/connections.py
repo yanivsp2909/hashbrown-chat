@@ -149,7 +149,8 @@ def handle_message(client, msg):
         text = textutil.clean_text(msg.get("text", ""))[:config.MAX_TEXT]
         if not matches.is_game_move(client, text) and not rooms.spam_ok(client):
             return  # game moves don't count as spam
-        group_view.mark_dirty()   # 👥 a command may have changed a group: open Groups screens refresh
+        if text.startswith("/"):
+            group_view.mark_dirty()   # 👥 a command may have changed a group: open Groups screens refresh
         if msg.get("type") == "line":
             chat.handle_line(client, text)
         elif msg.get("type") == "file":

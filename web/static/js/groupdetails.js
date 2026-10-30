@@ -242,7 +242,7 @@ export function renderDetails(body, info, { back }) {
       : el("div", { class: "gs-row-actions" }, el("button", { class: "btn btn-primary", type: "button",
         text: info.private ? "Request to join" : "Join", onclick: () => act("join", info) }));
   const inside = Array.isArray(info.members_list);
-  const people = `👥 ${info.members} member${info.members === 1 ? "" : "s"} · 🟢 ${info.online} online`;
+  const people = `👥 ${info.members} member${info.members === 1 ? "" : "s"}${Number.isInteger(info.online) ? ` · 🟢 ${info.online} online` : ""}`;
   body.append(el("div", { class: "gs-summary" }, el("div", { class: "gs-summary-text" }, el("p", { class: "gs-meta", text: people }),
     inside ? about(info) : el("p", { class: "gs-muted", text: "🔒 A private group: only its members see what's inside." })), joinRow));
   if (!inside) return;

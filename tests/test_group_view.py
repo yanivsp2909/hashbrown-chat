@@ -196,7 +196,7 @@ def test_balance_points_for_the_chart(user):
         bank_log.snapshot_all(now=time.time())
         bank_log.snapshot_all(now=time.time() + 60)          # less than an hour later: no second point
     points = info(adi)["bank_details"]["chart"]
-    assert len(points) == 1 and points[0]["balance"] == 70
+    assert [p["balance"] for p in points] == [70, 70]           # the snapshot, then the balance now
 
 
 # ---------------------------------------------------------------- buying stays the server's decision
@@ -254,3 +254,34 @@ def test_asking_about_a_group_that_doesnt_exist(user):
     adi.expect_text("No group", kind="error")
     adi.send({"type": "get_group", "group": ["x"]})
     adi.expect_text("No group", kind="error")
+
+
+def test_donation_spam_doesnt_grow_the_chart(user):
+    """Security review: the chart is built from hourly snapshots only (at most BANK_CHART_POINTS)."""
+    adi = user("Adi")
+    make_group(adi)
+    state.accounts["adi"]["tokens"] = 1000
+    for _ in range(20):
+        adi.line("/donate 1")
+    adi.line("/users")
+    adi.expect_text("Online now")
+    assert len(info(adi)["bank_details"]["chart"]) == 1
+
+
+def test_a_private_group_doesnt_show_who_is_online_to_outsiders(user):
+    adi, ben = user("Adi"), user("Ben")
+    make_group(adi, "Secret", private=True)
+    assert "online" not in card_of(groups(ben), "secret")
+
+
+def test_an_unchanged_screen_isnt_sent_again(user):
+    adi = user("Adi")
+    make_group(adi)
+    info(adi)
+    before = len([m for m in adi.messages if m.get("type") == "group_info"])
+    with state.lock:
+        group_view.mark_dirty()
+        group_view.push_updates()
+    adi.line("/users")
+    adi.expect_text("Online now")
+    assert len([m for m in adi.messages if m.get("type") == "group_info"]) == before

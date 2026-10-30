@@ -87,7 +87,8 @@ function groupRow(card) {
   const role = str(card.your_role, "none");
   const name = str(card.name);
   const member = G.isMember(role);
-  const meta = [`👥 ${card.members}`, `🟢 ${card.online} online`];
+  const meta = [`👥 ${card.members}`];
+  if (Number.isInteger(card.online)) meta.push(`🟢 ${card.online} online`);   // (not for private groups you're not in)
   if (Number.isInteger(card.bank)) meta.push(`🏦 ${card.bank} 🪙`);
   const upgrades = Array.isArray(card.upgrades) && card.upgrades.length ? card.upgrades.map(str).join(" · ") : "";
   const actions = member

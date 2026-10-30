@@ -39,11 +39,17 @@ def top_donors(group_key, limit=5):
 
 
 def chart(group_key, days=None):
-    """[{time, balance}] oldest first, over the last BANK_CHART_DAYS (every row has the balance after it)."""
+    """[{time, balance}] oldest first: the hourly snapshots of the last BANK_CHART_DAYS, then the balance now.
+    (Only snapshots, never one point per donation: 1-token donations can't make the packet huge.)"""
     since = time.time() - (days or config.BANK_CHART_DAYS) * 86400
     rows = history.run(lambda c: c.execute(
-        "SELECT time, balance FROM bank_log WHERE grp = ? AND time >= ? ORDER BY id", (group_key, since)).fetchall(), [])
-    return [{"time": t, "balance": b} for t, b in rows]
+        "SELECT time, balance FROM bank_log WHERE grp = ? AND kind = 'snapshot' AND time >= ? ORDER BY id DESC LIMIT ?",
+        (group_key, since, config.BANK_CHART_POINTS)).fetchall(), [])
+    points = [{"time": t, "balance": b} for t, b in reversed(rows)]
+    if group_key in state.groups:
+        now = int(time.time()) // 60 * 60   # (to the minute, so an unchanged screen isn't sent again)
+        points.append({"time": now, "balance": state.groups[group_key]["bank"]})
+    return points
 
 
 def snapshot_all(now=None):
@@ -53,6 +59,15 @@ def snapshot_all(now=None):
         if now - state.bank_snapshots.get(key, 0) >= 3600:
             state.bank_snapshots[key] = now
             record(key, "snapshot", "", 0)
+            prune(now)
+
+
+def prune(now):
+    """Rows older than BANK_LOG_KEEP_DAYS go (the screen shows the last 30 rows and 7 days anyway)."""
+    def drop(connection):
+        connection.execute("DELETE FROM bank_log WHERE time < ?", (now - config.BANK_LOG_KEEP_DAYS * 86400,))
+        connection.commit()
+    history.run(drop)
 
 
 def forget(group_key):

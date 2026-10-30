@@ -151,6 +151,31 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 Decision: group commands work on the room you're in, so a button for a group you're not in sends `/join X` first (option A, approved). The packets only show things; every button sends an existing command.
 
+## Round 5 (overnight)
+
+### Group A: picked features
+
+| # | Feature | Status |
+|---|---|---|
+| N1 | 🔁 Reconnect and catch up (seq + resume) | not started |
+| N2 | 👤 Profiles you can edit (+ change password) | not started |
+| N3 | 🗺️ Live network map | not started |
+| N4 | 🎨 Drawing game (Pictionary) | not started |
+
+### Group B: economy (stocks and taxes together)
+
+| # | Feature | Status |
+|---|---|---|
+| N5 | 📈 Stock market (FRY, SPUD, SALT, KTCH) | not started |
+| N6 | 🧾 Taxes into a public fund that pays prizes | not started |
+| N7 | 👥 Group stocks with dividends | not started |
+| N8 | 📰 Hashbrown market news | not started |
+| N9 | 🏦 Savings with interest | not started |
+| N10 | 💳 Loans | not started |
+| N11 | 🛒 Player marketplace | not started |
+| N12 | 🔨 Auctions | not started |
+| N13 | 📊 Economy dashboard (website) | not started |
+
 ### Round 3 reviews
 
 - a11y-architect (the @ list, the file offer buttons): all findings fixed (see R4; offer buttons keep focus, announce the answer, come back on failure, live only).

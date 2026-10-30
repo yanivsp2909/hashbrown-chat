@@ -184,6 +184,18 @@ The admin password is never in the code (the repo is public). Save it in the Mac
 
 Hover (or tab to) a message and press **☺︎+** to react with 👍 ❤️ 😂 😮 😢 or 🥔. Click a reaction under a message to add or take back yours. While someone in your room types, you see *Noa is typing…* above the message box (right away, and it goes when they send or clear the box). Type `@` for a list of the people in this chat and @hashbrown. A poll shows a button for each option.
 
+## Groups screen 👥 (website)
+
+Press **👥 Groups** in the sidebar. You see your groups first, then every other group (🔒 = private: you ask to join and an admin approves). Search at the top, **+ Create group** to make one.
+
+- **A group's card:** its emoji, name, pinned topic, members (and how many are online), bank, upgrades and Hashbrown's persona there. **Open chat**, **Join** / **Request to join**, or **Leave**.
+- **Click a group's name** for the details: members with their role (👑 owner, 🛡️ admin) and a green dot when online, and the group's war.
+- **🏦 Bank** (members): the balance, what it earns right now and why (10 🪙 a minute while a member is online), a chart of the last days, **Donate**, the top donors and the history: who donated, what admins bought, war prizes and Hashbrown questions the bank paid.
+- **⬆️ Upgrades:** every upgrade with its price and state: ✅ owned, 🟢 the bank can buy it, or 🔒 how much is missing. Admins get a **Buy** button with a confirm step that shows the bank after buying; everyone else sees who the admins are.
+- **🛡️ Admin tools** (only that group's admins see them): join requests with **Approve** / **Reject**, and for each member **Kick**, **Mute** (5, 15 or 60 min), **Ban**, **Promote** / **Demote** (owner). Set the topic, emoji and persona. **Disband** asks you to type the group's name first.
+
+Every button sends the same command you'd type (like `/approve Ben Secret` or `/kick Ben`), so the server's rules decide. Most group commands work in the group's room, so a button for another group opens that group first. The server's answer shows at the bottom of the screen.
+
 ## Chat switcher 💬 (website)
 
 The **💬 Chats** list in the sidebar shows 🌍 the Lobby and every group you're in. Messages from a room you're not looking at don't fill your screen: that room gets an unread count and a preview of its last message. Click a room to open it (the same as `/join name` or `/lobby`): you see only that room's messages, and its topic at the top. The terminal client keeps working the old way (you only get the room you're in).
