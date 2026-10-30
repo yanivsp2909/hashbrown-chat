@@ -89,7 +89,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | 25 | Offline messages | done: /send to someone offline is kept in their account's inbox (OFFLINE_MAX 20), delivered at login as a normal 💌 line |
 | 26 | Edit/delete | done: edit/delete packets for your own messages for EDIT_MINUTES (author login stored in history.db, old DBs get the columns), room gets edited/deleted; website ✏️ 🗑️ (delete asks twice) |
 | 27 | Jackpot pool | done: JACKPOT_SHARE (10%) of casino losses into state.jackpot (saved as a new top-level key), three 💎 on /slots wins it, /jackpot |
-| 28 | Hashbrown trivia | not started |
+| 28 | Hashbrown trivia | done: /trivia (asker pays), reply parsed by regex QUESTION:/ANSWER: (refund if it doesn't fit), first right answer in TRIVIA_SECONDS wins TRIVIA_REWARD |
 | 29 | Group wars | not started |
 
 ## Decisions made on the way

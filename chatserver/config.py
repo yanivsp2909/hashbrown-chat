@@ -33,6 +33,8 @@ TR_QUESTION = ("Translate this text. If it's in Hebrew, translate it to English;
                "Answer with the translation only: {text}")
 HINT_QUESTION = ("Give a short, playful hint for the 5-letter Wordle word \"{word}\" in one sentence. "
                  "NEVER write the word itself or spell it out.")
+TRIVIA_REWARD = 40               # 🧠 tokens for the first right answer to /trivia
+TRIVIA_SECONDS = 60
 PERSONALITY_MAX = 120            # 🎭 characters in a group's /personality
 TLDR_HISTORY = 50                # 📝 /tldr reads this many, to sum them up
 TLDR_QUESTION = ("Summarize what this room talked about recently, in 2 or 3 short sentences: who said what "

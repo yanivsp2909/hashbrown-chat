@@ -4,7 +4,8 @@
 import os
 import time
 
-from chatserver import achievements, config, hashbrown_ai, history, matches, registry, rooms, state, storage, textutil
+from chatserver import (achievements, config, hashbrown_ai, hashbrown_extras, history, matches, registry, rooms,
+                        state, storage, textutil)
 
 
 def handle_file(client, msg):
@@ -72,6 +73,7 @@ def handle_line(client, text):
     if text.lower().startswith("@hashbrown"):
         hashbrown_ai.ask_hashbrown(client, text[len("@hashbrown"):].lstrip(" ,:"))
     check_quiz(client, text)
+    hashbrown_extras.check_trivia(client, text)
 
 
 def react(client, msg):

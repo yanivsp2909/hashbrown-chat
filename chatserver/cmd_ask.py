@@ -41,4 +41,10 @@ def cmd_qotd(client, args):
         client.say("❓ No question of the day yet. Hashbrown asks one in the lobby every day.")
 
 
+@registry.command("/trivia", "/trivia", f"Hashbrown asks the room a trivia question ({config.HASHBROWN_COST} 🪙)",
+                  "🥔 Hashbrown")
+def cmd_trivia(client, args):
+    hashbrown_extras.start_trivia(client)
+
+
 assert hashbrown_extras  # imported so the game commentator hooks itself into finished matches

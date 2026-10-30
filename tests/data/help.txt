@@ -88,6 +88,7 @@
   /judge                           Hashbrown judges the argument, everyone sees it (20 🪙)
   /tr text                         translate Hebrew <-> English, only for you (20 🪙)
   /qotd                            today's question of the day ❓
+  /trivia                          Hashbrown asks the room a trivia question (20 🪙)
 
 🌐 Network
   /ping                            how long a packet takes there and back 🏓

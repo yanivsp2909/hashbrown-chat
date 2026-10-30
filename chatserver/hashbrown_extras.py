@@ -3,9 +3,10 @@
 The server pays for these; they count toward the server-wide daily cap (HASHBROWN_DAILY_CAP), and if the AI
 call fails nothing happens (there's nobody to refund). The commands people type are in cmd_ask.py.
 """
+import re
 import threading
 
-from chatserver import config, hashbrown_ai, history, matches, rooms, state, textutil
+from chatserver import config, hashbrown_ai, history, matches, rooms, state, storage, textutil
 from chatserver.hashbrown_text import israel_now
 
 
@@ -99,3 +100,83 @@ def question_of_the_day_tick():
         rooms.send_room("lobby", msg)
     ask_in_background("Ask the friends in the group chat one fun question of the day (one sentence, "
                       "nothing too personal). Only the question.", deliver)
+
+
+
+# ---------------------------------------------------------------- 🧠 trivia
+
+TRIVIA_TASK = ("Write one fun trivia question for friends in a group chat, with a short answer (one or two words, "
+               "or a number). Reply in exactly this format and nothing else:\nQUESTION: ...\nANSWER: ...")
+TRIVIA_REPLY = re.compile(r"QUESTION:\s*(?P<question>.+?)\s*\n\s*ANSWER:\s*(?P<answer>[^\n]+)", re.IGNORECASE | re.DOTALL)
+
+
+def normalize(text):
+    """'The PARIS!' and 'paris' are the same answer: no case, no 'the/a/an', no punctuation or spaces."""
+    text = re.sub(r"^(the|a|an)\s+", "", text.strip().lower())
+    return re.sub(r"[\W_]+", "", text)
+
+
+def start_trivia(client):
+    """/trivia: the asker pays like /ask; Hashbrown writes a question and the room races to answer it."""
+    room, account = client.room, state.accounts[client.key]
+    if state.hashbrown is None:
+        client.say("🥔💤 Hashbrown is asleep (the server owner hasn't set it up yet).", "error")
+        return
+    if room in state.trivia:
+        client.say("🧠 There's already a trivia question here. Answer it first!", "error")
+        return
+    if account["tokens"] < config.HASHBROWN_COST:
+        client.say(f"💸 Trivia costs {config.HASHBROWN_COST} 🪙.", "error")
+        return
+    if not take_server_question():
+        client.say("🥔😴 Hashbrown has answered enough for today. Try tomorrow!", "error")
+        return
+    account["tokens"] -= config.HASHBROWN_COST
+    state.trivia[room] = {"pending": True}
+    asker = client.key
+
+    def refund(why):
+        state.trivia.pop(room, None)
+        if asker in state.accounts:
+            state.accounts[asker]["tokens"] += config.HASHBROWN_COST
+            storage.save_data()
+        rooms.tell(asker, why, "error")
+
+    def deliver(reply):
+        found = TRIVIA_REPLY.search(reply)
+        if not found or not normalize(found["answer"]):   # regex, no second AI call: the format is fixed
+            refund("🧠 Hashbrown's question came out wrong. Your tokens were refunded.")
+            return
+        trivia = {"answer": normalize(found["answer"]), "shown": found["answer"].strip()}
+        state.trivia[room] = trivia
+        msg = rooms.chat_message("Hashbrown", "🥔", f"🧠 Trivia: {found['question'].strip()} "
+                                                    f"(first right answer wins {config.TRIVIA_REWARD} 🪙)")
+        history.add(room, msg)
+        rooms.send_room(room, msg)
+        threading.Timer(config.TRIVIA_SECONDS, time_up_later, args=(room, trivia)).start()
+
+    ask_in_background(TRIVIA_TASK, deliver,
+                      lambda: refund("🧠 Hashbrown couldn't think of a question. Your tokens were refunded."))
+
+
+def time_up_later(room, trivia):
+    with state.lock:
+        trivia_time_up(room, trivia)
+
+
+def trivia_time_up(room, trivia):
+    if state.trivia.get(room) is trivia:
+        del state.trivia[room]
+        rooms.notify_room(room, f"⏰ Trivia over! The answer was {trivia['shown']}.", kind="event")
+
+
+def check_trivia(client, text):
+    """Called for every chat line: is it the right answer to this room's trivia?"""
+    trivia = state.trivia.get(client.room)
+    if not trivia or "answer" not in trivia or normalize(text) != trivia["answer"]:
+        return
+    del state.trivia[client.room]
+    state.accounts[client.key]["tokens"] += config.TRIVIA_REWARD
+    storage.save_data()
+    rooms.notify_room(client.room, f"🧠 {rooms.shown(client.key)} got it: {trivia['shown']}! "
+                                   f"+{config.TRIVIA_REWARD} 🪙", kind="event")
