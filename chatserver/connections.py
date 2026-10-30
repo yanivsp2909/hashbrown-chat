@@ -77,11 +77,26 @@ def answer_ping(client, msg):
     client.send({"type": "pong", **({"t": t} if has_number else {})})
 
 
+def pass_on_typing(client):
+    """⌨️ Tell the others in the room (the clients that asked for it) that this person is typing."""
+    now = time.time()
+    if now - client.last_typing < config.TYPING_EVERY:
+        return
+    client.last_typing = now
+    note = {"type": "typing", "name": rooms.nick(client.key)}
+    for other in list(state.online.values()):
+        if other is not client and other.room == client.room and "typing" in other.features:
+            other.send(note)
+
+
 def handle_message(client, msg):
     """A message from someone who is logged in. Called while holding the lock."""
     try:
         if msg.get("type") == "ping":   # 🏓 not chat, so it skips the spam limit (it has its own)
             answer_ping(client, msg)
+            return
+        if msg.get("type") == "typing":   # ⌨️ the same: its own small limit
+            pass_on_typing(client)
             return
         text = textutil.clean_text(msg.get("text", ""))[:config.MAX_TEXT]
         if not matches.is_game_move(client, text) and not rooms.spam_ok(client):

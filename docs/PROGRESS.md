@@ -60,7 +60,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 | # | Feature | Status |
 |---|---|---|
-| 9 | Typing indicator (exempt from the spam limit) | not started |
+| 9 | Typing indicator (exempt from the spam limit) | done: `typing` packet, own limit (TYPING_EVERY), only to clients with the \"typing\" feature in your room |
 | 10 | Reactions | not started |
 | 11 | Rematch + `/claim` | done: /rematch (same opponent, game, bet), /claim after CLAIM_AFTER s on the other's turn (not Math Duel: no turns) |
 | 12 | `/tldr` | done: private, paid like /ask, reads TLDR_HISTORY (50) lines |

@@ -11,6 +11,7 @@ import { clearPasswords, showLoginError } from "./login.js";
 import { noteTarget } from "./games/panel.js";
 import * as online from "./online.js";
 import * as rooms from "./rooms.js";
+import * as typing from "./typing.js";
 
 const MAX_NAMES = 60;
 const NICK_KEY = "hashbrown.nick";
@@ -167,6 +168,8 @@ export function handleMessage(msg, live, sendLine) {
   switch (msg.type) {
     case "rooms":
       return rooms.setRooms(msg);
+    case "typing":
+      return live ? typing.someoneTyping(str(msg.name)) : undefined;
     case "stream":
       return msg.done ? undefined : chat.addStreamPiece(msg, { live });
     case "auth_result":
@@ -177,6 +180,7 @@ export function handleMessage(msg, live, sendLine) {
       const name = str(msg.name);
       remember(name);
       rooms.notePreview(msg);
+      typing.stoppedTyping(name);
       return chat.addChat(msg, { live, mine: name === getState().nick });
     }
     case "pong":
