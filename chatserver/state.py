@@ -22,6 +22,7 @@ last_rob = {}   # login -> time of their last /rob
 qotd = None      # ❓ (day, question) of the question of the day
 commentator_today = ("", 0)   # 🎙️ (day, how many comments)
 transfers = {}  # 📦 big file transfers on their way: their key -> details
+jackpot = 0     # 💰 the casino's pot (saved in chat_data.json)
 polls = {}      # room -> its poll: {by, question, options, votes: {login: option index}}
 last_match = {}  # login -> (opponent, game class, bet) of their last finished match, for /rematch
 solo = {}       # login -> their Wordle game
@@ -47,7 +48,7 @@ lab_loss_percent = 0    # this % of packets arrive LAB_RESEND_MS late, like a TC
 def reset_state():
     """Forget everything in memory (the tests use this to start each test from zero)."""
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
-    global lab_lag_ms, lab_loss_percent, qotd, commentator_today
+    global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot
     with lock:
         for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
@@ -55,4 +56,4 @@ def reset_state():
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)
         hashbrown_questions, hashbrown_no_reasoning = 0, False
         lab_lag_ms, lab_loss_percent = 0, 0
-        qotd, commentator_today = None, ("", 0)
+        qotd, commentator_today, jackpot = None, ("", 0), 0

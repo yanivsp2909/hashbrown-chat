@@ -19,6 +19,7 @@ def gamble_result(client, bet, payout, text, game):
         outcome = "😐 You got your bet back."
     else:
         outcome = f"😢 You lost {bet} 🪙."
+        state.jackpot += -net * config.JACKPOT_SHARE // 100   # 💰 part of every loss goes into the pot
     client.say(f"{text}\n{outcome}  Balance: {account['tokens']} 🪙", "money" if net >= 0 else "error")
     if net >= 500:
         rooms.announce(f"🎰💥 {rooms.shown(client.key)} just won {net} 🪙 on {game}!", exclude={client.key})
@@ -71,6 +72,16 @@ def cmd_slots(client, args):
     else:
         multiplier = 0
     gamble_result(client, bet, int(bet * multiplier), f"🎰 [ {' | '.join(reels)} ]", "slots")
+    if reels == ["💎"] * 3 and state.jackpot:   # 💰 the big one: the whole pot as well
+        pot, state.jackpot = state.jackpot, 0
+        state.accounts[client.key]["tokens"] += pot
+        rooms.announce(f"💰💎 {rooms.shown(client.key)} hit the JACKPOT and won the pot: {pot} 🪙!")
     if multiplier >= 10:
         achievements.unlock(client.key, "jackpot")
-        storage.save_data()  # gamble_result already saved, before this achievement
+        storage.save_data()  # gamble_result already saved, before this achievement and the pot
+
+
+@registry.command("/jackpot", "/jackpot", "the pot that three 💎 on /slots wins 💰", "🎰 Casino")
+def cmd_jackpot(client, args):
+    client.say(f"💰 The jackpot is {state.jackpot} 🪙. {config.JACKPOT_SHARE}% of every casino loss goes in; "
+               "three 💎 on /slots wins all of it.", "money")

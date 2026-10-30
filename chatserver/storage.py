@@ -18,6 +18,8 @@ def load_data():
             with open(config.DATA_FILE, encoding="utf-8") as f:
                 data = json.load(f)
             state.accounts, state.groups = dict(data.get("accounts", {})), dict(data.get("groups", {}))
+            pot = data.get("jackpot", 0)   # added later: older files don't have it
+            state.jackpot = pot if isinstance(pot, int) and pot >= 0 else 0
         except (OSError, ValueError, AttributeError, TypeError) as e:
             textutil.log(f"[SERVER] ❌ Can't read {config.DATA_FILE} ({type(e).__name__}). It may be damaged. "
                          f"The server did not start, so nothing was overwritten. Fix the file or move it away.")
@@ -40,7 +42,8 @@ def save_data():
         tmp = config.DATA_FILE + ".tmp"
         try:
             with open(tmp, "w", encoding="utf-8") as f:
-                json.dump({"accounts": state.accounts, "groups": state.groups}, f, ensure_ascii=False, indent=1)
+                json.dump({"accounts": state.accounts, "groups": state.groups, "jackpot": state.jackpot},
+                          f, ensure_ascii=False, indent=1)
                 f.flush()
                 os.fsync(f.fileno())  # really on the disk, even if the power goes out right after
             for attempt in range(3):

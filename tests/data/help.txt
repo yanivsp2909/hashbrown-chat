@@ -56,6 +56,7 @@
   /coinflip amount heads|tails     double or nothing
   /dice amount                     2 dice vs the house 🎲
   /slots amount                    3 same = x10, 💎💎💎 = x25
+  /jackpot                         the pot that three 💎 on /slots wins 💰
 
 🎮 Games
   /games                           what you can play

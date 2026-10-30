@@ -132,6 +132,7 @@ ACHIEVEMENTS = {  # id: (icon, title, how to get it, reward)
     "genius": ("🧠", "Genius", "solve a Wordle in 3 tries or less", 150),
 }
 SHOP = {"🔥": 100, "😎": 250, "🎮": 400, "💎": 1000, "👑": 5000, "🐐": 10000}
+JACKPOT_SHARE = 10   # 💰 % of every casino loss that goes into the jackpot pot
 SLOT_SYMBOLS = ["🍒", "🍋", "🍇", "🔔", "⭐", "💎"]
 
 
