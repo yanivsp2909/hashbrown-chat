@@ -24,6 +24,8 @@ def load_data():
             reminders.load_saved(data.get("reminders", []))   # ⏰ and this
             topic = data.get("lobby_topic", "")   # 📌 and this
             state.lobby_topic = topic[:config.TOPIC_MAX] if isinstance(topic, str) else ""
+            tips = data.get("hashbrown_tokens", 0)   # 🥔 and this
+            state.hashbrown_tokens = tips if isinstance(tips, int) and not isinstance(tips, bool) and tips >= 0 else 0
         except (OSError, ValueError, AttributeError, TypeError) as e:
             textutil.log(f"[SERVER] ❌ Can't read {config.DATA_FILE} ({type(e).__name__}). It may be damaged. "
                          f"The server did not start, so nothing was overwritten. Fix the file or move it away.")
@@ -49,7 +51,7 @@ def save_data():
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump({"accounts": state.accounts, "groups": state.groups, "jackpot": state.jackpot,
                            "qotd": qotd.to_saved(), "reminders": state.reminders,
-                           "lobby_topic": state.lobby_topic},
+                           "lobby_topic": state.lobby_topic, "hashbrown_tokens": state.hashbrown_tokens},
                           f, ensure_ascii=False, indent=1)
                 f.flush()
                 os.fsync(f.fileno())  # really on the disk, even if the power goes out right after

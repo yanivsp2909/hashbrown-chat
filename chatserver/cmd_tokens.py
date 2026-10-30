@@ -4,7 +4,7 @@
 import random
 import time
 
-from chatserver import achievements, config, registry, rooms, state, storage, textutil
+from chatserver import achievements, config, history, registry, rooms, state, storage, textutil
 
 
 # ----- 🪙 Tokens
@@ -20,11 +20,13 @@ def cmd_balance(client, args):
 
 @registry.command("/top", "/top", "richest players 🏆", "🪙 Tokens")
 def cmd_top(client, args):
-    ranking = sorted(state.accounts, key=lambda k: state.accounts[k]["tokens"], reverse=True)[:10]
+    # Hashbrown is on the list too (its tips), as ("🥔 Hashbrown", tokens) next to everyone's (shown name, tokens)
+    everyone = [(rooms.shown(key), account["tokens"]) for key, account in state.accounts.items()]
+    ranking = sorted(everyone + [("🥔 Hashbrown", state.hashbrown_tokens)], key=lambda row: row[1], reverse=True)[:10]
     medals = ["🥇", "🥈", "🥉"] + [f"{i}." for i in range(4, 11)]
     lines = ["🏆 Richest players:"]
-    for medal, key in zip(medals, ranking):
-        lines.append(f"  {medal} {rooms.shown(key)}  {state.accounts[key]['tokens']} 🪙")
+    for medal, (name, tokens) in zip(medals, ranking):
+        lines.append(f"  {medal} {name}  {tokens} 🪙")
     client.say("\n".join(lines), "money")
 
 
@@ -54,6 +56,9 @@ def cmd_give(client, args):
     if len(parts) != 2:
         client.say("Usage: /give name amount", "error")
         return
+    if parts[0].lower().lstrip("@") == "hashbrown":
+        tip_hashbrown(client, parts[1])
+        return
     target = rooms.find_account(parts[0])
     if target is None or target == client.key:
         client.say("❓ Give to who?", "error")
@@ -66,6 +71,24 @@ def cmd_give(client, args):
     client.say(f"🎁 You gave {amount} 🪙 to {rooms.shown(target)}.", "money")
     rooms.tell(target, f"🎁 {rooms.shown(client.key)} gave you {amount} 🪙!", "money")
     achievements.check_rich(target)
+    storage.save_data()
+
+
+THANKS = ("Thanks {nick}! {amount} 🪙 straight into my fry fund 🍟", "Aww {nick}, {amount} 🪙 for me? You're the best 🥔",
+          "{nick} just tipped me {amount} 🪙. Crispy and grateful!")
+
+
+def tip_hashbrown(client, amount_text):
+    """🥔 /give hashbrown N: the tokens stay with Hashbrown (state.hashbrown_tokens); a canned thanks, no AI."""
+    amount = rooms.parse_amount(client, amount_text)
+    if amount is None or not give_allowed(client, amount):
+        return
+    state.accounts[client.key]["tokens"] -= amount
+    state.hashbrown_tokens += amount
+    client.say(f"🎁 You gave {amount} 🪙 to 🥔 Hashbrown.", "money")
+    msg = rooms.chat_message("Hashbrown", "🥔", random.choice(THANKS).format(nick=rooms.nick(client.key), amount=amount))
+    history.add(client.room, msg)
+    rooms.send_room(client.room, msg)
     storage.save_data()
 
 

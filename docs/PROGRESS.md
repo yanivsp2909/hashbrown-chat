@@ -137,7 +137,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 | # | Item | Status |
 |---|---|---|
-| R18 | Tip Hashbrown | not started |
+| R18 | Tip Hashbrown | done: /give hashbrown N (any case, @ ok): the usual /give limits, tokens go to state.hashbrown_tokens (saved as "hashbrown_tokens"), "🥔 Hashbrown" in /top, a canned thanks from Hashbrown in your room (random of 3, no AI) |
 | R19 | `/hbstats` | not started |
 
 ## Decisions made on the way
