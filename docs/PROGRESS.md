@@ -127,7 +127,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 | # | Item | Status |
 |---|---|---|
-| R13 | Read receipts for private messages | not started |
+| R13 | Read receipts for private messages | done: /send to someone online: your copy gets "pm": {id, status "sent"}, theirs "pm_id"; new packet {"type": "receipt", id, status} "delivered" once their writer really sent it, "seen" after their app sends the new {"type": "seen", id} (only the receiver, once; the last RECEIPTS_KEEP 500 remembered); website ✓ / ✓✓ in the card head, "seen" when the card is 60% on screen and the tab is in front (receipts.js). Messages kept for offline people have no receipts. The terminal client never says "seen" |
 | R14 | `/remind` | not started |
 | R15 | `/pin` room topic | not started |
 | R16 | `/search` | not started |

@@ -84,7 +84,7 @@ def clean_features(value):
 
 
 # What a browser may send (everything else is refused before it reaches the chat server)
-BROWSER_PACKETS = ("line", "file", "ping", "typing", "typing_stop", "react", "edit", "delete",
+BROWSER_PACKETS = ("line", "file", "ping", "typing", "typing_stop", "seen", "react", "edit", "delete",
                    "file_start", "file_chunk", "file_cancel")
 
 
@@ -110,6 +110,8 @@ def validate(msg, logged_in):
         raise BridgeError(403, "Log in first.")
     if kind in ("typing", "typing_stop"):   # ⌨️ no fields at all
         return {"type": kind}
+    if kind == "seen":     # ✓✓ the number of a private message that's on screen now
+        return {"type": "seen", "id": whole_number(msg.get("id"), "message id")}
     if kind == "react":    # 😂 a message id and one short emoji (the server checks it's an allowed one)
         message_id = msg.get("id")
         if not isinstance(message_id, int) or isinstance(message_id, bool):

@@ -8,8 +8,8 @@ import threading
 import time
 import traceback
 
-from chatserver import (auth, background, chat, config, discovery, hashbrown_ai, matches, offers, rooms, session,
-                        state, storage, textutil, transfers, website)
+from chatserver import (auth, background, chat, config, discovery, hashbrown_ai, matches, offers, receipts, rooms,
+                        session, state, storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
 
 
@@ -121,6 +121,9 @@ def handle_message(client, msg):
             return
         if kind == "typing":     # ⌨️ the same: its own small limit
             keep_typing(client)
+            return
+        if kind == "seen":       # ✓✓ the same: one per private message at most
+            receipts.seen(client, msg)
             return
         if kind == "typing_stop":
             pass_on_typing(client, stopped=True)

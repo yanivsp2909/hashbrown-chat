@@ -13,6 +13,7 @@ import * as online from "./online.js";
 import * as rooms from "./rooms.js";
 import { startsNewList } from "./roomlogic.js";
 import { showLab } from "./banners.js";
+import { applyReceipt } from "./receipts.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
 import * as bigfiles from "./bigfiles.js";
@@ -164,7 +165,7 @@ function onServerText(msg, live) {
     el("button", { class: "btn btn-ghost", type: "button", text: `${i + 1}) ${str(option)}`, onclick: () => sendLine(`/vote ${i + 1}`) }))
     : [];   // 📊 a poll: one button per option
   chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions: offer.length ? offer : poll.length ? poll : actions, label: result ? "Game over" : "",
-    tempId: str(msg.temp_id) });
+    tempId: str(msg.temp_id), receipt: msg.pm && typeof msg.pm === "object" ? msg.pm : null, pmId: msg.pm_id });
 }
 
 /** 📎 Accept / Decline for a file offer ({"id", "from", "filename", "size"}). They name the offer by its number,
@@ -208,6 +209,8 @@ export function handleMessage(msg, live, sendLine) {
       return live ? typing.someoneTyping(str(msg.name)) : undefined;
     case "lab":
       return showLab(msg);
+    case "receipt":
+      return applyReceipt(msg);
     case "typing_stop":
       return live ? typing.stoppedTyping(str(msg.name)) : undefined;
     case "stream":

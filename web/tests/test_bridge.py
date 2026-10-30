@@ -383,6 +383,18 @@ class TestTyping(BridgeTestCase):
         self.assertEqual(b.wait(lambda e: e["data"].get("type") == "typing_stop", what="stopped")["name"], name)
 
 
+class TestReadReceipts(BridgeTestCase):
+    def test_seen_goes_through_the_bridge_and_comes_back_as_a_receipt(self):
+        a, _ = self.user()
+        b, b_name = self.user()
+        a.line(f"/send {b_name} psst")
+        pm_id = b.wait(lambda e: e["data"].get("kind") == "private", what="the private message")["pm_id"]
+        self.assertEqual(b.send({"type": "seen", "id": pm_id})[0], 202)
+        self.assertEqual(a.wait(lambda e: e["data"].get("type") == "receipt" and e["data"].get("status") == "seen",
+                                what="the seen receipt")["id"], pm_id)
+        self.assertEqual(b.send({"type": "seen", "id": "seven"})[0], 400)
+
+
 class TestBigFiles(BridgeTestCase):
     """📦 A big file through the website: chunks with acks, and the chunks never go into the reload replay."""
 

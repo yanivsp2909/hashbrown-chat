@@ -72,6 +72,7 @@ BIG_FILE_STALL = 60             # seconds: a transfer with no new chunk for this
 BIG_FILE_EVERY = 2              # seconds: how often one person may start a big file
 OFFER_SECONDS = 120             # 📎 a file offer nobody accepts or declines expires after this long
 OFFERS_WAITING_MAX = 3          # 📎 offers waiting for one person at once (each sender has one at a time)
+RECEIPTS_KEEP = 500             # ✓✓ private messages whose "seen" we still wait for (older ones are forgotten)
 OFFER_CHECK_EVERY = 5           # 📎 seconds between checks for expired offers
 MAX_TEXT = 500               # longest chat message, in characters
 RESERVED_NAMES = {"hashbrown", "server", "admin", "lobby"}

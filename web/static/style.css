@@ -561,6 +561,8 @@ a { color: var(--gold); text-underline-offset: 3px; }
 }
 
 /* ----- ⌨️ "Noa is typing…" just above the message box */
+.receipt { margin-inline-start: 6px; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: -0.12em; }
+.receipt-seen { color: var(--pickle); }   /* ✓✓ */
 .lab-banner {   /* 🧪 the network lab is on */
   margin: 0; padding: 6px var(--chat-pad); font-size: 13.5px; font-weight: 650; color: var(--text);
   background: repeating-linear-gradient(135deg, var(--gold-soft) 0 10px, transparent 10px 20px);

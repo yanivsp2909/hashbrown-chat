@@ -3,7 +3,7 @@
 """
 from datetime import datetime
 
-from chatserver import chat, config, registry, rooms, state, storage
+from chatserver import chat, config, receipts, registry, rooms, state, storage
 
 
 # ----- 💬 Chat
@@ -48,8 +48,11 @@ def cmd_send(client, args):
         client.say("🙃 You can't message yourself.", "error")
         return
     stamp = datetime.now().strftime("%H:%M")
-    rooms.tell(target, f"💌 [{stamp}] {rooms.shown(client.key)} → you: {parts[1]}", "private")
-    client.say(f"💌 [{stamp}] you → {rooms.shown(target)}: {parts[1]}", "private")
+    pm_id = receipts.new_pm(client.key, target)   # ✓✓ read receipts (optional fields: old clients ignore them)
+    client.say(f"💌 [{stamp}] you → {rooms.shown(target)}: {parts[1]}", "private", pm={"id": pm_id, "status": "sent"})
+    state.online[target].send({"type": "msg", "kind": "private", "pm_id": pm_id,
+                               "text": f"💌 [{stamp}] {rooms.shown(client.key)} → you: {parts[1]}"},
+                              after=lambda: receipts.delivered(pm_id))
 
 
 def keep_for_later(client, target, text):

@@ -12,6 +12,7 @@ import { hashbrownPrivate, isHashbrown, isQotdAnswer, isQotdQuestion, parsePriva
 import { focusInput } from "./composer.js";
 import { reactionRow } from "./reactions.js";
 import { ownButtons } from "./edits.js";
+import { receiptMark, watchSeen } from "./receipts.js";
 
 const MAX_MESSAGES = 500;
 const NEAR_BOTTOM = 80;     // px: closer than this to the bottom counts as "reading the latest"
@@ -241,16 +242,19 @@ function listBody(text) {
   return parts;
 }
 
-function privateNode(pm, live) {
-  const who = pm.from === "you" ? `You → ${pm.to}` : `${pm.from} → you`;
-  return el("li", { class: "msg card kind-private" },
-    cardHead(`💌 ${who}`, pm.time),
-    textPara("card-text private-text", pm.text));
+function privateNode(pm, { receipt = null, pmId = null } = {}) {
+  const mine = pm.from === "you";
+  const head = cardHead(`💌 ${mine ? `You → ${pm.to}` : `${pm.from} → you`}`, pm.time);
+  if (mine && receipt && Number.isInteger(receipt.id)) head.append(receiptMark(receipt));   // ✓ / ✓✓
+  const node = el("li", { class: "msg card kind-private" }, head, textPara("card-text private-text", pm.text));
+  if (!mine && Number.isInteger(pmId)) watchSeen(node, pmId);   // tell them when it's on screen
+  return node;
 }
 
 /** A server notice. `actions` are extra buttons, like Accept / Decline on a challenge;
  *  `label` replaces the kind's usual header word (like "Game over" for a loss). */
-export function addNotice(kind, text, { live = true, lit = false, actions = [], label = "", tempId = "" } = {}) {
+export function addNotice(kind, text, { live = true, lit = false, actions = [], label = "", tempId = "", receipt = null,
+  pmId = null } = {}) {
   const safeKind = Object.hasOwn(LABELS, kind) ? kind : "system";
   let body = str(text);
   const time = live ? nowTime() : "";
@@ -262,7 +266,7 @@ export function addNotice(kind, text, { live = true, lit = false, actions = [], 
   }
   let node;
   if (pm) {
-    node = privateNode(pm, live);
+    node = privateNode(pm, { receipt, pmId });
   } else if (isList(body)) {
     node = el("li", { class: `msg card list kind-${safeKind}` }, cardHead(label || LABELS[safeKind], time), listBody(body));
   } else if (safeKind === "system" && !body.includes("\n") && !actions.length) {
