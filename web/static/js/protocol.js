@@ -282,7 +282,10 @@ export function handleMessage(msg, live, sendLine) {
       chat.removeAllStreams();
       const fresh = startsNewList(msg, getState().currentRoom);   // 💬 each room has its own list
       const waiting = fresh ? chat.takeWaitingCards() : [];
-      if (fresh) chat.clearMessages();
+      if (fresh) {
+        chat.clearMessages();
+        drawing.reset();   // 🎨 the old room's drawing round isn't this room's
+      }
       rooms.notePreview(msg);
       setState({ room: str(msg.room, "🏠 Lobby") });
       for (const old of Array.isArray(msg.messages) ? msg.messages : []) remember(str(old?.name));

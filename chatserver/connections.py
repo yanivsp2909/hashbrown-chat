@@ -23,6 +23,7 @@ def disconnect(client):
             key = client.key
             if key and state.online.get(key) is client:
                 rooms.end_typing(client)
+                drawing.drawer_left(client)   # 🎨
                 del state.online[key]
                 state.accounts[key]["last_seen"] = time.time()   # 👤 "last seen" on profiles
                 if client.quitting or client.no_resume:

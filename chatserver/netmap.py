@@ -14,6 +14,10 @@ import time
 from chatserver import config, rooms, state
 
 _ticks = 0
+KNOWN_TYPES = {"auth", "auth_result", "line", "msg", "chat", "history", "rooms", "topic", "file", "file_start",
+               "file_chunk", "file_ack", "file_end", "file_cancel", "ping", "pong", "typing", "typing_stop", "react",
+               "reactions", "edit", "edited", "delete", "deleted", "stream", "seen", "receipt", "lab", "board",
+               "stroke", "draw_round", "probe", "probe_back", "netmap", "groups", "group_info", "profile"}
 
 
 def handle(client, msg):
@@ -22,23 +26,43 @@ def handle(client, msg):
         client.netmap_open = False
     elif kind == "get_netmap":
         client.netmap_open = True
-        client.send(snapshot(reset=False))
+        client.send(snapshot(reset=False, viewer=client))
     elif kind == "probe_back":
         sent = client.probes.pop(msg.get("id"), None) if isinstance(msg.get("id"), int) else None
         if sent is not None:
             client.ping_ms = round((time.monotonic() - sent) * 1000, 1)
 
 
-def snapshot(reset=True):
+def room_for(viewer, room):
+    """A private group's name only for its members (the map mustn't tell who sits in which secret group)."""
+    group = state.groups.get(room)
+    if group and group["private"] and (viewer is None or viewer.key not in group["members"]):
+        return "🔒 a private group"
+    return rooms.room_title(room)
+
+
+def counts(counter):
+    """Only packet types the server knows; anything else is "other" (a client can't grow this table)."""
+    known = {}
+    for kind, n in counter.items():
+        name = kind if kind in KNOWN_TYPES else "other"
+        known[name] = known.get(name, 0) + n
+    return known
+
+
+def players(viewer):
+    return [{"name": rooms.nick(key), "room": room_for(viewer, c.room), "ping_ms": c.ping_ms,
+             "in": counts(c.types_in), "out": counts(c.types_out)} for key, c in list(state.online.items())]
+
+
+def snapshot(reset=True, viewer=None):
     """Everyone connected, with the packets since the last map (reset=False: just look, keep counting)."""
-    players = []
-    for key, c in list(state.online.items()):
-        players.append({"name": rooms.nick(key), "room": rooms.room_title(c.room), "ping_ms": c.ping_ms,
-                        "in": dict(c.types_in), "out": dict(c.types_out)})
-        if reset:
+    packet = {"type": "netmap", "players": players(viewer)}
+    if reset:
+        for c in list(state.online.values()):
             c.types_in.clear()
             c.types_out.clear()
-    return {"type": "netmap", "players": players}
+    return packet
 
 
 def tick(probe=None):
@@ -47,10 +71,13 @@ def tick(probe=None):
     _ticks += 1
     viewers = [c for c in state.online.values() if c.netmap_open]
     if not viewers:
+        for c in list(state.online.values()):   # nobody's looking: just start counting again
+            c.types_in.clear()
+            c.types_out.clear()
         return
-    packet = snapshot()
     for c in viewers:
-        c.send(packet)
+        c.send({"type": "netmap", "players": players(c)})
+    snapshot(reset=True)
     if probe or (probe is None and _ticks % config.NETMAP_PROBE_EVERY == 0):
         for c in list(state.online.values()):
             if "probe" in c.features:

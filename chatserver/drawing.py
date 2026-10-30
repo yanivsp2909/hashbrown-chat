@@ -14,7 +14,7 @@ posted. The first one wins DRAW_GUESS_PRIZE, the drawer DRAW_DRAWER_PRIZE. Old c
 import random
 import time
 
-from chatserver import achievements, config, rooms, state
+from chatserver import achievements, config, rooms, state, storage
 
 WORDS = ("cat", "dog", "pizza", "house", "tree", "sun", "fish", "car", "robot", "potato", "fries", "rocket",
          "guitar", "snake", "apple", "phone", "ghost", "crown", "cake", "boat", "bird", "flower", "train", "moon",
@@ -32,12 +32,18 @@ def start(client, args):
     if room in state.drawings:
         client.say(f"🎨 {rooms.nick(state.drawings[room]['drawer'])} is already drawing here. Guess!", "error")
         return
+    wait = config.DRAW_COOLDOWN - (time.time() - state.draw_last.get(client.key, 0))
+    if wait > 0:   # no farming: one round you start every DRAW_COOLDOWN seconds
+        client.say(f"🎨 You can start another round in {int(wait) + 1}s.", "error")
+        return
     here = [k for k, c in state.online.items() if c.room == room]
     if len(here) < 2:
         client.say("🎨 You need at least 2 people in the room to play.", "error")
         return
     word = random.choice(WORDS)
+    state.draw_last[client.key] = time.time()
     state.drawings[room] = {"drawer": client.key, "word": word, "until": time.time() + config.DRAW_SECONDS,
+                            "started": time.time(),
                             "strokes": [], "stroke_times": []}
     client.say(f"🎨 Your word: {word.upper()}. Draw it! Don't write it. (/draw stop gives up)", "private")
     rooms.notify_room(room, f"🎨 {rooms.shown(client.key)} is drawing! Guess the word in the chat "
@@ -50,8 +56,9 @@ def round_packet(room, ended=False, word=None):
     game = state.drawings.get(room)
     packet = {"type": "draw_round", "state": "ended" if ended else "started", "room": room}
     if game:
-        packet.update({"drawer": rooms.nick(game["drawer"]), "letters": len(game["word"]),
-                       "seconds": max(0, int(game["until"] - time.time())), "strokes": list(game["strokes"])})
+        packet.update({"drawer": rooms.nick(game["drawer"]), "letters": len(game["word"])})
+        if not ended:   # (the end needs no drawing: everyone has it)
+            packet.update({"seconds": max(0, int(game["until"] - time.time())), "strokes": list(game["strokes"])})
     if word:
         packet["word"] = word
     return packet
@@ -112,18 +119,28 @@ def stroke(client, msg):
 def check_guess(client, text):
     """Called before a chat line is posted. True if it was about the drawing (and must NOT be posted)."""
     game = state.drawings.get(client.room)
-    if game is None or normalize(text) != normalize(game["word"]):
+    if game is None or time.time() >= game["until"] or normalize(text) != normalize(game["word"]):
         return False
     if client.key == game["drawer"]:
         client.say("🎨 Don't say the word! Draw it.", "error")
         return True
     room, word = client.room, game["word"]
-    state.accounts[client.key]["tokens"] += config.DRAW_GUESS_PRIZE
-    state.accounts[game["drawer"]]["tokens"] += config.DRAW_DRAWER_PRIZE
+    if time.time() - game["started"] < config.DRAW_MIN_SECONDS:   # too quick to be a real guess: no prize
+        finish(room, f"🎉 {rooms.shown(client.key)} guessed it: {word.upper()}! (Too fast for a prize.)")
+        return True
+    prize, drawer_prize = economy_pay(client.key, game["drawer"])
     achievements.check_rich(client.key)
-    finish(room, f"🎉 {rooms.shown(client.key)} guessed it: {word.upper()}! +{config.DRAW_GUESS_PRIZE} 🪙 "
-                 f"({rooms.nick(game['drawer'])} +{config.DRAW_DRAWER_PRIZE} 🪙 for drawing)")
+    storage.save_data()
+    finish(room, f"🎉 {rooms.shown(client.key)} guessed it: {word.upper()}! +{prize} 🪙 "
+                 f"({rooms.nick(game['drawer'])} +{drawer_prize} 🪙 for drawing)")
     return True
+
+
+def economy_pay(guesser, drawer):
+    """The prizes (see N6: they come out of the public fund when there is one)."""
+    state.accounts[guesser]["tokens"] += config.DRAW_GUESS_PRIZE
+    state.accounts[drawer]["tokens"] += config.DRAW_DRAWER_PRIZE
+    return config.DRAW_GUESS_PRIZE, config.DRAW_DRAWER_PRIZE
 
 
 def finish(room, text):
@@ -143,6 +160,13 @@ def give_up(client):
         client.say("🎨 You're not drawing right now.", "error")
         return
     finish(client.room, f"🏳️ {rooms.nick(client.key)} gave up. The word was {game['word'].upper()}.")
+
+
+def drawer_left(client):
+    """The drawer went to another room or left: their round ends at once."""
+    game = state.drawings.get(client.room)
+    if game is not None and game["drawer"] == client.key:
+        finish(client.room, f"🚪 {rooms.nick(client.key)} left. The word was {game['word'].upper()}.")
 
 
 def end_due():

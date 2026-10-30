@@ -169,6 +169,9 @@ def end_typing(client):
 
 def move_to_room(client, room):
     end_typing(client)
+    from chatserver import drawing   # (drawing uses rooms: importing it at the top would loop)
+    if client.room != room:
+        drawing.drawer_left(client)   # 🎨 a drawer who leaves ends the round
     old = client.room
     client.room = room
     if old != room:  # groups get enter/leave notices; the lobby would be too noisy

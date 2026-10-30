@@ -67,8 +67,11 @@ function fly(from, to, kind, delay) {
   requestAnimationFrame(step);
 }
 
+const MAX_LIVE_DOTS = 200;     // never more dots flying at once than this
+
 function animate() {
-  if (still.matches) return;
+  if (still.matches || document.hidden) return;   // (a hidden tab doesn't animate: don't pile dots up)
+  if ($("netmap-svg").querySelectorAll(".nm-dot").length > MAX_LIVE_DOTS) return;
   for (const p of players) {
     const pos = positions[p.name];
     if (!pos) continue;

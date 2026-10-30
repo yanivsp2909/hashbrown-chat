@@ -21,19 +21,21 @@ let lastPoint = null;
 let flushTimer = null;
 let tickTimer = null;
 let endsAt = 0;
+let myWord = "";                 // the drawer's word (from the private line; it comes before the round packet)
 
 const canvas = () => $("draw-canvas");
 
 function line(points, colorIndex, size) {
   const ctx = canvas().getContext("2d");
-  const scale = canvas().width / SIZE;
+  const sx = canvas().width / SIZE;    // the canvas is 4:3, the coordinates 0-1000 on both sides
+  const sy = canvas().height / SIZE;
   ctx.strokeStyle = COLORS[colorIndex] || COLORS[0];
   ctx.lineWidth = WIDTHS[size] || WIDTHS[2];
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.beginPath();
-  points.forEach(([x, y], i) => (i ? ctx.lineTo(x * scale, y * scale) : ctx.moveTo(x * scale, y * scale)));
-  if (points.length === 1) ctx.lineTo(points[0][0] * scale + 0.1, points[0][1] * scale);
+  points.forEach(([x, y], i) => (i ? ctx.lineTo(x * sx, y * sy) : ctx.moveTo(x * sx, y * sy)));
+  if (points.length === 1) ctx.lineTo(points[0][0] * sx + 0.1, points[0][1] * sy);
   ctx.stroke();
 }
 
@@ -69,6 +71,7 @@ function flush() {
 function addPoint(point) {
   if (lastPoint) line([lastPoint, point], color, width);
   else line([point], color, width);
+  if (!pending.length && lastPoint) pending.push(lastPoint);   // the next packet starts where the last one ended
   pending.push(point);
   lastPoint = point;
   if (!flushTimer) flushTimer = setTimeout(flush, FLUSH_MS);
@@ -137,17 +140,29 @@ export function onRound(msg, live) {
     clear($("draw-tools"));
     setTimeout(() => { if (!drawer || $("draw-title").textContent.startsWith("🎨 The word")) board.hidden = true; }, live ? SHOW_WORD_MS : 0);
     drawer = "";
+    myWord = "";
     return;
   }
   drawer = str(msg.drawer);
   mine = drawer === getState().nick;
   board.hidden = false;
-  $("draw-title").textContent = mine ? "🎨 You're drawing" : `🎨 ${drawer} is drawing (${msg.letters} letters)`;
+  $("draw-title").textContent = mine ? `🎨 Draw: ${myWord || "your word"}` : `🎨 ${drawer} is drawing (${msg.letters} letters)`;
   endsAt = Date.now() + (Number.isInteger(msg.seconds) ? msg.seconds : 0) * 1000;
   countdown();
   paint(Array.isArray(msg.strokes) ? msg.strokes : []);
   tools();
   canvas().classList.toggle("drawing", mine);
+}
+
+/** You went to another room: that room's round (if any) is no longer yours to see. */
+export function reset() {
+  clearInterval(tickTimer);
+  mine = false;
+  drawer = "";
+  myWord = "";
+  pending = [];
+  lastPoint = null;
+  $("draw-board").hidden = true;
 }
 
 /** Someone else's brush stroke. */
@@ -161,7 +176,10 @@ export function onStroke(msg) {
 /** Our own word, from the private "🎨 Your word: CAT." line: shown on the board for the drawer. */
 export function noteWord(text) {
   const match = /^🎨 Your word: (.+?)\. Draw it!/u.exec(text);
-  if (match) $("draw-title").textContent = `🎨 Draw: ${match[1]}`;
+  if (match) {
+    myWord = match[1];
+    $("draw-title").textContent = `🎨 Draw: ${myWord}`;
+  }
 }
 
 export function initDrawing() {

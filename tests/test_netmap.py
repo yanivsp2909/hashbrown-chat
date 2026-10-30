@@ -73,3 +73,17 @@ def test_a_wrong_probe_answer_is_ignored(user):
     adi.send({"type": "get_netmap"})
     me = next(p for p in latest_map(adi)["players"] if p["name"] == "Adi")
     assert me["ping_ms"] is None
+
+
+def test_private_groups_are_hidden_from_outsiders_and_junk_types_are_other(user):
+    adi, ben = user("Adi"), user("Ben")
+    adi.line("/create Secret private")
+    adi.expect_text("Created")
+    ben.send({"type": "made_up_type_1"})
+    ben.send({"type": "made_up_type_2"})
+    ben.send({"type": "get_netmap"})
+    rows = {p["name"]: p for p in latest_map(ben)["players"]}
+    assert rows["Adi"]["room"] == "🔒 a private group"
+    assert set(rows["Ben"]["in"]) <= set(netmap.KNOWN_TYPES) | {"other"}
+    adi.send({"type": "get_netmap"})
+    assert {p["name"]: p for p in latest_map(adi)["players"]}["Adi"]["room"] == "🔒Secret"

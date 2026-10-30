@@ -2,6 +2,8 @@
 Every brush stroke is a small {"type": "stroke"} packet the server passes to the room (only the drawer may send
 them). The others guess in the chat: the server checks, so the word never reaches them before the round ends.
 The first right guess wins DRAW_GUESS_PRIZE, the drawer gets DRAW_DRAWER_PRIZE. Old clients get text."""
+import time
+
 import pytest
 
 from chatserver import config, drawing, state
@@ -13,6 +15,7 @@ def start(adi, word="cat"):
     adi.line("/draw")
     secret = adi.expect(lambda m: m.get("kind") == "private" and "Your word" in m.get("text", ""))
     state.drawings["lobby"]["word"] = word        # a known word for the test
+    state.drawings["lobby"]["started"] -= 60      # (a guess in the first DRAW_MIN_SECONDS wins nothing)
     return secret
 
 
@@ -126,3 +129,42 @@ def test_strokes_dont_count_as_spam_but_have_their_own_limit(user, monkeypatch):
     adi.line("still talking")
     ben.expect(lambda m: m.get("text") == "still talking")
     assert len([m for m in ben.messages if m.get("type") == "stroke"]) <= config.DRAW_STROKES_PER_SECOND
+
+
+# ---------------------------------------------------------------- code review: no farming, no stuck rounds
+
+def test_a_too_fast_guess_wins_nothing(user):
+    adi, ben = user("Adi"), user("Ben")
+    start(adi)
+    state.drawings["lobby"]["started"] = time.time()
+    before = state.accounts["ben"]["tokens"]
+    ben.line("cat")
+    ben.expect_text("Too fast for a prize")
+    assert state.accounts["ben"]["tokens"] == before
+
+
+def test_the_same_person_waits_before_starting_again(user):
+    adi, ben = user("Adi"), user("Ben")
+    start(adi)
+    adi.line("/draw stop")
+    ben.expect_text("gave up")
+    adi.line("/draw")
+    adi.expect_text("another round in", kind="error")
+
+
+def test_the_round_ends_when_the_drawer_leaves_the_room(user):
+    adi, ben = user("Adi"), user("Ben")
+    start(adi)
+    adi.line("/create Potatoes")
+    ben.expect_text("Adi left. The word was CAT")
+    assert "lobby" not in state.drawings
+
+
+def test_the_end_packet_doesnt_carry_the_drawing(user):
+    adi, ben = user("Adi", features=["draw"]), user("Ben", features=["draw"])
+    start(adi)
+    adi.send(stroke())
+    ben.expect(lambda m: m.get("type") == "stroke")
+    adi.line("/draw stop")
+    ended = ben.expect(lambda m: m.get("type") == "draw_round" and m.get("state") == "ended")
+    assert "strokes" not in ended and ended["word"] == "cat"
