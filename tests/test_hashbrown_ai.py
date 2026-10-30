@@ -1,7 +1,9 @@
 """Hashbrown, the AI member. Always against a fake local Foundry server, never the real one."""
+import json
+
 import pytest
 
-from chatserver import config, state, textutil
+from chatserver import config, hashbrown_ai, state, textutil
 
 pytestmark = pytest.mark.integration
 
@@ -45,3 +47,12 @@ def test_daily_cap_starts_again_the_next_day(user, fake_hashbrown, monkeypatch):
     ask_and_wait_for_answer(adi)
     monkeypatch.setattr(textutil, "today", lambda: "2099-01-01")
     ask_and_wait_for_answer(ben)
+
+
+def test_a_new_config_file_has_placeholders_and_keeps_hashbrown_off(monkeypatch):
+    monkeypatch.setenv("HASHBROWN_API_KEY", "test-key")
+    assert hashbrown_ai.load_hashbrown() is None   # the endpoint must be filled in first
+    with open(config.HASHBROWN_CONFIG, encoding="utf-8") as f:
+        template = json.load(f)
+    assert hashbrown_ai.is_placeholder(template["endpoint"])
+    assert template["endpoint"].endswith(".services.ai.azure.com/openai/v1")   # still shows the format
