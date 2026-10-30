@@ -8,7 +8,8 @@
 //   meta  a short grey line in the middle ("👋 Noa joined the chat").
 
 import { $, clear, el, initial, nameClass, str } from "./dom.js";
-import { hashbrownPrivate, isHashbrown, parsePrivate } from "./patterns.js";
+import { hashbrownPrivate, isHashbrown, isQotdAnswer, isQotdQuestion, parsePrivate } from "./patterns.js";
+import { focusInput } from "./composer.js";
 import { reactionRow } from "./reactions.js";
 import { ownButtons } from "./edits.js";
 
@@ -156,13 +157,18 @@ function chatNode(msg, { mine = false, old = false } = {}) {
       bot ? el("span", { class: "tag", text: "AI" }) : null,
       el("span", { class: "time", text: time }));
   const text = textPara("msg-text", str(msg.text));
-  const classes = ["msg", "chat", mine && "mine", bot && "bot", old && "old", msg.action && "action", grouped && "cont"];
+  const answerCard = isQotdAnswer(msg);   // 💡 people vote on it with reactions; it can't be edited
+  const classes = ["msg", "chat", mine && "mine", bot && "bot", old && "old", msg.action && "action", grouped && "cont",
+    answerCard && "qotd-answer"];
   const stored = Number.isInteger(msg.id);   // only stored messages have an id (to react to, edit, delete)
   const row = stored ? reactionRow(msg.id, msg.reactions) : null;
-  if (row && mine) row.append(...ownButtons(msg.id, () => text.textContent));
+  if (row && mine && !answerCard) row.append(...ownButtons(msg.id, () => text.textContent));
+  const answerButton = isQotdQuestion(msg) ? el("div", { class: "actions" },
+    el("button", { class: "btn btn-ghost", type: "button", text: "💡 Answer", onclick: () => focusInput("/answer ") })) : null;
   return el("li", { class: classes.filter(Boolean).join(" "), "data-id": stored ? String(msg.id) : null },
     mine ? null : grouped ? el("span", { class: "avatar-gap" }) : avatar(name, bot),
-    el("div", { class: "bubble" }, head, text, msg.edited ? el("span", { class: "edited", text: "(edited)" }) : null, row));
+    el("div", { class: "bubble" }, head, text, msg.edited ? el("span", { class: "edited", text: "(edited)" }) : null,
+      answerButton, row));
 }
 
 export function addChat(msg, { live, mine }) {

@@ -6,7 +6,7 @@ call fails nothing happens (there's nobody to refund). The commands people type 
 import re
 import threading
 
-from chatserver import config, hashbrown_ai, history, matches, rooms, state, storage, textutil
+from chatserver import config, hashbrown_ai, history, matches, qotd, rooms, state, storage, textutil
 from chatserver.hashbrown_text import israel_now
 
 
@@ -94,6 +94,7 @@ def question_of_the_day_tick():
         state.qotd = (today, None)   # asked: don't ask again today, even if the call fails
 
     def deliver(answer):
+        qotd.settle()   # 💡 yesterday's best /answer wins before the new question comes
         state.qotd = (today, answer)
         msg = rooms.chat_message("Hashbrown", "🥔", f"❓ Question of the day: {answer}")
         history.add("lobby", msg)

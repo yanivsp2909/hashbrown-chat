@@ -1,7 +1,7 @@
 """
 🥔 Asking Hashbrown privately.
 """
-from chatserver import config, hashbrown_ai, hashbrown_extras, registry, state, textutil
+from chatserver import config, hashbrown_ai, hashbrown_extras, qotd, registry, state, textutil
 
 
 @registry.command("/ask", "/ask question", f"ask Hashbrown, the AI ({config.HASHBROWN_COST} 🪙)", "🥔 Hashbrown")
@@ -39,6 +39,16 @@ def cmd_qotd(client, args):
         client.say(f"❓ Question of the day: {qotd[1]}")
     else:
         client.say("❓ No question of the day yet. Hashbrown asks one in the lobby every day.")
+
+
+@registry.command("/answer", "/answer text",
+                  f"answer the question of the day; the most reactions wins {config.QOTD_PRIZE} 🪙", "🥔 Hashbrown")
+def cmd_answer(client, args):
+    error = qotd.post_answer(client, args.strip())
+    if error:
+        client.say(error, "error")
+    else:
+        client.say("💡 Your answer is in! Friends vote with reactions; the best one wins when the next question comes.")
 
 
 @registry.command("/trivia", "/trivia", f"Hashbrown asks the room a trivia question ({config.HASHBROWN_COST} 🪙)",

@@ -26,6 +26,8 @@ HASHBROWN_HISTORY = 15           # how many recent chat lines of the room it get
 COMMENTATOR = True                # 🎙️ Hashbrown comments on every finished match (the server pays)
 COMMENTATOR_PER_DAY = 30         # at most this many comments a day
 QOTD_HOUR = 10                   # ❓ the question of the day comes after this hour (Israel time), once a day
+QOTD_PRIZE = 50                  # 💡 tokens for the /answer with the most reactions, paid when the next question comes
+QOTD_ANSWER_MAX = 200            # 💡 characters of an answer
 JUDGE_HISTORY = 30               # ⚖️ /judge reads this many messages
 JUDGE_QUESTION = ("Be the judge of the argument in the recent chat: say in 2 or 3 short sentences who made "
                   "the best point and why. Be fair and kind, no insults.")

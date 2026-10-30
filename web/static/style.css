@@ -358,6 +358,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .messages:focus-visible { outline-offset: -3px; border-radius: 0; }
 .action .msg-text { font-style: italic; color: var(--text-2); }
 .bot .bubble { background: var(--crust); border-color: var(--crust-line); box-shadow: var(--shadow-1); }
+.qotd-answer .bubble { border: 1px solid var(--gold); border-inline-start-width: 4px; background: var(--gold-soft); }   /* 💡 an /answer card */
 .bot .who { color: var(--crisp); }
 
 /* notice cards: a small header (what it is, when) and the server's text, in that kind's colour */

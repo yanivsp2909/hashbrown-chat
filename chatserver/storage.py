@@ -5,7 +5,7 @@ import json
 import os
 import time
 
-from chatserver import config, state, textutil
+from chatserver import config, qotd, state, textutil
 
 
 # ---------------------------------------------------------------- saving / loading
@@ -20,6 +20,7 @@ def load_data():
             state.accounts, state.groups = dict(data.get("accounts", {})), dict(data.get("groups", {}))
             pot = data.get("jackpot", 0)   # added later: older files don't have it
             state.jackpot = pot if isinstance(pot, int) and pot >= 0 else 0
+            qotd.load_saved(data.get("qotd"))   # ❓💡 added later too
         except (OSError, ValueError, AttributeError, TypeError) as e:
             textutil.log(f"[SERVER] ❌ Can't read {config.DATA_FILE} ({type(e).__name__}). It may be damaged. "
                          f"The server did not start, so nothing was overwritten. Fix the file or move it away.")
@@ -42,7 +43,8 @@ def save_data():
         tmp = config.DATA_FILE + ".tmp"
         try:
             with open(tmp, "w", encoding="utf-8") as f:
-                json.dump({"accounts": state.accounts, "groups": state.groups, "jackpot": state.jackpot},
+                json.dump({"accounts": state.accounts, "groups": state.groups, "jackpot": state.jackpot,
+                           "qotd": qotd.to_saved()},
                           f, ensure_ascii=False, indent=1)
                 f.flush()
                 os.fsync(f.fileno())  # really on the disk, even if the power goes out right after

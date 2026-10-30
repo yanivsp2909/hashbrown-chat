@@ -17,7 +17,9 @@
 //   privateMsg     msg private: "💌 [HH:MM] {from} → {to}: {text}"   (from or to is "you")
 //   presence       msg:         "👋 {who} joined the chat" / "... left the chat" / "🚪 ... left the room" / "➡️ ... entered"
 //
-// Also read, but not by a regex: the private /ask answer starts with HASHBROWN_PRIVATE ("🥔 Hashbrown (only you): ").
+// Also read, but not by a regex: the private /ask answer starts with HASHBROWN_PRIVATE ("🥔 Hashbrown (only you): "),
+// the question of the day (a Hashbrown chat line) starts with QOTD_QUESTION ("❓ Question of the day: ") and an
+// /answer card is a chat line "💡 {nick}'s answer: {text}" (tests/test_qotd_answers.py checks both wordings).
 //
 // web/tests/test_bridge.py runs the real server and checks every pattern below against what
 // it actually sends. If you reword one of these messages in chatserver/, that test tells you
@@ -119,6 +121,19 @@ const HASHBROWN_PRIVATE = "🥔 Hashbrown (only you): ";
 /** The answer inside a private /ask reply, or null if the text isn't one. */
 export function hashbrownPrivate(text) {
   return text.startsWith(HASHBROWN_PRIVATE) ? text.slice(HASHBROWN_PRIVATE.length) : null;
+}
+
+const QOTD_QUESTION = "❓ Question of the day: ";
+
+/** Hashbrown's question of the day (it gets an "Answer" button). */
+export function isQotdQuestion(msg) {
+  return isHashbrown(msg) && String(msg.text ?? "").startsWith(QOTD_QUESTION);
+}
+
+/** A 💡 /answer card (shown as a card people vote on with reactions). */
+export function isQotdAnswer(msg) {
+  const nick = String(msg.name ?? "");
+  return Boolean(nick) && String(msg.text ?? "").startsWith(`💡 ${nick}'s answer: `);
 }
 
 export function isPresence(text) {

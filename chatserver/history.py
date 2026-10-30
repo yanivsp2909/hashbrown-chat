@@ -175,6 +175,23 @@ def reaction_counts(message_ids):
     return counts
 
 
+def reactors(message_ids):
+    """{message id: set of the logins who reacted to it} (any emoji), for the question of the day's votes."""
+    if not message_ids:
+        return {}
+    marks = ", ".join("?" * len(message_ids))
+    with _lock:
+        connection = _open()
+        if connection is None:
+            return {}
+        rows = connection.execute(f"SELECT DISTINCT message_id, login FROM reactions WHERE message_id IN ({marks})",
+                                  list(message_ids)).fetchall()
+    found = {}
+    for message_id, login in rows:
+        found.setdefault(message_id, set()).add(login)
+    return found
+
+
 def toggle_reaction(message_id, login, emoji):
     """Add this person's emoji to the message, or take it back if it's already there. Returns the new counts."""
     with _lock:
