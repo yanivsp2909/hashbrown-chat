@@ -5,7 +5,7 @@
 """
 from collections import deque
 
-from chatserver import config, group_stocks, market, state, textutil
+from chatserver import config, group_stocks, market, market_news, state, textutil  # noqa: F401 (news listens to ticks)
 
 _daily_jobs = []   # functions run once a day (dividends, interest, loans...), in the order they were added
 
