@@ -13,44 +13,26 @@ from chatserver import config
 # ---------------------------------------------------------------- shared state
 # Every thread reads and writes these, so ALL access happens while holding `lock`.
 lock = threading.RLock()
-
 accounts = {}   # login name (lowercase) -> account dict      (saved to disk)
-
 groups = {}     # group name (lowercase) -> group dict        (saved to disk)
-
 online = {}     # login name -> Client, only people connected right now
-
 history = {"lobby": deque(maxlen=config.HISTORY_SIZE)}  # room -> last chat messages
-
 mutes = {}      # (group, login) -> time the mute ends
-
 invites = {}    # login -> game challenges waiting for that person
-
 matches = {}    # login -> the Match they're playing
-
 last_rob = {}   # login -> time of their last /rob
-
 solo = {}       # login -> their Wordle game
-
 login_fails = {}         # login -> times of recent wrong passwords
-
 admin_fail_times = []    # times of recent wrong /admin passwords, from anyone
-
 connections = 0          # open connections right now
-
 hashing = threading.BoundedSemaphore(config.HASHING_AT_ONCE)
-
 quiz = None     # the open quick-math question, if any
-
 hashbrown = None        # Foundry settings, or None if Hashbrown isn't set up
-
 hashbrown_busy = 0      # questions being answered right now
-
 hashbrown_last = {}     # login -> time of their last question
-
 hashbrown_today = {}    # login -> (date, questions asked that day)
-
 hashbrown_all_today = ("", 0)  # (date, questions asked by everyone that day)
+
 
 def reset_state():
     """Forget everything in memory (the tests use this to start each test from zero)."""

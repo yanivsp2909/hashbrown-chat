@@ -27,6 +27,7 @@ def gamble_result(client, bet, payout, text, game):
     achievements.check_rich(client.key)
     storage.save_data()
 
+
 @registry.command("/coinflip", "/coinflip amount heads|tails", "double or nothing", "🎰 Casino")
 def cmd_coinflip(client, args):
     parts = args.split()
@@ -40,6 +41,7 @@ def cmd_coinflip(client, args):
     side = random.choice(["heads", "tails"])
     gamble_result(client, bet, bet * 2 if side == guess else 0, f"🪙 The coin spins... {side.upper()}!", "coinflip")
 
+
 @registry.command("/dice", "/dice amount", "2 dice vs the house 🎲", "🎰 Casino")
 def cmd_dice(client, args):
     bet = rooms.parse_amount(client, args)
@@ -52,6 +54,7 @@ def cmd_dice(client, args):
             f"House: {faces[house[0] - 1]} {faces[house[1] - 1]} = {sum(house)}")
     payout = bet * 2 if sum(you) > sum(house) else bet if sum(you) == sum(house) else 0
     gamble_result(client, bet, payout, text, "dice")
+
 
 @registry.command("/slots", "/slots amount", "3 same = x10, 💎💎💎 = x25", "🎰 Casino")
 def cmd_slots(client, args):

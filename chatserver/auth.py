@@ -16,6 +16,7 @@ def hash_password(password, salt_hex=None):
     digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100_000)
     return salt.hex(), digest.hex()
 
+
 def login_locked(key):
     """True if this username had too many wrong passwords lately (per username, never per IP:
     every website user comes from the same address)."""
@@ -24,10 +25,12 @@ def login_locked(key):
     state.login_fails[key] = recent
     return len(recent) >= config.LOGIN_FAIL_LIMIT and now - recent[-1] < config.LOGIN_LOCK_SECONDS
 
+
 def check_password(password, salt_hex):
     """Slow on purpose. At most a few run at once, so password guessing can't eat every CPU."""
     with state.hashing:
         return hash_password(password, salt_hex)
+
 
 def handle_auth(client, msg):
     """Log in or create an account. Returns True on success."""

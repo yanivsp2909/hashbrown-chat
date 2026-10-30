@@ -18,12 +18,14 @@ def is_placeholder(value):
     value = str(value or "").strip()
     return not value or "PASTE" in value or "YOUR-" in value or "YOUR_" in value
 
+
 def hashbrown_key(settings):
     """The API key: the HASHBROWN_API_KEY environment variable wins, otherwise api_key from
     hashbrown_config.json. Returns "" if neither has a real key.
     Never print, log or save what this returns, not even part of it."""
     key = os.environ.get("HASHBROWN_API_KEY", "").strip() or str(settings.get("api_key") or "").strip()
     return "" if is_placeholder(key) else key
+
 
 def load_hashbrown():
     """Read hashbrown_config.json. Returns the settings, or None if Hashbrown is off."""
@@ -47,10 +49,11 @@ def load_hashbrown():
     settings["api_key"] = hashbrown_key(settings)
     if not settings["api_key"]:
         textutil.log("[HASHBROWN] 🥔 No API key, so Hashbrown is off. Set the HASHBROWN_API_KEY environment variable "
-            "and restart the server.")
+                     "and restart the server.")
         return None
     if is_placeholder(settings.get("endpoint")) or is_placeholder(settings.get("deployment")):
-        textutil.log(f"[HASHBROWN] 🥔 Fill in endpoint and deployment in {config.HASHBROWN_CONFIG}. Hashbrown is off.")
+        textutil.log(f"[HASHBROWN] 🥔 Fill in endpoint and deployment in {config.HASHBROWN_CONFIG}. "
+                     "Hashbrown is off.")
         return None
     # Works with https://NAME.openai.azure.com/ or https://NAME.services.ai.azure.com/
     endpoint = str(settings["endpoint"]).strip().rstrip("/")
@@ -60,10 +63,12 @@ def load_hashbrown():
     textutil.log(f"[HASHBROWN] 🥔 Awake! Using deployment '{settings['deployment']}'")
     return settings
 
+
 HASHBROWN_HINTS = {401: "the API key (HASHBROWN_API_KEY) is wrong",
                    403: "this key isn't allowed to use the resource",
                    404: "the endpoint or deployment name in hashbrown_config.json is wrong",
                    429: "too many requests or out of quota, wait a bit"}
+
 
 def call_hashbrown(messages):
     """Send the conversation to Foundry (Responses API, the same one as client.responses.create)
@@ -99,6 +104,7 @@ def call_hashbrown(messages):
     if not answer:
         raise RuntimeError(f"no answer text (status: {data.get('status')})")
     return answer[:1500]
+
 
 def ask_hashbrown(client, question):
     if state.hashbrown is None:
@@ -155,6 +161,7 @@ def ask_hashbrown(client, question):
     rooms.notify_room(room, "🥔 Hashbrown is thinking...", kind="event")
     threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer), daemon=True).start()
 
+
 def refund_hashbrown(asker, payer):
     """The question failed: give the tokens back and don't count it as one of today's questions."""
     kind, who = payer
@@ -170,6 +177,7 @@ def refund_hashbrown(asker, payer):
     all_day, all_asked = state.hashbrown_all_today
     if all_day == textutil.today() and all_asked > 0:
         state.hashbrown_all_today = (all_day, all_asked - 1)
+
 
 def hashbrown_worker(asker, room, group, messages, payer):
     """Runs in its own thread so the chat keeps working while the AI thinks.

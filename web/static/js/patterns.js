@@ -1,7 +1,7 @@
 // 🔎 Every piece of server text the website relies on lives in this file.
 //
 // The chat server mostly sends plain text, so a few features only work by recognising
-// exact wording. These are the server strings (from server.py) this file depends on:
+// exact wording. These are the server strings (from chatserver/) this file depends on:
 //
 //   welcome        auth_result: "✅ Welcome back, {nick}!"  /  "✅ Account created! Welcome, {nick}!"
 //   renamed        msg:         "✏️ {old} is now called {badge} {nick}"   (badge is optional)
@@ -18,7 +18,7 @@
 //   presence       msg:         "👋 {who} joined the chat" / "... left the chat" / "🚪 ... left the room" / "➡️ ... entered"
 //
 // web/tests/test_bridge.py runs the real server and checks every pattern below against what
-// it actually sends. If you reword one of these messages in server.py, that test tells you
+// it actually sends. If you reword one of these messages in chatserver/, that test tells you
 // which pattern to update here.
 
 const P = (source) => new RegExp(source, "u");

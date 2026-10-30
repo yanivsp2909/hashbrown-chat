@@ -22,6 +22,7 @@ def handle_file(client, msg):
     state.online[target].send({"type": "file", "from": rooms.nick(client.key), "filename": filename, "data": data})
     client.say(f"📤 Sent {filename} ({len(data) * 3 // 4 // 1024 + 1} KB) to {rooms.shown(target)}.")
 
+
 def post_chat(client, text, action=False):
     """Send a chat line to the client's room. Returns False if they're muted."""
     room = client.room
@@ -39,13 +40,16 @@ def post_chat(client, text, action=False):
         achievements.unlock(client.key, "chatty")
     return True
 
+
 def check_quiz(client, text):
-    if state.quiz and client.room == "lobby" and text.strip() == state.quiz["answer"] and client.key not in state.matches:
+    if (state.quiz and client.room == "lobby" and text.strip() == state.quiz["answer"]
+            and client.key not in state.matches):
         state.accounts[client.key]["tokens"] += state.quiz["reward"]
         rooms.notify_room("lobby", f"🎉 {rooms.shown(client.key)} got it first! {state.quiz['answer']} is right, "
                              f"+{state.quiz['reward']} 🪙", kind="event")
         state.quiz = None
         storage.save_data()
+
 
 def handle_line(client, text):
     text = text.strip()

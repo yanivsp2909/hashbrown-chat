@@ -24,7 +24,7 @@ Pure Python, no installs. Python 3.8 or newer.
 
 | File | Who needs it |
 |---|---|
-| `server.py` + `games.py` | the person hosting (same folder) |
+| `server.py` + `games.py` + `chatserver/` | the person hosting (same folder) |
 | `test_hashbrown.py` | the host, to check the AI key works |
 | `client.py` | everyone who joins from a terminal |
 | `web/` | the host, to run the website (`web/web_server.py`) for friends who join from a browser |
@@ -136,7 +136,7 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 - Damka: `c3 d4`
 - Math Duel: the number, like `42`
 
-The admin password is `ADMIN_PASSWORD` at the top of `server.py`. **Change it from 123**, or your friends will guess it.
+The admin password is `ADMIN_PASSWORD` in `chatserver/config.py`. **Change it from 123**, or your friends will guess it.
 
 ## Server console
 
@@ -156,6 +156,12 @@ Type these in the server window:
 - **Sending**: each client has an outbox queue and a writer thread, so one slow connection can't freeze everyone.
 - **Hashbrown**: the AI call runs in its own thread, outside the lock, so the chat keeps working while the AI thinks.
 - **Game logic**: lives in `games.py` with no networking.
+- **Code layout**: `server.py` only starts the server. The code is in `chatserver/`, one topic per file:
+  - `config.py`: every setting (ports, prices, limits, `ADMIN_PASSWORD`). Edit it, then restart.
+  - `state.py`: what the server keeps in memory (accounts, groups, who's online).
+  - `connections.py`: accepting connections and talking to each client.
+  - `cmd_*.py`: the /commands, one file per section of /help (`cmd_chat.py`, `cmd_games.py`...).
+  - The rest: `storage.py` (saving), `auth.py` (logins), `rooms.py` (sending to people), `matches.py`, `hashbrown_ai.py`, `background.py`.
 
 ## Known limits
 

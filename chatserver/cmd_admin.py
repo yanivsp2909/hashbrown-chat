@@ -33,6 +33,7 @@ def cmd_admin(client, args):
     client.say("🛠️ You're now an admin! Try /admintokens", "event")
     textutil.log(f"[SERVER] {rooms.nick(client.key)} became an admin")
 
+
 @registry.command("/admintokens", "/admintokens [name]", f"admin: +{config.ADMIN_TOKENS} 🪙", "🛠️ Admin")
 def cmd_admintokens(client, args):
     if not state.accounts[client.key]["admin"]:

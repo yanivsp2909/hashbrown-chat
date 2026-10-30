@@ -21,7 +21,7 @@ def load_data():
             state.accounts, state.groups = dict(data.get("accounts", {})), dict(data.get("groups", {}))
         except (OSError, ValueError, AttributeError, TypeError) as e:
             textutil.log(f"[SERVER] ❌ Can't read {config.DATA_FILE} ({type(e).__name__}). It may be damaged. "
-                f"The server did not start, so nothing was overwritten. Fix the file or move it away.")
+                         f"The server did not start, so nothing was overwritten. Fix the file or move it away.")
             return False
     # Files saved by an older version are missing the newer fields: fill them in
     for account in state.accounts.values():
@@ -34,8 +34,10 @@ def load_data():
     textutil.log(f"[SERVER] Loaded {len(state.accounts)} accounts and {len(state.groups)} groups")
     return True
 
+
 def history_size(group):
     return config.BIG_HISTORY_SIZE if "history" in group["upgrades"] else config.HISTORY_SIZE
+
 
 def save_data():
     """Write everything to chat_data.json. Returns False (and logs why) if it couldn't:
@@ -60,6 +62,7 @@ def save_data():
             textutil.log(f"[SERVER] ⚠️ Couldn't save {config.DATA_FILE}: {e}")
             return False
 
+
 # ---------------------------------------------------------------- login / register
 
 def new_account(username, salt, digest):
@@ -68,6 +71,7 @@ def new_account(username, salt, digest):
             "draws": 0, "last_daily": 0, "streak": 0, "messages": 0, "achievements": [],
             "win_day": "", "rewarded_wins": 0, "solo_day": "", "solo_rewarded": 0,
             "admin": False, "joined": textutil.today()}
+
 
 def new_group(name, owner, private):
     return {"name": name, "owner": owner, "admins": [], "members": [owner] if owner else [],

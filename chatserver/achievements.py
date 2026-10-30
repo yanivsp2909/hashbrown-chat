@@ -18,6 +18,7 @@ def unlock(key, achievement):
     rooms.announce(f"🏅 {rooms.shown(key)} unlocked {icon} {title}!", exclude={key})
     check_rich(key)
 
+
 def check_rich(key):
     if state.accounts[key]["tokens"] >= 1000:
         unlock(key, "rich")

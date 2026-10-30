@@ -37,12 +37,14 @@ def admin_target(client, args, owner_only=False, must_be_member=True):
         return None
     return key, group, target
 
+
 def remove_from_group(key, group, target):
     group["members"].remove(target)
     if target in group["admins"]:
         group["admins"].remove(target)
     if target in state.online and state.online[target].room == key:
         rooms.move_to_room(state.online[target], "lobby")
+
 
 @registry.command("/kick", "/kick name", "remove from group", "🛡️ Group admin")
 def cmd_kick(client, args):
@@ -53,6 +55,7 @@ def cmd_kick(client, args):
         storage.save_data()
         rooms.tell(target, f"👢 You were kicked from {rooms.room_title(key)} by {rooms.shown(client.key)}.", "error")
         rooms.notify_room(key, f"👢 {rooms.shown(target)} was kicked by {rooms.shown(client.key)}")
+
 
 @registry.command("/ban", "/ban name", "kick + can't come back", "🛡️ Group admin")
 def cmd_ban(client, args):
@@ -69,6 +72,7 @@ def cmd_ban(client, args):
         rooms.tell(target, f"🔨 You were banned from {rooms.room_title(key)}.", "error")
         rooms.notify_room(key, f"🔨 {rooms.shown(target)} was banned by {rooms.shown(client.key)}")
 
+
 @registry.command("/unban", "/unban name", "allow back in", "🛡️ Group admin")
 def cmd_unban(client, args):
     found = admin_target(client, args, must_be_member=False)
@@ -80,6 +84,7 @@ def cmd_unban(client, args):
         group["banned"].remove(target)
         storage.save_data()
         client.say(f"🕊️ {rooms.shown(target)} is unbanned.")
+
 
 @registry.command("/mute", "/mute name [minutes]", "silence someone (default 5)", "🛡️ Group admin")
 def cmd_mute(client, args):
@@ -94,6 +99,7 @@ def cmd_mute(client, args):
         if target not in state.online or state.online[target].room != key:
             rooms.tell(target, f"🔇 You were muted in {rooms.room_title(key)} for {minutes} min.", "error")
 
+
 @registry.command("/unmute", "/unmute name", "let them talk again", "🛡️ Group admin")
 def cmd_unmute(client, args):
     found = admin_target(client, args)
@@ -101,6 +107,7 @@ def cmd_unmute(client, args):
         key, group, target = found
         state.mutes.pop((key, target), None)
         rooms.notify_room(key, f"🔊 {rooms.shown(target)} can talk again")
+
 
 @registry.command("/promote", "/promote name", "make admin (owner)", "🛡️ Group admin")
 def cmd_promote(client, args):
@@ -115,6 +122,7 @@ def cmd_promote(client, args):
         rooms.notify_room(key, f"🛡️ {rooms.shown(target)} is now an admin of {rooms.room_title(key)}")
         rooms.tell(target, f"🛡️ You're now an admin of {rooms.room_title(key)}!", "event")
 
+
 @registry.command("/demote", "/demote name", "remove admin (owner)", "🛡️ Group admin")
 def cmd_demote(client, args):
     found = admin_target(client, args, owner_only=True)
@@ -126,6 +134,7 @@ def cmd_demote(client, args):
         group["admins"].remove(target)
         storage.save_data()
         rooms.notify_room(key, f"⬇️ {rooms.shown(target)} is no longer an admin")
+
 
 @registry.command("/disband", "/disband", "delete your group (owner)", "🛡️ Group admin")
 def cmd_disband(client, args):

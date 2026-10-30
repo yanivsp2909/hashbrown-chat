@@ -19,6 +19,7 @@ def run_safely(job, *args):
         textutil.log("[SERVER] Error in a background job (it keeps running):\n" + traceback.format_exc())
         return None
 
+
 def income_tick():
     """Online users get tokens, and so does every group with a member online."""
     with state.lock:
@@ -31,15 +32,18 @@ def income_tick():
             if any(member in state.online for member in group["members"]):
                 group["bank"] += config.GROUP_INCOME
         now = time.time()
-        for key in [k for k, times in state.login_fails.items() if not times or now - times[-1] > config.LOGIN_FAIL_WINDOW]:
+        old = [k for k, times in state.login_fails.items() if not times or now - times[-1] > config.LOGIN_FAIL_WINDOW]
+        for key in old:
             del state.login_fails[key]  # old wrong-password records: forget them
         if state.online:
             storage.save_data()
+
 
 def income_loop():
     while True:
         time.sleep(60)
         run_safely(income_tick)
+
 
 def quiz_open():
     """Ask a quick math question in the lobby. Returns (the quiz, who was asked), or None."""
@@ -56,6 +60,7 @@ def quiz_open():
             c.say(f"⚡ QUICK MATH! First to answer wins {state.quiz['reward']} 🪙:   {a} {op} {b} = ?", "event")
         return state.quiz, free
 
+
 def quiz_close(current, free):
     """Nobody answered in time: tell the people who were asked."""
     with state.lock:
@@ -67,6 +72,7 @@ def quiz_close(current, free):
                 c.say(f"⏰ Time's up! The answer was {current['answer']}.", "event")
         state.quiz = None
 
+
 def quiz_loop():
     """Every few minutes, a quick math question pops up in the lobby."""
     while True:
@@ -75,6 +81,7 @@ def quiz_loop():
         if opened:
             time.sleep(45)
             run_safely(quiz_close, *opened)
+
 
 def console_command(line):
     """One command typed into the server window. Only whoever runs the server can use these."""
@@ -94,7 +101,7 @@ def console_command(line):
                 account["tokens"] = max(0, account["tokens"] + amount)  # negative takes tokens away
                 storage.save_data()
                 rooms.tell(key, f"🎁 The server gave you {amount} 🪙!" if amount >= 0
-                     else f"💸 The server took {-amount} 🪙.", "money")
+                           else f"💸 The server took {-amount} 🪙.", "money")
                 textutil.log(f"[CONSOLE] {rooms.nick(key)} now has {account['tokens']}")
             else:
                 textutil.log("[CONSOLE] Usage: give <name> <amount>")
@@ -112,6 +119,7 @@ def console_command(line):
                 textutil.log("[CONSOLE] Saved.")
         elif cmd:
             textutil.log("[CONSOLE] Commands: say, give, kick, list, save")
+
 
 def console_loop():
     textutil.log("[CONSOLE] Commands: say <text> | give <name> <amount> | kick <name> | list | save")

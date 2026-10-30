@@ -71,6 +71,7 @@ class Client:
         except OSError:
             pass
 
+
 def recv_lines(sock, client):
     """Yield complete lines from the socket (one JSON message per line)."""
     buffer = bytearray()
@@ -97,6 +98,7 @@ def recv_lines(sock, client):
         if len(buffer) > limit:  # no newline that far: broken or abusive client
             return
 
+
 def parse_message(raw):
     """One line from the network -> a dict, or None if it isn't a JSON object."""
     try:
@@ -104,6 +106,7 @@ def parse_message(raw):
     except (UnicodeDecodeError, ValueError, RecursionError):  # RecursionError: [[[[... nested very deep
         return None
     return msg if isinstance(msg, dict) else None
+
 
 # ---------------------------------------------------------------- chat lines
 

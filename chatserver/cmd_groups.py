@@ -21,6 +21,7 @@ def cmd_groups(client, args):
     lines.append("🔒 = private (needs approval). Join with /join name")
     client.say("\n".join(lines))
 
+
 @registry.command("/create", "/create name [private]", f"new group ({config.GROUP_COST} 🪙)", "👥 Groups")
 def cmd_create(client, args):
     parts = args.split()
@@ -51,6 +52,7 @@ def cmd_create(client, args):
     rooms.move_to_room(client, key)
     achievements.unlock(client.key, "founder")
     storage.save_data()
+
 
 @registry.command("/join", "/join name", "enter a group (or ask to)", "👥 Groups")
 def cmd_join(client, args):
@@ -88,8 +90,10 @@ def cmd_join(client, args):
     client.say(f"📨 Request sent! An admin of {rooms.room_title(key)} has to approve you.")
     for admin in [group["owner"]] + group["admins"]:
         rooms.tell(admin, f"📨 {rooms.shown(client.key)} wants to join {rooms.room_title(key)}.  "
-                    f"/approve {rooms.nick(client.key)} {group['name']}  or  /reject {rooms.nick(client.key)} {group['name']}",
-             "event")
+                          f"/approve {rooms.nick(client.key)} {group['name']}  or  "
+                          f"/reject {rooms.nick(client.key)} {group['name']}",
+                   "event")
+
 
 @registry.command("/lobby", "/lobby", "go back to the lobby", "👥 Groups")
 def cmd_lobby(client, args):
@@ -97,6 +101,7 @@ def cmd_lobby(client, args):
         client.say("You're already in the lobby.")
     else:
         rooms.move_to_room(client, "lobby")
+
 
 @registry.command("/leave", "/leave", "quit the group you're in", "👥 Groups")
 def cmd_leave(client, args):
@@ -113,6 +118,7 @@ def cmd_leave(client, args):
     rooms.move_to_room(client, "lobby")
     client.say(f"👋 You left {rooms.room_title(key)}.")
 
+
 @registry.command("/members", "/members", "who's in this group", "👥 Groups")
 def cmd_members(client, args):
     key, group = rooms.current_group(client)
@@ -125,6 +131,7 @@ def cmd_members(client, args):
         muted = " 🔇" if state.mutes.get((key, member), 0) > time.time() else ""
         lines.append(f"  {status} {rooms.shown(member)} {role}{muted}")
     client.say("\n".join(lines))
+
 
 @registry.command("/requests", "/requests", "join requests (admins)", "👥 Groups")
 def cmd_requests(client, args):
@@ -139,6 +146,7 @@ def cmd_requests(client, args):
         return
     names = ", ".join(rooms.nick(k) for k in group["requests"])
     client.say(f"📨 Waiting: {names}\nUse /approve name or /reject name")
+
 
 def request_target(client, args):
     """For /approve and /reject: returns (group key, group, user) or None."""
@@ -160,6 +168,7 @@ def request_target(client, args):
         return None
     return key, group, target
 
+
 @registry.command("/approve", "/approve name [group]", "let someone in (admins)", "👥 Groups")
 def cmd_approve(client, args):
     found = request_target(client, args)
@@ -172,6 +181,7 @@ def cmd_approve(client, args):
     rooms.tell(target, f"✅ You were accepted into {rooms.room_title(key)}! Type /join {group['name']}", "event")
     client.say(f"✅ {rooms.shown(target)} can now join.")
     rooms.notify_room(key, f"🎉 {rooms.shown(target)} is now a member of {rooms.room_title(key)}", exclude=client)
+
 
 @registry.command("/reject", "/reject name [group]", "turn down a request (admins)", "👥 Groups")
 def cmd_reject(client, args):

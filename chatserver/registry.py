@@ -8,6 +8,7 @@ in the order they were registered.
 
 COMMANDS = {}
 
+
 def command(name, usage, description, category):
     def register(function):
         COMMANDS[name] = (function, usage, description, category)

@@ -21,6 +21,7 @@ def cmd_help(client, args):
     lines.append(f"🥔 Start a message with @hashbrown to ask the AI ({config.HASHBROWN_COST} 🪙).")
     client.say("\n".join(lines), "help")
 
+
 @registry.command("/users", "/users", "who's online and where", "💬 Chat")
 def cmd_users(client, args):
     lines = [f"🟢 Online now ({len(state.online)}):"]
@@ -28,6 +29,7 @@ def cmd_users(client, args):
         playing = "  🎮 playing" if key in state.matches else ""
         lines.append(f"  {rooms.shown(key)}  {rooms.room_title(state.online[key].room)}{playing}")
     client.say("\n".join(lines))
+
 
 @registry.command("/send", "/send name message", "private message 💌", "💬 Chat")
 def cmd_send(client, args):
@@ -45,10 +47,12 @@ def cmd_send(client, args):
     rooms.tell(target, f"💌 [{stamp}] {rooms.shown(client.key)} → you: {parts[1]}", "private")
     client.say(f"💌 [{stamp}] you → {rooms.shown(target)}: {parts[1]}", "private")
 
+
 @registry.command("/me", "/me action", "act it out: * Yaniv dances", "💬 Chat")
 def cmd_me(client, args):
     if args:
         chat.post_chat(client, args, action=True)
+
 
 @registry.command("/nick", "/nick newname", "change your display name", "💬 Chat")
 def cmd_nick(client, args):
@@ -67,6 +71,7 @@ def cmd_nick(client, args):
     rooms.notify_room(client.room, f"✏️ {old} is now called {rooms.shown(client.key)}")
     client.say(f"(You still log in as {state.accounts[client.key]['login']}.)")
 
+
 @registry.command("/whois", "/whois name", "someone's profile", "💬 Chat")
 def cmd_whois(client, args):
     key = rooms.find_account(args.strip()) if args.strip() else client.key
@@ -83,6 +88,7 @@ def cmd_whois(client, args):
                f"   📅 joined {a['joined']}   🔥 daily streak: {a['streak']}\n"
                f"   🏅 badges: {' '.join(a['badges']) or 'none'}   "
                f"achievements: {len(a['achievements'])}/{len(config.ACHIEVEMENTS)}")
+
 
 @registry.command("/quit", "/quit", "leave the chat", "💬 Chat")
 def cmd_quit(client, args):

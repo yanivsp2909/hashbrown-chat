@@ -17,6 +17,7 @@ def cmd_balance(client, args):
         return
     client.say(f"🪙 {rooms.shown(key)} has {state.accounts[key]['tokens']} tokens.", "money")
 
+
 @registry.command("/top", "/top", "richest players 🏆", "🪙 Tokens")
 def cmd_top(client, args):
     ranking = sorted(state.accounts, key=lambda k: state.accounts[k]["tokens"], reverse=True)[:10]
@@ -25,6 +26,7 @@ def cmd_top(client, args):
     for medal, key in zip(medals, ranking):
         lines.append(f"  {medal} {rooms.shown(key)}  {state.accounts[key]['tokens']} 🪙")
     client.say("\n".join(lines), "money")
+
 
 @registry.command("/give", "/give name amount", "send tokens to someone", "🪙 Tokens")
 def cmd_give(client, args):
@@ -45,6 +47,7 @@ def cmd_give(client, args):
     rooms.tell(target, f"🎁 {rooms.shown(client.key)} gave you {amount} 🪙!", "money")
     achievements.check_rich(target)
     storage.save_data()
+
 
 @registry.command("/daily", "/daily", "free tokens every day, more for streaks 🔥", "🪙 Tokens")
 def cmd_daily(client, args):
@@ -67,6 +70,7 @@ def cmd_daily(client, args):
         achievements.unlock(client.key, "on_fire")
     achievements.check_rich(client.key)
     storage.save_data()
+
 
 @registry.command("/rob", "/rob name", "40% chance to steal, or pay a fine 🦹", "🪙 Tokens")
 def cmd_rob(client, args):
@@ -98,8 +102,10 @@ def cmd_rob(client, args):
         robber["tokens"] -= fine
         victim["tokens"] += fine
         client.say(f"🚓 Caught! You paid {fine} 🪙 to {rooms.shown(target)}.", "error")
-        rooms.tell(target, f"🛡️ {rooms.shown(client.key)} tried to rob you and failed. You got {fine} 🪙!", "money")
+        rooms.tell(target, f"🛡️ {rooms.shown(client.key)} tried to rob you and failed. You got {fine} 🪙!",
+                   "money")
     storage.save_data()
+
 
 @registry.command("/shop", "/shop", "badges for your name", "🪙 Tokens")
 def cmd_shop(client, args):
@@ -109,6 +115,7 @@ def cmd_shop(client, args):
         lines.append(f"  {badge}  {price} 🪙{'  ✅ owned' if badge in owned else ''}")
     lines.append("Buy with /buy 🔥   Switch with /badge 😎   Hide with /badge off")
     client.say("\n".join(lines), "money")
+
 
 @registry.command("/buy", "/buy badge", "buy a badge from /shop", "🪙 Tokens")
 def cmd_buy(client, args):
@@ -131,6 +138,7 @@ def cmd_buy(client, args):
     if config.SHOP[badge] >= 1000:
         rooms.announce(f"💸 {rooms.shown(client.key)} just bought the {badge} badge!", exclude={client.key})
 
+
 @registry.command("/badge", "/badge emoji|off", "wear a badge you own", "🪙 Tokens")
 def cmd_badge(client, args):
     choice = args.strip()
@@ -144,6 +152,7 @@ def cmd_badge(client, args):
         return
     storage.save_data()
     client.say(f"✨ You're now {rooms.shown(client.key)}")
+
 
 # ----- 🏅 Achievements
 

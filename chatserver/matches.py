@@ -20,6 +20,7 @@ class Match:
     def opponent(self, key):
         return self.players[1] if key == self.players[0] else self.players[0]
 
+
 def push_board(match, note=""):
     p1, p2 = match.players
     header = f"{match.game.title}   {rooms.shown(p1)} vs {rooms.shown(p2)}"
@@ -28,6 +29,7 @@ def push_board(match, note=""):
             text = f"\n{header}\n{match.game.render(p)}" + (f"\n{note}" if note else "")
             # "state" is the board as data: the terminal ignores it, the website draws it
             state.online[p].send({"type": "msg", "kind": "board", "text": text, "state": match.game.state(p)})
+
 
 def start_match(game_class, p1, p2, bet):
     match = Match(game_class, p1, p2, bet)
@@ -39,6 +41,7 @@ def start_match(game_class, p1, p2, bet):
         rooms.tell(p, f"🎮 {game_class.title}: {rooms.shown(p1)} vs {rooms.shown(p2)}{pot}\n"
                 f"📜 {game_class.help}\n🏳️ /resign to give up", "game")
     push_board(match)
+
 
 def finish_match(match, winner, reason=""):
     if match.over:
@@ -70,7 +73,8 @@ def finish_match(match, winner, reason=""):
         if really_played and account["rewarded_wins"] < config.MAX_REWARDED_WINS:
             account["rewarded_wins"] += 1
             account["tokens"] += config.WIN_REWARD
-            bonus = f" +{config.WIN_REWARD} 🪙 win reward ({account['rewarded_wins']}/{config.MAX_REWARDED_WINS} today)"
+            bonus = (f" +{config.WIN_REWARD} 🪙 win reward "
+                     f"({account['rewarded_wins']}/{config.MAX_REWARDED_WINS} today)")
         rooms.tell(winner, f"🏆 YOU WON!{reason}" + (f" +{pot} 🪙 pot" if pot else "") + bonus, "money")
         rooms.tell(loser, f"💀 You lost.{reason}", "error")
         prize = f" and took {pot} 🪙" if pot else ""
@@ -81,6 +85,7 @@ def finish_match(match, winner, reason=""):
         achievements.check_rich(winner)
     storage.save_data()
 
+
 def end_all_matches():
     """The server is stopping: cancel every running game and give the bets back."""
     for match in set(state.matches.values()):
@@ -89,7 +94,8 @@ def end_all_matches():
             state.matches.pop(p, None)
             state.accounts[p]["tokens"] += match.bet
             rooms.tell(p, "🛑 The server is stopping, so your game was cancelled."
-                 + (" Your bet was refunded." if match.bet else ""), "game")
+                       + (" Your bet was refunded." if match.bet else ""), "game")
+
 
 def do_move(client, text):
     match = state.matches.get(client.key)
@@ -104,6 +110,7 @@ def do_move(client, text):
     push_board(match, info)
     if match.game.finished:
         finish_match(match, match.game.winner)
+
 
 def is_game_move(client, text):
     match = state.matches.get(client.key)

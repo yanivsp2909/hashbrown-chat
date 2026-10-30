@@ -24,6 +24,7 @@ def cmd_bank(client, args):
     lines.append("Admins buy with /upgrade name.  Anyone can chip in with /donate amount.")
     client.say("\n".join(lines), "money")
 
+
 @registry.command("/donate", "/donate amount", "put your tokens in the group bank", "🏦 Group bank")
 def cmd_donate(client, args):
     key, group = rooms.current_group(client)
@@ -34,11 +35,12 @@ def cmd_donate(client, args):
         return
     state.accounts[client.key]["tokens"] -= amount
     group["bank"] += amount
-    rooms.notify_room(key, f"🤝 {rooms.shown(client.key)} donated {amount} 🪙 to the bank (now {group['bank']} 🪙)",
-                kind="money")
+    rooms.notify_room(key, f"🤝 {rooms.shown(client.key)} donated {amount} 🪙 to the bank "
+                           f"(now {group['bank']} 🪙)", kind="money")
     if amount >= config.TEAM_PLAYER_DONATION:  # a 1-token donation shouldn't earn a 50-token achievement
         achievements.unlock(client.key, "team_player")
     storage.save_data()
+
 
 @registry.command("/upgrade", "/upgrade name", "buy an upgrade with the bank (admins)", "🏦 Group bank")
 def cmd_upgrade(client, args):
@@ -68,6 +70,7 @@ def cmd_upgrade(client, args):
     if name == "emoji":
         client.say("🎨 Now pick it: /groupemoji 🔥")
 
+
 @registry.command("/groupemoji", "/groupemoji emoji", "set the group emoji (needs 🎨)", "🏦 Group bank")
 def cmd_groupemoji(client, args):
     key, group = rooms.current_group(client)
@@ -88,6 +91,7 @@ def cmd_groupemoji(client, args):
     group["emoji"] = emoji
     storage.save_data()
     rooms.notify_room(key, f"🎨 The group is now {rooms.room_title(key)}", kind="event")
+
 
 @registry.command("/topgroups", "/topgroups", "richest groups", "🏦 Group bank")
 def cmd_topgroups(client, args):

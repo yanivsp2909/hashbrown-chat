@@ -8,8 +8,7 @@ import unicodedata
 
 import pytest
 
-import server
-from chatserver import background, config, session, state, storage
+from chatserver import background, config, connections, session, state, storage
 from helpers import FakeClient, auth
 
 pytestmark = pytest.mark.integration
@@ -176,7 +175,7 @@ def test_save_data_flushes_to_disk(monkeypatch):
 def test_damaged_data_file_stops_startup_and_is_left_alone():
     with open(config.DATA_FILE, "w", encoding="utf-8") as f:
         f.write("{broken")
-    assert server.start_server("127.0.0.1", 0, run_loops=False, run_console=False) is None
+    assert connections.start_server("127.0.0.1", 0, run_loops=False, run_console=False) is None
     with open(config.DATA_FILE, encoding="utf-8") as f:
         assert f.read() == "{broken"
 
@@ -185,7 +184,7 @@ def test_old_groups_missing_fields_still_work(connect):
     old = {"accounts": {}, "groups": {"potatoes": {"name": "Potatoes", "owner": "zed", "members": ["zed"]}}}
     with open(config.DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(old, f)
-    listener = server.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
+    listener = connections.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
     thread, errors = run_serve_forever(listener)
     try:
         client = FakeClient(listener.getsockname()[1])
@@ -206,7 +205,7 @@ def run_serve_forever(listener):
 
     def run():
         try:
-            server.serve_forever(listener)
+            connections.serve_forever(listener)
         except BaseException as e:  # noqa: BLE001 - the test wants to see anything
             errors.append(e)
 
@@ -216,7 +215,7 @@ def run_serve_forever(listener):
 
 
 def test_closing_the_listener_stops_the_server_cleanly():
-    listener = server.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
+    listener = connections.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
     thread, errors = run_serve_forever(listener)
     time.sleep(0.2)
     listener.close()
@@ -242,7 +241,7 @@ class FlakyListener:
 
 
 def test_one_failed_accept_does_not_stop_the_server():
-    real = server.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
+    real = connections.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
     thread, errors = run_serve_forever(FlakyListener(real))
     try:
         client = FakeClient(real.getsockname()[1])

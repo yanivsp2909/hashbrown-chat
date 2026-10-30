@@ -12,8 +12,7 @@ import urllib.request
 
 import pytest
 
-import server
-from chatserver import config, session, state
+from chatserver import config, connections, session, state
 from helpers import FakeClient, FakeFoundry, auth
 
 
@@ -48,10 +47,10 @@ def isolated(tmp_path, monkeypatch):
 
 @pytest.fixture
 def chat_server():
-    """Starts server.py's server on a free port (no income/quiz loops, no console). Yields the port."""
-    listener = server.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
+    """Starts the chat server on a free port (no income/quiz loops, no console). Yields the port."""
+    listener = connections.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
     assert listener is not None
-    thread = threading.Thread(target=server.serve_forever, args=(listener,), daemon=True)
+    thread = threading.Thread(target=connections.serve_forever, args=(listener,), daemon=True)
     thread.start()
     yield listener.getsockname()[1]
     with state.lock:

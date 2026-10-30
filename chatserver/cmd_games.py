@@ -12,6 +12,7 @@ GAMES = {"ttt": games.TicTacToe, "tictactoe": games.TicTacToe,
          "checkers": games.Checkers, "damka": games.Checkers,
          "math": games.MathDuel, "mathduel": games.MathDuel}
 
+
 @registry.command("/games", "/games", "what you can play", "🎮 Games")
 def cmd_games(client, args):
     client.say("🎮 Games (1v1, optional token bet):\n"
@@ -20,6 +21,7 @@ def cmd_games(client, args):
                "  ➗   math       Math duel: first to 3 right answers\n"
                "Challenge: /challenge name game [bet]   e.g.  /challenge Adi damka 100\n\n"
                "🟩 Solo: /wordle  guess the word, win up to 60 🪙", "game")
+
 
 @registry.command("/challenge", "/challenge name game [bet]", "invite to a 1v1", "🎮 Games")
 def cmd_challenge(client, args):
@@ -56,6 +58,7 @@ def cmd_challenge(client, args):
                  f"/accept {rooms.nick(client.key)}  or  /decline {rooms.nick(client.key)}", "event")
     client.say(f"⚔️ Challenge sent to {rooms.shown(target)}. Waiting for them...")
 
+
 def pick_invite(client, args):
     fresh = [i for i in state.invites.get(client.key, []) if time.time() - i["time"] < 180]
     state.invites[client.key] = fresh
@@ -71,6 +74,7 @@ def pick_invite(client, args):
         invite = fresh[-1]
     fresh.remove(invite)
     return invite
+
 
 @registry.command("/accept", "/accept [name]", "accept a challenge", "🎮 Games")
 def cmd_accept(client, args):
@@ -89,6 +93,7 @@ def cmd_accept(client, args):
         return
     matches.start_match(invite["game"], challenger, client.key, bet)
 
+
 @registry.command("/decline", "/decline [name]", "say no to a challenge", "🎮 Games")
 def cmd_decline(client, args):
     invite = pick_invite(client, args)
@@ -96,9 +101,11 @@ def cmd_decline(client, args):
         client.say("👎 Declined.")
         rooms.tell(invite["from"], f"👎 {rooms.shown(client.key)} declined your challenge.", "error")
 
+
 @registry.command("/move", "/move ...", "a move (or just type it)", "🎮 Games")
 def cmd_move(client, args):
     matches.do_move(client, args)
+
 
 @registry.command("/board", "/board", "show the board again", "🎮 Games")
 def cmd_board(client, args):
@@ -108,7 +115,9 @@ def cmd_board(client, args):
         return
     p1, p2 = match.players
     client.send({"type": "msg", "kind": "board", "state": match.game.state(client.key),
-                 "text": f"{match.game.title}   {rooms.shown(p1)} vs {rooms.shown(p2)}\n{match.game.render(client.key)}"})
+                 "text": f"{match.game.title}   {rooms.shown(p1)} vs {rooms.shown(p2)}\n"
+                         f"{match.game.render(client.key)}"})
+
 
 @registry.command("/resign", "/resign", "give up the game 🏳️", "🎮 Games")
 def cmd_resign(client, args):
@@ -118,10 +127,12 @@ def cmd_resign(client, args):
         return
     matches.finish_match(match, match.opponent(client.key), f"{rooms.nick(client.key)} resigned 🏳️")
 
+
 # ----- 🟩 Solo: Wordle
 
 def send_wordle(client, game, text):
     client.send({"type": "msg", "kind": "board", "text": text, "state": game.state()})
+
 
 @registry.command("/wordle", "/wordle", "solo word game, win tokens 🟩", "🎮 Games")
 def cmd_wordle(client, args):
@@ -135,6 +146,7 @@ def cmd_wordle(client, args):
     prize = f"Win up to 60 🪙 ({left} rewarded games left today)" if left > 0 else \
         "No more rewards today, but you can still play for fun"
     send_wordle(client, game, f"{games.Wordle.title}\n📜 {games.Wordle.help}\n🪙 {prize}\n\n{game.render()}")
+
 
 @registry.command("/g", "/g word", "guess in your Wordle", "🎮 Games")
 def cmd_guess(client, args):
@@ -170,6 +182,7 @@ def cmd_guess(client, args):
         achievements.unlock(client.key, "genius")
     achievements.check_rich(client.key)
     storage.save_data()
+
 
 @registry.command("/giveup", "/giveup", "quit your Wordle", "🎮 Games")
 def cmd_giveup(client, args):

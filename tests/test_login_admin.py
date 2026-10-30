@@ -3,8 +3,7 @@ import time
 
 import pytest
 
-import server
-from chatserver import config, state
+from chatserver import config, connections, state
 from chatserver import auth as server_auth
 from helpers import auth
 from test_smoke import start_game
@@ -143,7 +142,7 @@ def test_admin_lockout_counts_wrong_guesses_from_all_accounts(user, monkeypatch)
 
 
 def startup_output(capsys):
-    listener = server.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
+    listener = connections.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
     listener.close()
     return capsys.readouterr().out
 

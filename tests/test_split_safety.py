@@ -5,7 +5,7 @@ These must stay true no matter which file the code lives in.
 import os
 
 import server
-from chatserver import config
+from chatserver import config, connections
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
@@ -25,3 +25,7 @@ def test_data_files_live_next_to_server_py(monkeypatch):
     monkeypatch.undo()
     for path in (config.DATA_FILE, config.HASHBROWN_CONFIG):
         assert os.path.dirname(os.path.abspath(path)) == PROJECT
+
+
+def test_server_py_is_still_the_way_to_start_it():
+    assert server.main is connections.main
