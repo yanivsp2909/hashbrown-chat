@@ -1,178 +1,201 @@
-# 🥔 Hashbrown Chat
+<p align="center">
+  <img src="web/static/logo.svg" width="120" alt="Hashbrown Chat logo: a golden hash brown on a dark teal tile">
+</p>
 
-A multiplayer chat that runs in the terminal (PyCharm, CMD, Terminal), with an AI bot called Hashbrown. One person runs the server, everyone else runs the client and joins over the same Wi-Fi.
+<h1 align="center">🥔 Hashbrown Chat</h1>
 
-Pure Python, no installs. Python 3.8 or newer.
+<p align="center">
+  A multiplayer chat with games, a token economy and an AI member called Hashbrown. Built as a school networking project.
+</p>
 
-## What's inside
+<p align="center">
+  <img src="docs/images/chat-light.png" width="49%" alt="Hashbrown Chat in light mode: the lobby with messages and the room list">
+  <img src="docs/images/chat-dark.png" width="49%" alt="Hashbrown Chat in dark mode: the same lobby with messages">
+</p>
 
-- 🔐 **Accounts**: register and log in with a password. Passwords are stored as salted hashes, never as plain text.
-- 🥔 **Hashbrown**: an AI (GPT-5.6 on Microsoft Foundry). Start a message with `@hashbrown` and it answers in the room. It can see the recent chat, so it knows what everyone is talking about.
-- 👥 **Groups**: public groups anyone can join, private 🔒 groups where an admin has to approve you.
-- 🛡️ **Group admins**: kick, ban, mute, promote, demote, disband.
-- 🏦 **Group bank and upgrades**: every group earns its own tokens and spends them on upgrades.
-- 🪙 **Tokens**: earned every minute, from `/daily` streaks, game wins, achievements and quick-math questions.
-- 🎰 **Casino**: coinflip, dice and slots (fake tokens only).
-- 🏅 **Achievements and a badge shop**.
-- 🎮 **1v1 games**: Tic-Tac-Toe, Damka (checkers) and a Math Duel, with optional token bets.
-- 🟩 **Solo Wordle**: guess the word and win up to 60 🪙 (5 rewarded games a day).
-- 🛠️ **Admins**: `/admin password`, then `/admintokens`.
-- 📁 **File sending**: up to 2 MB.
-- 💌 Private messages, `/me` actions, nicknames, timestamps, chat history, colors and emojis.
+<p align="center">
+  <img src="docs/images/phone-dark.png" width="220" alt="Hashbrown Chat on a phone in dark mode">
+</p>
 
-## Files
+---
 
-| File | Who needs it |
-|---|---|
-| `server.py` + `games.py` + `chatserver/` | the person hosting (same folder) |
-| `test_hashbrown.py` | the host, to check the AI key works |
-| `client.py` | everyone who joins from a terminal |
-| `web/` | the host, to run the website (`web/web_server.py`) for friends who join from a browser |
-| `chat_data.json` | created by the server: accounts, tokens, groups |
-| `hashbrown_config.json` | created by the server: **your API key. Never send this to anyone.** |
+## ✨ Features
 
-## How to run
+- 💬 **Chat**: a lobby, group rooms, private messages (`/send`), `/me` actions, nicknames and Hebrew (right-to-left) text.
+- 👥 **Groups**: public groups, or 🔒 private groups where an admin approves you. Admins can kick, ban, mute, promote and demote.
+- 🏦 **Group bank**: every group earns its own tokens and spends them on upgrades.
+- 🪙 **Tokens**: earn them by being online, with a `/daily` streak, winning games and achievements. Spend them in the badge shop or the casino (fake tokens only).
+- 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel and solo Wordle. Challenge a friend, with an optional token bet.
+- 🥔 **Hashbrown**: an AI member. Type `@hashbrown` in chat, or `/ask` for a private answer. Each question costs tokens. Without an API key, Hashbrown is simply off.
+- 🌐 **Website**: chat from any phone or laptop on the same Wi-Fi. Light and dark mode, clickable game boards, file sharing.
+- ⌨️ **Terminal client**: `client.py` works in Terminal, Windows CMD and PyCharm.
+- 📁 **Files**: send a file of up to 2 MB.
 
-**Host:**
+## 🚀 Quick start
+
+Python 3.8 or newer. **Nothing to install**: it uses only the standard library. Everyone must be on the **same Wi-Fi** (or LAN).
+
+**1. Get the code**
+
+```bash
+git clone https://github.com/yanivsp2909/hashbrown-chat.git
+cd hashbrown-chat
 ```
+
+**2. Start the server** (the host runs this)
+
+```bash
 python server.py
 ```
-Allow incoming connections if your computer asks. Find your IP address (Mac: `ipconfig getifaddr en0`, Windows: `ipconfig`) and give it to your friends.
 
-**Everyone else:**
-```
-python client.py 127.0.0.1
-```
-Use the host's IP address. With no IP, the client uses the default written at the top of `client.py`. Then pick **2** to create an account, or **1** to log in. Type `/help` once you're in.
+For the website, open a second window and run:
 
-## Website 🌐
-
-Friends can also use the chat from a browser instead of `client.py`, on a phone or a laptop. Nothing to install.
-
-**Host:** keep `server.py` running, then in a second window:
-```
+```bash
 python web/web_server.py
 ```
-It prints the link to share, for example:
+
+**3. Join**
+
+- 🌐 **Website**: open the link that `web_server.py` prints, for example `http://192.168.1.20:8080`.
+- ⌨️ **Terminal**: run `python client.py <host IP>` with the host's IP address, then choose **2** to create an account or **1** to log in.
+
+Type `/help` once you're in to see every command. The full list is in the [user guide](docs/GUIDE.md).
+
+## 🥔 Waking up Hashbrown (optional)
+
+Hashbrown needs an API key for an AI endpoint on Microsoft Foundry. Pick one of these ways to give it the key:
+
+**Option A: an environment variable** (wins over the file)
+
+macOS / Linux:
+```bash
+export HASHBROWN_API_KEY="your-key-here"
 ```
-[WEB] 🔗 Share this link: http://127.0.0.1:8080
+
+Windows PowerShell:
+```powershell
+$env:HASHBROWN_API_KEY="your-key-here"
 ```
-Send that link to your friends. They must be on the **same Wi-Fi**. The address is your computer's current Wi-Fi address, so it changes when you switch networks. Just restart `web_server.py` and it prints the new one. If your computer asks whether to allow incoming connections, say yes.
 
-In the browser, friends create an account or log in (the same accounts as `client.py`), then:
-- 🎟️ Challenges, your game and your Wordle hang as "order tickets" at the top of the chat. Press **Accept** to play.
-- 🎮 Boards are clickable: tap a square in Tic-Tac-Toe, tap a piece and then a square in Damka, type the answer in Math Duel, and guess in Wordle.
-- ⌨️ Type `/` to see every command. **Up** brings back what you sent before.
-- 📎 The paperclip, or dragging a file onto the chat, sends a file (2 MB max). Files you get show up as **Download** buttons.
-- 🌙 Dark and light mode, and it works on phones.
+**Option B: the config file**
 
-Options: `--port 8080` (website port), `--chat-port 8820` (where `server.py` listens), `--max-sessions 50`. Each browser tab is one login. A reloaded tab stays logged in. A closed tab logs out after 90 seconds (or right away with **Log out**).
+The server creates `hashbrown_config.json` next to `server.py` on the first run. Fill in your endpoint, deployment and key:
 
-**Tests:** `python -m unittest discover -s web/tests -v` runs a copy of the server in a temporary folder, so your real `chat_data.json` is never touched. The test also fails with a clear message if you reword a server message that the website relies on. Those messages are listed at the top of `web/static/js/patterns.js`.
+```json
+{
+  "endpoint": "https://YOUR-RESOURCE.services.ai.azure.com/openai/v1",
+  "deployment": "YOUR-DEPLOYMENT-NAME",
+  "api_key": "PASTE-YOUR-KEY-HERE"
+}
+```
 
-Same warning as the terminal client: the website is plain HTTP, so anyone on the Wi-Fi could read messages and passwords.
+**Option C: macOS Keychain**
 
-## Waking up Hashbrown 🥔
+Store the key once (you type it yourself, and the terminal asks for it):
 
-1. Put `hashbrown_config.json` next to `server.py`. If it's missing, the server creates it on first run.
-2. Open it and replace `PASTE-YOUR-KEY-HERE` with your key:
-   ```json
-   {
-     "endpoint": "https://YOUR-RESOURCE.services.ai.azure.com/openai/v1",
-     "deployment": "gpt-6.1-terra",
-     "api_key": "your key"
-   }
-   ```
-3. Run `python test_hashbrown.py`. It asks Hashbrown one question and tells you if the key works.
-4. Start the server. It should print `🥔 Awake!`.
+```bash
+security add-generic-password -a "$USER" -s hashbrown-foundry -w
+```
 
-Hashbrown uses the same Responses API as `client.responses.create(...)` in the Foundry sample, but with an API key instead of `az login`.
+Then start the server with the helper script:
 
-If you'd rather not keep the key in the file, set the environment variable `HASHBROWN_API_KEY` instead. It overrides the file.
+```bash
+./start.sh
+```
 
-**Costs and limits:** each question costs 20 🪙. There's a 15 second cooldown per person and a limit of 30 questions per person per day. If the AI call fails, the tokens are refunded. Remember that every question also costs **real money** on your Azure account.
+When Hashbrown is awake, the server log says `🥔 Awake!`.
 
-## The economy
+> **No key?** Everything else still works. Hashbrown is just off.
 
-| Way to earn | Amount |
-|---|---|
-| Being online | 5 🪙 per minute |
-| Being inside a group with the 💰 income upgrade | +2 🪙 per minute |
-| `/daily` | 150 🪙, +50 for each day in a row, up to 500. Claim again within 20-48 hours or the streak resets. |
-| Winning a game | +25 🪙 for each of your first 10 wins per day, plus the pot if there was a bet |
-| Wordle (`/wordle`) | 60 🪙 for 1 try down to 10 🪙 for 6 tries, 5 rewarded games a day |
-| Achievements (`/achievements`) | 25 to 300 🪙 each |
-| Quick math in the lobby | 30-50 🪙 for the first right answer |
-| Casino and `/rob` | risky 😈 |
+## 🔐 Admin
 
-**Group bank:** every group earns 10 🪙 per minute while at least one member is online. Anyone can `/donate`, and admins spend the bank with `/upgrade`:
+Type `/admin <password>` in chat to get admin powers (for example `/admintokens`). The password is `ADMIN_PASSWORD` in `chatserver/config.py`, which is set to `123` by default. **Change it before you share the server.** The `HASHBROWN_ADMIN_PASSWORD` environment variable overrides the file. An empty password turns `/admin` off.
 
-| Upgrade | Price | Effect |
+## 🧠 How it works
+
+```mermaid
+flowchart LR
+    Browser["🌐 Browser"] -- "HTTP + Server-Sent Events" --> Web["web_server.py + bridge.py"]
+    Web -- "TCP, port 8820" --> Server["💬 Chat server (chatserver/)"]
+    Terminal["⌨️ Terminal: client.py"] -- "TCP" --> Server
+    Server -- "HTTPS" --> AI["🥔 Hashbrown AI on Microsoft Foundry"]
+```
+
+### The protocol
+
+Every packet is **one JSON object on one line**, ending with `\n`. That's called newline-delimited JSON.
+
+| Direction | Type | Fields |
 |---|---|---|
-| 💰 income | 300 | members earn +2 🪙/min while inside the group |
-| 📜 history | 200 | chat history goes from 15 to 50 messages |
-| 🎨 emoji | 150 | a custom emoji next to the group name (`/groupemoji 🍟`) |
-| 🥔 hashbrown | 250 | Hashbrown questions asked in the group are paid by the bank |
+| client → server | `auth` | `action` (`login` or `register`), `username`, `password` |
+| client → server | `line` | `text` (a chat message or a `/command`) |
+| client → server | `file` | `to`, `filename`, `data` (base64) |
+| server → client | `auth_result` | `ok`, `text` |
+| server → client | `msg` | `kind`, `text` (board messages also have a `state` object) |
+| server → client | `chat` | `time`, `name`, `badge`, `text`, `action` |
+| server → client | `history` | `room`, `messages` |
+| server → client | `file` | `from`, `filename`, `data` |
 
-If an owner disbands a group, whatever is left in the bank goes to them.
+The `kind` of a `msg` is one of `system`, `error`, `event`, `money`, `game`, `private`, `help` or `board`. Here's what a chat line looks like on the wire:
 
-## Commands
+```json
+{"type": "line", "text": "hi everyone"}
+```
 
-| | |
-|---|---|
-| 💬 Chat | `/help` `/users` `/send name msg` `/me action` `/nick name` `/whois name` `/quit` |
-| 🥔 Hashbrown | `@hashbrown question` or `/ask question` |
-| 👥 Groups | `/groups` `/create name [private]` `/join name` `/lobby` `/leave` `/members` `/requests` `/approve name` `/reject name` |
-| 🛡️ Admin | `/kick` `/ban` `/unban` `/mute name [min]` `/unmute` `/promote` `/demote` `/disband` |
-| 🏦 Group bank | `/bank` `/donate amount` `/upgrade name` `/groupemoji 🍟` `/topgroups` |
-| 🪙 Tokens | `/balance` `/top` `/give name amount` `/daily` `/rob name` `/shop` `/buy 🔥` `/badge 🔥` `/achievements` |
-| 🎰 Casino | `/coinflip amount heads` `/dice amount` `/slots amount` |
-| 🎮 Games | `/games` `/challenge name ttt\|damka\|math [bet]` `/accept` `/decline` `/board` `/resign` `/wordle` `/g word` `/giveup` |
-| 🛠️ Admin | `/admin password` `/admintokens [name]` |
-| 📁 Files | `/sendfile name path/to/file` |
+**Why `\n`?** TCP sends a stream of bytes, not messages. One `recv()` might give you half a message, or three messages at once. So each side keeps collecting bytes until it sees a newline, and that's where the message ends. JSON never contains a raw newline inside a string (it's written as `\n`), so a newline is a safe separator.
 
-**During a game**, just type your move:
-- Tic-Tac-Toe: `5`
-- Damka: `c3 d4`
-- Math Duel: the number, like `42`
+## 📁 Project structure
 
-The admin password is `ADMIN_PASSWORD` in `chatserver/config.py`. **Change it from 123**, or your friends will guess it.
+```
+hashbrown-chat/
+├── server.py           starts the chat server
+├── chatserver/         the server code, one topic per file
+│   ├── config.py       every setting: ports, prices, ADMIN_PASSWORD
+│   ├── connections.py  accepts connections, one thread per person
+│   ├── chat.py         what happens with each line someone types
+│   ├── cmd_*.py        the /commands, grouped like /help
+│   └── hashbrown_ai.py talks to the AI
+├── games.py            Tic-Tac-Toe, Damka, Math Duel, Wordle (no networking)
+├── client.py           the terminal client
+├── web/                the website: web_server.py, bridge.py, static/
+├── tests/              server tests (pytest)
+└── docs/               the full user guide and images
+```
 
-## Server console
+## 🧪 Tests
 
-Type these in the server window:
+Server tests (needs pytest, `pip install pytest`):
 
-- `say hello everyone`: broadcast a message
-- `give Yaniv 500`: give someone tokens
-- `kick Yaniv`: disconnect someone
-- `list`: who's online
-- `save`: save data now
+```bash
+python -m pytest -q
+```
 
-## How it works (short version)
+Website tests (no install):
 
-- **TCP sockets**: the server gives every client its own thread. The main thread only calls `accept()`.
-- **Messages**: every message is one line of JSON ending with `\n`. TCP is a stream, so the newline is how each side knows where a message ends.
-- **Shared state**: `online`, `accounts`, `groups` and the rest are protected by a single `threading.RLock`.
-- **Sending**: each client has an outbox queue and a writer thread, so one slow connection can't freeze everyone.
-- **Hashbrown**: the AI call runs in its own thread, outside the lock, so the chat keeps working while the AI thinks.
-- **Game logic**: lives in `games.py` with no networking.
-- **Code layout**: `server.py` only starts the server. The code is in `chatserver/`, one topic per file:
-  - `config.py`: every setting (ports, prices, limits, `ADMIN_PASSWORD`). Edit it, then restart.
-  - `state.py`: what the server keeps in memory (accounts, groups, who's online).
-  - `connections.py`: accepting connections and talking to each client.
-  - `cmd_*.py`: the /commands, one file per section of /help (`cmd_chat.py`, `cmd_games.py`...).
-  - `chat.py`: what happens with each line someone types (a chat message, a /command or a game move).
-  - `registry.py` + `commands.py`: how a /command registers itself, and the order of the /help sections.
-  - The rest: `storage.py` (saving), `auth.py` (logins), `rooms.py` (sending to people), `matches.py` (two-player matches and bets), `hashbrown_ai.py`, `background.py` (income, quiz, console).
-- **Adding things**:
-  - a /command: a function with `@registry.command(...)` in the right `cmd_*.py` (example in `registry.py`).
-  - a setting: a line in `config.py`, read it as `config.NAME`.
-  - a game: its class in `games.py`, then one line in the `GAMES` table in `cmd_games.py`.
+```bash
+python -m unittest discover -s web/tests -v
+```
 
-## Known limits
+The tests never call the real AI. They use a fake Hashbrown server on your own computer.
 
-- Messages are **not encrypted** on the network. Anyone on the same Wi-Fi with Wireshark can read them, passwords included. Don't reuse a real password.
-- In PyCharm's Run window, the password is visible while you type it. A real terminal hides it.
-- No "typing..." indicator. `input()` only gives the program your text after you press Enter.
-- In a real terminal (Mac Terminal, Windows Terminal or CMD), incoming messages appear above the line you're typing, and your text stays put. PyCharm's Run window can't do that unless you turn on **Run > Edit Configurations > Modify options > Emulate terminal in output console**. That setting also hides the password while you type it.
-- Emojis look best in PyCharm, Windows Terminal or the Mac Terminal.
+## 👥 Team
+
+A school networking project by Yaniv, Daniel and Sagi.
+
+## ⚠️ Security
+
+> [!WARNING]
+> **Messages are not encrypted, on purpose.** This is a networking school project, and the packets stay readable. You can watch them with Wireshark.
+>
+> - Anyone on the same network can read messages and passwords.
+> - Run it only on a home or school network.
+> - Never open it to the internet or set up port forwarding.
+> - Don't reuse a real password here.
+
+## 📜 License
+
+[MIT](LICENSE)
+
+---
+
+📘 For every command, the full token economy and the server console, read the **[full user guide](docs/GUIDE.md)**.

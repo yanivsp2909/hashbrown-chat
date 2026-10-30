@@ -18,3 +18,12 @@ screenshots/
 .coverage
 .coverage.*
 htmlcov/
+chat_data*.json
+.ruff_cache/
+.mypy_cache/
+
+# Anything that could hold a key
+.env
+.env.*
+*.pem
+*.key
