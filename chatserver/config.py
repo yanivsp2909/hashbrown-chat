@@ -83,6 +83,7 @@ TEAM_PLAYER_DONATION = 50        # one donation this big unlocks 🤝 Team Playe
 START_ELO, ELO_K = 1000, 32   # 📈 everyone's first rating, and how much one game can move it
 EDIT_MINUTES = 10                # ✏️ you can edit or delete your message this long after sending it
 OFFLINE_MAX = 20                 # 📬 private messages kept for someone who is offline
+WAR_MINUTES, WAR_ACCEPT_MINUTES, WAR_PRIZE = 30, 10, 300   # ⚔️ group wars
 CLAIM_AFTER = 120   # seconds: if the other player doesn't move on their turn, /claim wins
 MIN_MOVES_FOR_BONUS = 2          # moves EACH player must make before a resign/disconnect win earns the +25
 

@@ -16,4 +16,5 @@ from chatserver import (  # noqa: F401  (importing them is what registers the co
     cmd_files,
     cmd_ask,
     cmd_network,
+    cmd_wars,
 )
