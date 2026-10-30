@@ -152,10 +152,12 @@ function onServerText(msg, live) {
   ] : wordleOver && wordle.state ? [  // the grid lives in the game panel: one click away
     el("button", { class: "btn btn-ghost", type: "button", text: "🟩 Show grid", onclick: () => hooks.showGame() }),
   ] : [];
-  chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions, label: result ? "Game over" : "" });
+  chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions, label: result ? "Game over" : "",
+    tempId: str(msg.temp_id) });
 }
 
 export function handleMessage(msg, live, sendLine) {
+  if (msg.replaces) chat.removeTemp(str(msg.replaces));   // the answer takes the place of "thinking..."
   switch (msg.type) {
     case "auth_result":
       return onAuthResult(msg, live, sendLine);

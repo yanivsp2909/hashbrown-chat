@@ -159,11 +159,15 @@ def ask_hashbrown(client, question, private=False):
     state.hashbrown_today[key] = (day, asked + 1)
     state.hashbrown_all_today = (all_day, all_asked + 1)
     state.hashbrown_busy += 1
+    # The notice gets a temp_id; the answer (or the error) says "replaces": that id, so the
+    # website can swap the notice for the answer. Old clients ignore both fields.
+    state.hashbrown_questions += 1
+    temp_id = f"hb-{state.hashbrown_questions}"
     if private:
-        client.say("🥔 Hashbrown is thinking...", "event")
+        client.say("🥔 Hashbrown is thinking...", "event", temp_id=temp_id)
     else:
-        rooms.notify_room(room, "🥔 Hashbrown is thinking...", kind="event")
-    threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer, private),
+        rooms.notify_room(room, "🥔 Hashbrown is thinking...", kind="event", temp_id=temp_id)
+    threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer, private, temp_id),
                      daemon=True).start()
 
 
@@ -184,7 +188,7 @@ def refund_hashbrown(asker, payer):
         state.hashbrown_all_today = (all_day, all_asked - 1)
 
 
-def hashbrown_worker(asker, room, group, messages, payer, private=False):
+def hashbrown_worker(asker, room, group, messages, payer, private, temp_id):
     """Runs in its own thread so the chat keeps working while the AI thinks.
     `group` is the group the question was asked in (None in the lobby)."""
     try:
@@ -199,16 +203,16 @@ def hashbrown_worker(asker, room, group, messages, payer, private=False):
             refund_hashbrown(asker, payer)
             oops = "🥔💥 Hashbrown tripped over something and couldn't answer. The tokens were refunded."
             if room_still_there and not private:
-                rooms.notify_room(room, oops, kind="error")
+                rooms.notify_room(room, oops, kind="error", replaces=temp_id)
             else:
-                rooms.tell(asker, oops, "error")
+                rooms.tell(asker, oops, "error", replaces=temp_id)
             return
         if private or not room_still_there:  # /ask, or the group was disbanded while Hashbrown thought
-            rooms.tell(asker, f"🥔 Hashbrown (only you): {answer}", "private")
+            rooms.tell(asker, f"🥔 Hashbrown (only you): {answer}", "private", replaces=temp_id)
         else:
             msg = rooms.chat_message("Hashbrown", "🥔", answer)
             history.add(room, msg)
-            rooms.send_room(room, msg)
+            rooms.send_room(room, {**msg, "replaces": temp_id})  # history keeps the plain message
             textutil.log(f"[{room}] Hashbrown: {answer}")
         if asker in state.accounts:
             achievements.unlock(asker, "potato")

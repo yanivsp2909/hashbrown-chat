@@ -54,8 +54,8 @@ def send_room(room, obj, exclude=None):
             c.send(obj)
 
 
-def notify_room(room, text, exclude=None, kind="system"):
-    send_room(room, {"type": "msg", "kind": kind, "text": text}, exclude)
+def notify_room(room, text, exclude=None, kind="system", **extra):
+    send_room(room, {"type": "msg", "kind": kind, "text": text, **extra}, exclude)
 
 
 def announce(text, kind="event", exclude=()):
@@ -64,9 +64,9 @@ def announce(text, kind="event", exclude=()):
             c.say(text, kind)
 
 
-def tell(key, text, kind="system"):
+def tell(key, text, kind="system", **extra):
     if key in state.online:
-        state.online[key].say(text, kind)
+        state.online[key].say(text, kind, **extra)
 
 
 def parse_amount(client, text):

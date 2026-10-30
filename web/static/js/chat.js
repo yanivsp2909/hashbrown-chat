@@ -15,6 +15,7 @@ const NEAR_BOTTOM = 80;     // px: closer than this to the bottom counts as "rea
 const GROUP_MINUTES = 5;    // lines from one person this close together share a header
 const ROW = /^ {2,}\S/u;     // in a server list, rows start with two (or more) spaces
 const HEBREW = /[\u0590-\u05ff]/u;
+const THINKING_MS = 2 * 60 * 1000;   // a "thinking" notice nobody replaced is removed after this long
 const LABELS = {            // the header of each kind of server notice
   system: "Info", error: "Oops", private: "Private", money: "Tokens",
   event: "Heads up", game: "Game", help: "Commands", board: "Board",
@@ -202,7 +203,7 @@ function privateNode(pm, live) {
 
 /** A server notice. `actions` are extra buttons, like Accept / Decline on a challenge;
  *  `label` replaces the kind's usual header word (like "Game over" for a loss). */
-export function addNotice(kind, text, { live = true, lit = false, actions = [], label = "" } = {}) {
+export function addNotice(kind, text, { live = true, lit = false, actions = [], label = "", tempId = "" } = {}) {
   const safeKind = Object.hasOwn(LABELS, kind) ? kind : "system";
   let body = str(text);
   const time = live ? nowTime() : "";
@@ -225,7 +226,18 @@ export function addNotice(kind, text, { live = true, lit = false, actions = [], 
   }
   if (lit) node.classList.add("lit");
   if (actions.length) node.append(el("div", { class: "actions" }, actions));
+  if (tempId) {   // a temporary notice ("Hashbrown is thinking..."): the answer removes it, or the timer does
+    node.dataset.tempId = tempId;
+    setTimeout(() => node.remove(), THINKING_MS);
+  }
   return addOther(node, { live });
+}
+
+/** Remove the temporary notice that a new message replaces (its data-temp-id matches). */
+export function removeTemp(tempId) {
+  for (const node of list.querySelectorAll("[data-temp-id]")) {
+    if (node.dataset.tempId === tempId) node.remove();
+  }
 }
 
 export function addHistory(room, messages, { live, isMine }) {

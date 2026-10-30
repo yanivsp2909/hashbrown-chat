@@ -45,10 +45,15 @@ def wait_port(port, proc, timeout=15):
 class Stack:
     """Chat server copy + bridge, both on random free ports."""
 
-    def __init__(self, max_sessions=4):
+    def __init__(self, max_sessions=4, fake_ai_port=None):
+        """fake_ai_port: a FakeFoundry on 127.0.0.1 for the copy to use as Hashbrown (never the real AI)."""
         self.tmp = Path(tempfile.mkdtemp(prefix="hashbrown_test_"))
         self.chat_port, self.web_port = free_port(), free_port()
         self._copy_server()
+        if fake_ai_port:
+            (self.tmp / "hashbrown_config.json").write_text(json.dumps({
+                "endpoint": f"http://127.0.0.1:{fake_ai_port}", "deployment": "fake-model",
+                "api_key": "test-key"}), encoding="utf-8")
         env = {k: v for k, v in os.environ.items() if k != "HASHBROWN_API_KEY"}
         env["PYTHONIOENCODING"] = "utf-8"
         self.chat_log = open(self.tmp / "chat_server.log", "w", encoding="utf-8")

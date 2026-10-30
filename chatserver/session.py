@@ -52,8 +52,9 @@ class Client:
             # They stopped reading. Dropping messages would break their game board, so disconnect them.
             hang_up(self)
 
-    def say(self, text, kind="system"):
-        self.send({"type": "msg", "kind": kind, "text": text})
+    def say(self, text, kind="system", **extra):
+        """extra = optional fields for newer clients (like replaces); old clients ignore them."""
+        self.send({"type": "msg", "kind": kind, "text": text, **extra})
 
     def kick(self, text):
         """Tell them why, then hang up half a second later (so the message gets there first)."""
