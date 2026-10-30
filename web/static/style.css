@@ -501,3 +501,32 @@ a { color: var(--gold); text-underline-offset: 3px; }
   :root { --line: #8a6a4c; --muted: #d4bea6; }
 }
 .login-ticket .login-error { background: #fbe1da; color: #b02a17; }
+
+/* ----- 🔬 Packet X-ray: a modal window with two tabs (packets, raw TCP chunks) */
+.side-foot .xray-open { grid-column: 1 / -1; }
+.xray {
+  width: min(900px, calc(100vw - 32px)); max-height: min(86vh, 900px); padding: 18px 20px 16px;
+  display: none; flex-direction: column; gap: 12px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-2);
+}
+.xray[open] { display: flex; }
+.xray::backdrop { background: color-mix(in srgb, var(--bg) 55%, transparent); }
+.xray-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.xray-head h2 { margin: 0; font-size: 20px; }
+.xray-hint { margin: 0; color: var(--text-2); font-size: 14px; max-width: 70ch; }
+.xray-hint code { font-family: var(--mono); font-size: 13px; }
+.xray-tabs { align-self: flex-start; }
+.xray-panel { flex: 1; min-height: 200px; overflow: auto; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--bg); }
+.xray-list { list-style: none; margin: 0; padding: 6px; display: grid; gap: 4px; }
+.xray-row { padding: 6px 10px; border-radius: 8px; }
+.xray-row:nth-child(odd) { background: var(--row); }
+.xray-row-head { margin: 0 0 2px; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+.xray-dir { font-weight: 800; }
+.xray-in { color: var(--pickle); }
+.xray-out { color: var(--lavender); }
+.xray-body { margin: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.45; color: var(--text);
+  white-space: pre-wrap; overflow-wrap: anywhere; }
+.xray-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.xray-count { margin-right: auto; color: var(--muted); font-size: 13px; }
+@media (max-width: 600px) { .xray { padding: 14px; } .xray-panel { min-height: 50vh; } }

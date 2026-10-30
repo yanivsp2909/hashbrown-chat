@@ -72,7 +72,10 @@ export function listen() {
     } catch {
       return;
     }
-    if (msg && typeof msg === "object" && !Array.isArray(msg)) handlers.onMessage(msg, live);
+    if (msg && typeof msg === "object" && !Array.isArray(msg)) {
+      for (const watch of packetWatchers) watch("in", msg, event.data);
+      handlers.onMessage(msg, live);
+    }
   };
   source.addEventListener("bridge", (event) => {
     let info = {};
@@ -123,7 +126,14 @@ export function sentRecently(pattern, ms) {
   return recentLines.some((line) => Date.now() - line.at < ms && pattern.test(line.text));
 }
 
+/** 🔬 watch(direction, packet, wireText) sees every packet this tab gets ("in") or sends ("out"). */
+let packetWatchers = [];
+export function watchPackets(watch) {
+  packetWatchers = [...packetWatchers, watch];
+}
+
 export async function send(msg) {
+  for (const watch of packetWatchers) watch("out", msg, JSON.stringify(msg));
   if (msg.type === "line") recentLines = [...recentLines.slice(-7), { text: String(msg.text), at: Date.now() }];
   if (!sid) return "Not connected.";
   const result = await post("/api/send", msg);

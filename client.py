@@ -4,6 +4,7 @@
 Run:   python client.py 192.168.1.20  -> connects to the server at that IP (ask the host for it)
        python client.py               -> connects to a server on this same computer (127.0.0.1)
        python client.py IP --web      -> opens the host's website in your browser instead
+       python client.py IP --packets  -> also shows every packet and every raw recv() chunk (Packet X-ray)
 Files people send you are saved in a folder called received_files.
 """
 import base64
@@ -238,9 +239,25 @@ def paint(text, color):
     return f"{color}{text}{RESET}" if color else text
 
 
+def show_packet(text):
+    """--packets: print what goes over the network, dimmed, so you can watch the protocol."""
+    console.out(paint(text, DIM))
+
+
 def send(sock, obj):
     """Every message is one line of JSON, so the other side knows where it ends."""
-    sock.sendall((json.dumps(obj, ensure_ascii=False) + "\n").encode())
+    line = json.dumps(obj, ensure_ascii=False)
+    if "--packets" in FLAGS:
+        shown = json.dumps({**obj, "password": "•••"}, ensure_ascii=False) if "password" in obj else line
+        show_packet(f"⬆ {shown}")
+    sock.sendall((line + "\n").encode())
+
+
+def describe_chunk(chunk):
+    """'312 bytes: 2 packets' — TCP doesn't keep messages apart, the newlines do."""
+    ends = chunk.count(b"\n")
+    packets = f"{ends} packet{'' if ends == 1 else 's'}"
+    return f"{len(chunk)} bytes: {packets}" + ("" if chunk.endswith(b"\n") else " + the start of one more ✂️")
 
 
 def read_messages(sock):
@@ -256,6 +273,8 @@ def read_messages(sock):
             return
         if not chunk:
             return
+        if "--packets" in FLAGS:
+            show_packet(f"── recv() {describe_chunk(chunk)}")
         start = len(buffer)
         buffer += chunk
         while True:
@@ -265,6 +284,8 @@ def read_messages(sock):
             line = bytes(buffer[:end])
             del buffer[:end + 1]
             start = 0
+            if "--packets" in FLAGS:
+                show_packet(f"⬇ {line.decode('utf-8', 'replace')}")
             try:
                 msg = json.loads(line.decode("utf-8"))
             except (UnicodeDecodeError, ValueError, RecursionError):

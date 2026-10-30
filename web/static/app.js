@@ -12,6 +12,7 @@ import { initOnline, refreshAll, resetOnline, youAsked } from "./js/online.js";
 import { initRail } from "./js/rail.js";
 import { focusChallenge, initSidebar } from "./js/sidebar.js";
 import { initPanel } from "./js/games/panel.js";
+import { initXray } from "./js/xray.js";
 
 const THEME_KEY = "hashbrown.theme";
 const SCREENS = ["loading", "login", "chat", "closed"];
@@ -222,6 +223,7 @@ initComposer({
 initFiles({ onSent: () => {} });
 initSidebar({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
 initRail({ openGame });
+initXray();
 initOnline({
   sendLine: api.sendLine,
   onChallenge: (name) => {

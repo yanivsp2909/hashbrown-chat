@@ -102,6 +102,7 @@
         <datalist id="known-names"></datalist>
       </section>
       <div class="side-foot">
+        <button id="xray-open" class="btn btn-ghost xray-open" type="button" aria-haspopup="dialog">🔬 Packet X-ray</button>
         <button id="theme-toggle" class="btn btn-ghost" type="button">☀️ Light mode</button>
         <button id="logout" class="btn btn-ghost" type="button">🚪 Log out</button>
       </div>
@@ -157,6 +158,29 @@
       <p id="game-status" class="visually-hidden" role="status"></p>
     </aside>
     <div id="scrim" class="scrim" hidden></div>
+
+    <dialog id="xray" class="xray" aria-labelledby="xray-title">
+      <div class="xray-head">
+        <h2 id="xray-title">🔬 Packet X-ray</h2>
+        <button id="xray-close" class="icon-btn" type="button" aria-label="Close Packet X-ray"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <p class="xray-hint">Every packet is one line of JSON that ends with <code>\n</code>. The TCP tab shows the raw bytes exactly as <code>recv()</code> got them: one chunk can hold half a packet, or three.</p>
+      <div class="segmented xray-tabs" role="tablist" aria-label="What to show">
+        <button type="button" role="tab" id="xray-tab-packets" aria-selected="true" aria-controls="xray-packets-panel">Packets</button>
+        <button type="button" role="tab" id="xray-tab-tcp" aria-selected="false" aria-controls="xray-tcp-panel" tabindex="-1">TCP</button>
+      </div>
+      <div id="xray-packets-panel" class="xray-panel" role="tabpanel" aria-labelledby="xray-tab-packets" tabindex="0">
+        <ol id="xray-packets" class="xray-list"></ol>
+      </div>
+      <div id="xray-tcp-panel" class="xray-panel" role="tabpanel" aria-labelledby="xray-tab-tcp" tabindex="0" hidden>
+        <ol id="xray-tcp" class="xray-list"></ol>
+      </div>
+      <div class="xray-actions">
+        <span id="xray-count" class="xray-count" aria-live="polite"></span>
+        <button id="xray-pause" class="btn btn-ghost" type="button" aria-pressed="false">⏸ Pause</button>
+        <button id="xray-clear" class="btn btn-ghost" type="button">🧹 Clear</button>
+      </div>
+    </dialog>
   </div>
 
   <!-- Disconnected -->

@@ -316,3 +316,27 @@ class TestRealDataUntouched(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPacketXray(BridgeTestCase):
+    """🔬 Packet X-ray: while a tab asks for it, the bridge shows the raw TCP traffic it sees."""
+
+    def test_raw_tcp_chunks_and_sent_lines_show_up_only_while_xray_is_on(self):
+        a, a_name = self.user()
+        a.line("before x-ray")
+        a.wait(is_msg(type_="chat"), what="the chat line before x-ray")
+        status, _ = a.send({"type": "xray", "on": True})
+        self.assertEqual(status, 202)
+        a.line("hello x-ray")
+        out = a.wait(lambda e: e["data"].get("type") == "xray" and e["data"].get("dir") == "out", what="the sent line")
+        self.assertIn('"hello x-ray"', out["text"])
+        self.assertTrue(out["text"].endswith("\n"))           # one packet = one line
+        self.assertEqual(out["bytes"], len(out["text"].encode("utf-8")))
+        chunk = a.wait(lambda e: e["data"].get("type") == "xray" and e["data"].get("dir") == "in", what="a recv() chunk")
+        self.assertIn("hello x-ray", chunk["text"])
+        self.assertGreater(chunk["bytes"], 0)
+        a.send({"type": "xray", "on": False})
+        a.line("after x-ray")
+        a.wait(lambda e: e["data"].get("text") == "after x-ray", what="the chat line after x-ray")
+        seen = [e["data"] for e in a.stream.seen if e["data"].get("type") == "xray"]
+        self.assertFalse(any("before x-ray" in d["text"] or "after x-ray" in d["text"] for d in seen))

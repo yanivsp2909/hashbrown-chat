@@ -20,6 +20,7 @@ MAX_FILE_B64 = 2_800_000     # a 2 MB file after base64
 MAX_FEATURES, MAX_FEATURE_LENGTH = 8, 20   # the optional "features" list in the login packet
 LOG_MAX_EVENTS = 1000        # events kept per session for replay after a reload
 LOG_MAX_BYTES = 6 * 1024 * 1024
+XRAY_MAX_TEXT = 4000           # 🔬 bytes of each raw chunk shown in the Packet X-ray (big files are cut)
 DETACHED_GRACE = 90          # seconds a session lives with no tab attached (reload / phone in pocket)
 LOGIN_GRACE = 120            # seconds to log in before an unused session is closed
 CLOSED_LINGER = 30           # seconds a dead session is kept so its tab can read why it died
@@ -110,8 +111,9 @@ def validate(msg, logged_in):
             "filename": clean(msg.get("filename"), 255, "File name"), "data": data}
 
 
-def read_lines(sock):
-    """Yield complete lines from the chat server (one JSON message per line)."""
+def read_lines(sock, on_chunk=None):
+    """Yield complete lines from the chat server (one JSON message per line).
+    on_chunk(bytes) sees every raw recv() result first: TCP chunks don't line up with messages."""
     buffer = bytearray()
     while True:
         try:
@@ -120,6 +122,8 @@ def read_lines(sock):
             continue
         if not chunk:
             return
+        if on_chunk:
+            on_chunk(chunk)
         start = len(buffer)
         buffer += chunk
         while (end := buffer.find(b"\n", start)) != -1:
@@ -152,6 +156,7 @@ class Session:
         self.send_lock = threading.Lock()
         self.rate_lock = threading.Lock()
         self.sends = deque()
+        self.xray = False            # 🔬 the tab's Packet X-ray is open: show it the raw TCP traffic too
         self.auth_pending = False    # one login attempt at a time, so guesses can't be pipelined
         threading.Thread(target=self._read_loop, daemon=True).start()
 
@@ -160,7 +165,7 @@ class Session:
     def _read_loop(self):
         reason = "The chat server closed the connection."
         try:
-            for raw in read_lines(self.sock):
+            for raw in read_lines(self.sock, self._xray_in):
                 try:
                     msg = json.loads(raw.decode("utf-8"))
                 except (UnicodeDecodeError, ValueError):
@@ -211,9 +216,23 @@ class Session:
 
     # ----- browser -> chat server
 
+    # ----- 🔬 Packet X-ray: the raw bytes, exactly as TCP delivered them (shown only to this tab)
+
+    def _xray(self, direction, data):
+        if self.xray:
+            self._append(json.dumps({"type": "xray", "dir": direction, "bytes": len(data), "time": time.time(),
+                                     "text": data[:XRAY_MAX_TEXT].decode("utf-8", "replace")},
+                                    ensure_ascii=False, separators=(",", ":")))
+
+    def _xray_in(self, chunk):
+        self._xray("in", chunk)
+
     def forward(self, msg):
         if self.dead:
             raise BridgeError(410, self.dead)
+        if isinstance(msg, dict) and msg.get("type") == "xray":  # for the bridge itself, never sent on
+            self.xray = msg.get("on") is True
+            return
         clean_msg = validate(msg, self.logged_in)
         line = to_line(clean_msg)
         with self.rate_lock:
@@ -224,6 +243,8 @@ class Session:
                     raise BridgeError(429, "⏳ Still checking your last try…")
                 self.auth_pending = True
         with self.send_lock:
+            if clean_msg["type"] != "auth":   # a login carries a password: never echo that, not even to yourself
+                self._xray("out", line)
             try:
                 self.sock.sendall(line)
             except OSError:

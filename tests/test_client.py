@@ -386,3 +386,41 @@ def test_a_website_that_isnt_running_falls_back_to_the_terminal(monkeypatch, cap
         monkeypatch.setattr(client, "WEB_PORT", s.getsockname()[1])  # nothing listens there
     assert client.open_website("127.0.0.1") is False
     assert "isn't running" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------- 🔬 --packets
+
+def test_packets_flag_prints_raw_chunks_and_each_packet(monkeypatch):
+    printed = []
+    monkeypatch.setattr(client, "FLAGS", {"--packets"})
+    monkeypatch.setattr(client.console, "out", printed.append)
+    a, b = socket.socketpair()
+    b.sendall(b'{"type": "msg", "text": "one"}\n{"type": "msg", "te')
+    b.close()
+    assert [m["text"] for m in client.read_messages(a)] == ["one"]
+    text = "\n".join(printed)
+    assert "recv() 50 bytes: 1 packet + the start of one more" in text
+    assert '⬇ {"type": "msg", "text": "one"}' in text
+
+
+def test_packets_flag_shows_what_we_send_but_never_the_password(monkeypatch):
+    printed = []
+    monkeypatch.setattr(client, "FLAGS", {"--packets"})
+    monkeypatch.setattr(client.console, "out", printed.append)
+    a, b = socket.socketpair()
+    client.send(a, {"type": "auth", "action": "login", "username": "Adi", "password": "secret123"})
+    client.send(a, {"type": "line", "text": "hi"})
+    text = "\n".join(printed)
+    assert "secret123" not in text and '"password": "•••"' in text
+    assert '⬆ {"type": "line", "text": "hi"}' in text
+    a.close(), b.close()
+
+
+def test_no_packet_printing_without_the_flag(monkeypatch):
+    printed = []
+    monkeypatch.setattr(client, "FLAGS", set())
+    monkeypatch.setattr(client.console, "out", printed.append)
+    a, b = socket.socketpair()
+    client.send(a, {"type": "line", "text": "hi"})
+    assert printed == []
+    a.close(), b.close()
