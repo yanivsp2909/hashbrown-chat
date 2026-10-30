@@ -84,7 +84,8 @@ def clean_features(value):
 
 
 # What a browser may send (everything else is refused before it reaches the chat server)
-BROWSER_PACKETS = ("line", "file", "ping", "typing", "react", "edit", "delete", "file_start", "file_chunk", "file_cancel")
+BROWSER_PACKETS = ("line", "file", "ping", "typing", "react", "edit", "delete",
+                   "file_start", "file_chunk", "file_cancel")
 
 
 def validate(msg, logged_in):
