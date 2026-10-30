@@ -3,7 +3,7 @@
 """
 from datetime import datetime
 
-from chatserver import chat, config, history, receipts, registry, reminders, rooms, state, storage
+from chatserver import chat, config, history, quests, receipts, registry, reminders, rooms, state, storage
 
 
 # ----- 💬 Chat
@@ -53,6 +53,7 @@ def cmd_send(client, args):
     state.online[target].send({"type": "msg", "kind": "private", "pm_id": pm_id,
                                "text": f"💌 [{stamp}] {rooms.shown(client.key)} → you: {parts[1]}"},
                               after=lambda: receipts.delivered(pm_id))
+    quests.bump(client.key, "dm")
 
 
 def keep_for_later(client, target, text):

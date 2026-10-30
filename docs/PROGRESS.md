@@ -131,7 +131,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | R14 | `/remind` | done: /remind 10m|2h|1h30m|90s text (up to REMIND_MAX_HOURS 24, REMIND_MAX 5 waiting each), /remind alone lists yours; "⏰ Reminder: ..." privately (event card), checked every 5 s; due while away -> at login "(it was due at HH:MM)"; saved under "reminders" in chat_data.json |
 | R15 | `/pin` room topic | done: /pin text (TOPIC_MAX 120), /pin alone shows it, /pin clear; group admins in a group, a server admin in the lobby; saved as group "topic" / top-level "lobby_topic"; new packet {"type": "topic", room, text} on every room switch (empty clears) and to the room on change; "📌 Topic: ..." line when you enter a room that has one (also at login for the lobby); website banner at the top |
 | R16 | `/search` | done: /search word (2-50 characters) in history.db of the lobby + your groups, any case, % and _ are plain letters (LIKE ... ESCAPE), newest first, SEARCH_MAX 20; the reply is a list (two-space rows: room, time, name: text cut at 80) so the website draws it as a list card |
-| R17 | Daily quests | not started |
+| R17 | Daily quests | done: /quests; 3 a day from 5 (win a game +40, play 2 games +25, send 10 messages +20, finish a Wordle +30, send a private message +15), picked with the date as seed so everyone gets the same; each pays once; progress in the account ("quests"), yesterday's resets; games count only when really played (was_played) |
 
 ### Part E: Hashbrown extras
 

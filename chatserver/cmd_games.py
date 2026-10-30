@@ -11,7 +11,8 @@ import time
 
 import games
 
-from chatserver import achievements, config, hashbrown_ai, matches, offers, registry, rooms, state, storage, textutil
+from chatserver import (achievements, config, hashbrown_ai, matches, offers, quests, registry, rooms, state, storage,
+                        textutil)
 
 
 GAMES = {"ttt": games.TicTacToe, "tictactoe": games.TicTacToe,
@@ -116,6 +117,11 @@ def cmd_decline(client, args):
     if invite:
         client.say("👎 Declined.")
         rooms.tell(invite["from"], f"👎 {rooms.shown(client.key)} declined your challenge.", "error")
+
+
+@registry.command("/quests", "/quests", "today's three small tasks, each pays 🪙 🎯", "🎮 Games")
+def cmd_quests(client, args):
+    client.say(quests.listing(client.key))
 
 
 @registry.command("/move", "/move ...", "a move (or just type it)", "🎮 Games")
@@ -267,6 +273,7 @@ def cmd_guess(client, args):
     if not game.finished:
         return
     del state.solo[client.key]
+    quests.bump(client.key, "wordle")   # 🎯 finished, won or not
     if not game.won:
         client.say(f"💀 Out of tries! The word was {game.answer.upper()}.", "error")
         return
