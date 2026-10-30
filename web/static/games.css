@@ -220,3 +220,13 @@
 .c4-col:disabled { cursor: default; }
 .c4-cell { aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: var(--bg);
   font-size: clamp(14px, 3.2vw, 26px); line-height: 1; }
+
+/* 🚢 Battleship: their sea (buttons) above your sea */
+.bs { display: grid; gap: 14px; }
+.bs-title { margin: 0 0 6px; font-size: 14px; color: var(--text-2); }
+.bs-grid { display: grid; grid-template-columns: repeat(var(--size), 1fr); gap: 4px; }
+.bs-cell { aspect-ratio: 1; display: grid; place-items: center; border: 1px solid var(--line-soft); border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 70%, #1d4f73); font-size: clamp(12px, 2.6vw, 20px); }
+button.bs-cell:not(:disabled) { cursor: pointer; border-color: var(--gold-ring); }
+button.bs-cell:not(:disabled):hover, button.bs-cell:focus-visible { background: var(--gold-soft); }
+.bs-cell.hit { background: color-mix(in srgb, var(--ketchup) 30%, var(--bg)); }

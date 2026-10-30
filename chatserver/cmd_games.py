@@ -17,7 +17,8 @@ from chatserver import achievements, config, hashbrown_ai, matches, registry, ro
 GAMES = {"ttt": games.TicTacToe, "tictactoe": games.TicTacToe,
          "checkers": games.Checkers, "damka": games.Checkers,
          "math": games.MathDuel, "mathduel": games.MathDuel,
-         "connect4": games.Connect4, "c4": games.Connect4}
+         "connect4": games.Connect4, "c4": games.Connect4,
+         "battleship": games.Battleship, "ships": games.Battleship}
 
 
 @registry.command("/games", "/games", "what you can play", "🎮 Games")
@@ -27,6 +28,7 @@ def cmd_games(client, args):
                "  🔴🔵 damka      Checkers (also: checkers)\n"
                "  ➗   math       Math duel: first to 3 right answers\n"
                "  🔴🟡 connect4   Connect 4: four in a row (also: c4)\n"
+               "  🚢   battleship Battleship: sink their ships, fire like c3 (also: ships)\n"
                "Challenge: /challenge name game [bet]   e.g.  /challenge Adi damka 100\n\n"
                "🟩 Solo: /wordle  guess the word, win up to 60 🪙", "game")
 
@@ -35,7 +37,7 @@ def cmd_games(client, args):
 def cmd_challenge(client, args):
     parts = args.split()
     if len(parts) < 2:
-        client.say("Usage: /challenge name game [bet]   games: ttt, damka, math, connect4", "error")
+        client.say("Usage: /challenge name game [bet]   games: ttt, damka, math, connect4, battleship", "error")
         return
     target = rooms.find_online(client, parts[0])
     if target is None:

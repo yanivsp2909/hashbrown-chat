@@ -8,11 +8,12 @@ import { renderTtt } from "./ttt.js";
 import { renderDamka } from "./damka.js";
 import { renderMath } from "./math.js";
 import { renderConnect4 } from "./connect4.js";
+import { renderBattleship } from "./battleship.js";
 import { renderWordle } from "./wordle.js";
 
-const BOARDS = { ttt: renderTtt, damka: renderDamka, math: renderMath, connect4: renderConnect4 };
+const BOARDS = { ttt: renderTtt, damka: renderDamka, math: renderMath, connect4: renderConnect4, battleship: renderBattleship };
 const RESULTS = { won: "🏆 You won!", lost: "💀 You lost", draw: "🤝 Draw" };
-const YOU = { ttt: (s) => `You are ${str(s.you)}`, connect4: (s) => `You are ${str(s.you)}`, damka: (s) => `You are ${s.you === "b" ? "🔵" : "🔴"}, your pieces move up the board` };
+const YOU = { ttt: (s) => `You are ${str(s.you)}`, connect4: (s) => `You are ${str(s.you)}`, battleship: () => "Sink all their ships first", damka: (s) => `You are ${s.you === "b" ? "🔵" : "🔴"}, your pieces move up the board` };
 
 const NOTE_WINDOW = 3000;   // ms: a server error this soon after a game action belongs to that game
 const body = $("game-body");

@@ -144,6 +144,94 @@ class Connect4:
         return "\n".join(lines)
 
 
+# --------------------------------------------------------------------------- Battleship
+
+class Battleship:
+    title = "🚢 Battleship"
+    help = "Fire with a letter and a number, like c3. Sink all their ships first! (Yours are placed for you.)"
+    SIZE = 6
+    SHIPS = [3, 2, 2, 1]   # the length of each ship
+    LETTERS = "ABCDEF"
+
+    def __init__(self, p1, p2):
+        self.players = [p1, p2]
+        self.ships = {p: self.place_ships() for p in self.players}   # player -> list of sets of (row, col)
+        self.shots = {p: set() for p in self.players}                # cells each player fired at
+        self.turn = p1
+        self.finished = False
+        self.winner = None
+
+    def place_ships(self):
+        """Random places for every ship, in a straight line, never overlapping."""
+        taken, ships = set(), []
+        for length in self.SHIPS:
+            while True:
+                down = random.random() < 0.5
+                row = random.randrange(self.SIZE - (length - 1 if down else 0))
+                col = random.randrange(self.SIZE - (0 if down else length - 1))
+                cells = {(row + i, col) if down else (row, col + i) for i in range(length)}
+                if not cells & taken:
+                    taken |= cells
+                    ships.append(cells)
+                    break
+        return ships
+
+    def looks_like_move(self, text):
+        text = text.strip().upper()
+        return len(text) == 2 and text[0] in self.LETTERS and text[1] in "123456"
+
+    def move(self, player, text):
+        if player != self.turn:
+            return False, "⏳ Not your turn, wait for your opponent."
+        if not self.looks_like_move(text):
+            return False, "Fire with a letter A-F and a number 1-6, like c3."
+        name = text.strip().upper()
+        cell = (self.LETTERS.index(name[0]), int(name[1]) - 1)
+        if cell in self.shots[player]:
+            return False, f"You already fired at {name}."
+        self.shots[player].add(cell)
+        enemy = other_player(self.players, player)
+        hit_ship = next((ship for ship in self.ships[enemy] if cell in ship), None)
+        if all(ship <= self.shots[player] for ship in self.ships[enemy]):
+            self.finished, self.winner = True, player
+        else:
+            self.turn = enemy
+        if hit_ship is None:
+            return True, "🌊 Miss."
+        return True, "💥 Sunk!" if hit_ship <= self.shots[player] else "💥 Hit!"
+
+    def sea(self, owner):
+        """What everyone knows about one player's sea: 'hit', 'miss', 'ship' (unhit) or None, row by row."""
+        ship_cells = {cell for ship in self.ships[owner] for cell in ship}
+        fired = self.shots[other_player(self.players, owner)]
+        out = []
+        for row in range(self.SIZE):
+            for col in range(self.SIZE):
+                cell = (row, col)
+                out.append("hit" if cell in fired and cell in ship_cells else "miss" if cell in fired
+                           else "ship" if cell in ship_cells else None)
+        return out
+
+    def state(self, viewer):
+        enemy = other_player(self.players, viewer)
+        theirs = [mark if mark != "ship" else None for mark in self.sea(enemy)]   # never show their ships
+        return {"game": "battleship", "size": self.SIZE, "mine": self.sea(viewer), "theirs": theirs,
+                "your_turn": self.turn == viewer and not self.finished, "finished": self.finished}
+
+    def render(self, viewer):
+        icons = {"hit": "💥", "miss": "⚪", "ship": "🚢", None: "🌊"}
+        view = self.state(viewer)
+
+        def grid(cells):
+            rows = [f"{self.LETTERS[r]} " + "".join(icons[cells[r * self.SIZE + c]] for c in range(self.SIZE))
+                    for r in range(self.SIZE)]
+            return ["  1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣"] + rows
+        lines = ["Your sea"] + grid(view["mine"]) + ["Their sea"] + grid(view["theirs"])
+        if not self.finished:
+            lines.append("👉 Your turn: fire, like c3" if self.turn == viewer else "⏳ Opponent's turn.")
+        return "\n".join(lines)
+
+
 # --------------------------------------------------------------------------- Damka (checkers)
 
 class Checkers:
