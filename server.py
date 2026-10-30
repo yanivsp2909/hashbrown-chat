@@ -6,7 +6,6 @@ Saves: chat_data.json next to this file (accounts, tokens, groups survive restar
 AI:    fill in hashbrown_config.json (created on first run) to wake up Hashbrown
 Type   help   in this window for server console commands.
 """
-import json
 import os
 import random
 import secrets
@@ -15,14 +14,12 @@ import threading
 import time
 import traceback
 import unicodedata
-import urllib.error
-import urllib.request
 from collections import deque
 from datetime import datetime
 
 import games
 
-from chatserver import achievements, auth, config, registry, rooms, session, state, storage, textutil
+from chatserver import achievements, auth, background, chat, config, hashbrown_ai, matches, registry, rooms, session, state, storage, textutil
 
 
 GAMES = {"ttt": games.TicTacToe, "tictactoe": games.TicTacToe,
@@ -71,7 +68,7 @@ def cmd_send(client, args):
 @registry.command("/me", "/me action", "act it out: * Yaniv dances", "💬 Chat")
 def cmd_me(client, args):
     if args:
-        post_chat(client, args, action=True)
+        chat.post_chat(client, args, action=True)
 
 @registry.command("/nick", "/nick newname", "change your display name", "💬 Chat")
 def cmd_nick(client, args):
@@ -731,105 +728,6 @@ def cmd_slots(client, args):
         achievements.unlock(client.key, "jackpot")
         storage.save_data()  # gamble_result already saved, before this achievement
 
-# ----- 🎮 Games
-
-class Match:
-    def __init__(self, game_class, p1, p2, bet):
-        first, second = random.sample([p1, p2], 2)  # random player goes first
-        self.game = game_class(first, second)
-        self.players = [first, second]
-        self.bet = bet
-        self.over = False
-        self.moves = {first: 0, second: 0}  # accepted moves per player
-
-    def opponent(self, key):
-        return self.players[1] if key == self.players[0] else self.players[0]
-
-def push_board(match, note=""):
-    p1, p2 = match.players
-    header = f"{match.game.title}   {rooms.shown(p1)} vs {rooms.shown(p2)}"
-    for p in match.players:
-        if p in state.online:
-            text = f"\n{header}\n{match.game.render(p)}" + (f"\n{note}" if note else "")
-            # "state" is the board as data: the terminal ignores it, the website draws it
-            state.online[p].send({"type": "msg", "kind": "board", "text": text, "state": match.game.state(p)})
-
-def start_match(game_class, p1, p2, bet):
-    match = Match(game_class, p1, p2, bet)
-    for p in (p1, p2):
-        state.accounts[p]["tokens"] -= bet  # both bets go into the pot
-    state.matches[p1] = state.matches[p2] = match
-    pot = f"   💰 pot: {bet * 2} 🪙" if bet else ""
-    for p in match.players:
-        rooms.tell(p, f"🎮 {game_class.title}: {rooms.shown(p1)} vs {rooms.shown(p2)}{pot}\n"
-                f"📜 {game_class.help}\n🏳️ /resign to give up", "game")
-    push_board(match)
-
-def finish_match(match, winner, reason=""):
-    if match.over:
-        return
-    match.over = True
-    for p in match.players:
-        state.matches.pop(p, None)
-    p1, p2 = match.players
-    title = match.game.title
-    reason = f" ({reason})" if reason else ""
-    if winner == "draw" or winner is None:
-        for p in match.players:
-            state.accounts[p]["tokens"] += match.bet
-            state.accounts[p]["draws"] += 1
-            rooms.tell(p, f"🤝 Draw!{reason}" + (" Bets refunded." if match.bet else ""), "game")
-    else:
-        loser = match.opponent(winner)
-        account = state.accounts[winner]
-        pot = match.bet * 2
-        account["tokens"] += pot
-        account["wins"] += 1
-        state.accounts[loser]["losses"] += 1
-        # Free reward for winning, capped per day so two friends can't farm each other.
-        # A resign or disconnect before both really played earns no reward (only the pot).
-        if account["win_day"] != textutil.today():
-            account["win_day"], account["rewarded_wins"] = textutil.today(), 0
-        really_played = match.game.finished or min(match.moves.values()) >= config.MIN_MOVES_FOR_BONUS
-        bonus = ""
-        if really_played and account["rewarded_wins"] < config.MAX_REWARDED_WINS:
-            account["rewarded_wins"] += 1
-            account["tokens"] += config.WIN_REWARD
-            bonus = f" +{config.WIN_REWARD} 🪙 win reward ({account['rewarded_wins']}/{config.MAX_REWARDED_WINS} today)"
-        rooms.tell(winner, f"🏆 YOU WON!{reason}" + (f" +{pot} 🪙 pot" if pot else "") + bonus, "money")
-        rooms.tell(loser, f"💀 You lost.{reason}", "error")
-        prize = f" and took {pot} 🪙" if pot else ""
-        rooms.announce(f"🏆 {rooms.shown(winner)} beat {rooms.shown(loser)} at {title}{prize}!", exclude={p1, p2})
-        achievements.unlock(winner, "first_win")
-        if account["wins"] >= 10:
-            achievements.unlock(winner, "ten_wins")
-        achievements.check_rich(winner)
-    storage.save_data()
-
-def end_all_matches():
-    """The server is stopping: cancel every running game and give the bets back."""
-    for match in set(state.matches.values()):
-        match.over = True
-        for p in match.players:
-            state.matches.pop(p, None)
-            state.accounts[p]["tokens"] += match.bet
-            rooms.tell(p, "🛑 The server is stopping, so your game was cancelled."
-                 + (" Your bet was refunded." if match.bet else ""), "game")
-
-def do_move(client, text):
-    match = state.matches.get(client.key)
-    if match is None:
-        client.say("🎮 You're not in a game. /challenge someone!", "error")
-        return
-    ok, info = match.game.move(client.key, text)
-    if not ok:
-        client.say(info, "error")
-        return
-    match.moves[client.key] += 1
-    push_board(match, info)
-    if match.game.finished:
-        finish_match(match, match.game.winner)
-
 @registry.command("/games", "/games", "what you can play", "🎮 Games")
 def cmd_games(client, args):
     client.say("🎮 Games (1v1, optional token bet):\n"
@@ -905,7 +803,7 @@ def cmd_accept(client, args):
     if state.accounts[challenger]["tokens"] < bet or state.accounts[client.key]["tokens"] < bet:
         client.say("💸 Someone can't afford the bet anymore.", "error")
         return
-    start_match(invite["game"], challenger, client.key, bet)
+    matches.start_match(invite["game"], challenger, client.key, bet)
 
 @registry.command("/decline", "/decline [name]", "say no to a challenge", "🎮 Games")
 def cmd_decline(client, args):
@@ -916,7 +814,7 @@ def cmd_decline(client, args):
 
 @registry.command("/move", "/move ...", "a move (or just type it)", "🎮 Games")
 def cmd_move(client, args):
-    do_move(client, args)
+    matches.do_move(client, args)
 
 @registry.command("/board", "/board", "show the board again", "🎮 Games")
 def cmd_board(client, args):
@@ -934,7 +832,7 @@ def cmd_resign(client, args):
     if match is None:
         client.say("🎮 You're not in a game.", "error")
         return
-    finish_match(match, match.opponent(client.key), f"{rooms.nick(client.key)} resigned 🏳️")
+    matches.finish_match(match, match.opponent(client.key), f"{rooms.nick(client.key)} resigned 🏳️")
 
 # ----- 🟩 Solo: Wordle
 
@@ -1046,21 +944,6 @@ def cmd_admintokens(client, args):
 def cmd_sendfile(client, args):
     client.say("📁 Your client.py is too old for files. Get the new one.", "error")
 
-def handle_file(client, msg):
-    target = rooms.find_online(client, textutil.clean_text(msg.get("to", "")))
-    if target is None:
-        return
-    if target == client.key:
-        client.say("🙃 You can't send a file to yourself.", "error")
-        return
-    data = msg.get("data")
-    if not isinstance(data, str) or len(data) > config.MAX_FILE_B64:
-        client.say("📁 Files must be 2 MB or less.", "error")
-        return
-    filename = os.path.basename(textutil.clean_text(msg.get("filename", "")).replace("\\", "/"))[:100] or "file"
-    state.online[target].send({"type": "file", "from": rooms.nick(client.key), "filename": filename, "data": data})
-    client.say(f"📤 Sent {filename} ({len(data) * 3 // 4 // 1024 + 1} KB) to {rooms.shown(target)}.")
-
 # ----- 🏅 Achievements
 
 @registry.command("/achievements", "/achievements", "your trophies and how to get the rest", "🪙 Tokens")
@@ -1072,364 +955,10 @@ def cmd_achievements(client, args):
         lines.append(f"  {mark} {icon} {title:<17} {how}  (+{reward} 🪙)")
     client.say("\n".join(lines), "money")
 
-# ----- 🥔 Hashbrown (GPT on Microsoft Foundry)
-
-def is_placeholder(value):
-    """True if a setting is missing, empty, or still the template text (like PASTE-YOUR-KEY-HERE)."""
-    value = str(value or "").strip()
-    return not value or "PASTE" in value or "YOUR-" in value or "YOUR_" in value
-
-def hashbrown_key(settings):
-    """The API key: the HASHBROWN_API_KEY environment variable wins, otherwise api_key from
-    hashbrown_config.json. Returns "" if neither has a real key.
-    Never print, log or save what this returns, not even part of it."""
-    key = os.environ.get("HASHBROWN_API_KEY", "").strip() or str(settings.get("api_key") or "").strip()
-    return "" if is_placeholder(key) else key
-
-def load_hashbrown():
-    """Read hashbrown_config.json. Returns the settings, or None if Hashbrown is off."""
-    if not os.path.exists(config.HASHBROWN_CONFIG):
-        template = {"endpoint": "https://YOUR-RESOURCE.services.ai.azure.com/openai/v1",
-                    "deployment": "gpt-6.1-terra",
-                    "api_key": "PASTE-YOUR-KEY-HERE"}
-        with open(config.HASHBROWN_CONFIG, "w", encoding="utf-8") as f:
-            json.dump(template, f, indent=2)
-        textutil.log(f"[HASHBROWN] 🥔 Created {config.HASHBROWN_CONFIG}.")
-    try:
-        with open(config.HASHBROWN_CONFIG, encoding="utf-8") as f:
-            settings = json.load(f)
-    except (OSError, ValueError) as e:
-        # Only the error's type: its message could quote bytes from the file
-        textutil.log(f"[HASHBROWN] Can't read {config.HASHBROWN_CONFIG} ({type(e).__name__}). Hashbrown is off.")
-        return None
-    if not isinstance(settings, dict):
-        textutil.log(f"[HASHBROWN] {config.HASHBROWN_CONFIG} should be a JSON object. Hashbrown is off.")
-        return None
-    settings["api_key"] = hashbrown_key(settings)
-    if not settings["api_key"]:
-        textutil.log("[HASHBROWN] 🥔 No API key, so Hashbrown is off. Set the HASHBROWN_API_KEY environment variable "
-            "and restart the server.")
-        return None
-    if is_placeholder(settings.get("endpoint")) or is_placeholder(settings.get("deployment")):
-        textutil.log(f"[HASHBROWN] 🥔 Fill in endpoint and deployment in {config.HASHBROWN_CONFIG}. Hashbrown is off.")
-        return None
-    # Works with https://NAME.openai.azure.com/ or https://NAME.services.ai.azure.com/
-    endpoint = str(settings["endpoint"]).strip().rstrip("/")
-    if not endpoint.endswith("/openai/v1"):
-        endpoint += "/openai/v1"
-    settings["url"] = endpoint + "/responses"
-    textutil.log(f"[HASHBROWN] 🥔 Awake! Using deployment '{settings['deployment']}'")
-    return settings
-
-HASHBROWN_HINTS = {401: "the API key (HASHBROWN_API_KEY) is wrong",
-                   403: "this key isn't allowed to use the resource",
-                   404: "the endpoint or deployment name in hashbrown_config.json is wrong",
-                   429: "too many requests or out of quota, wait a bit"}
-
-def call_hashbrown(messages):
-    """Send the conversation to Foundry (Responses API, the same one as client.responses.create)
-    and return the answer text. Slow: never call this while holding the lock."""
-    if state.hashbrown is None:  # no key: never contact Foundry
-        raise RuntimeError("Hashbrown is off (no API key)")
-    body = json.dumps({
-        "model": state.hashbrown["deployment"],
-        "instructions": messages[0]["content"],  # the system prompt
-        "input": messages[1:],                  # the chat + question
-        "max_output_tokens": 4000,              # thinking models use some of this to think
-    }).encode()
-    request = urllib.request.Request(state.hashbrown["url"], data=body, method="POST", headers={
-        "Content-Type": "application/json",
-        "api-key": state.hashbrown["api_key"],
-    })
-    try:
-        with urllib.request.urlopen(request, timeout=90) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", "replace")[:300]
-        hint = HASHBROWN_HINTS.get(e.code, "")
-        raise RuntimeError(f"HTTP {e.code} ({hint}): {detail}") from None
-    # The answer is in output -> items of type "message" -> parts of type "output_text"
-    # (there can also be a "reasoning" item first, which we skip)
-    parts = []
-    for item in data.get("output", []):
-        if item.get("type") == "message":
-            for part in item.get("content", []):
-                if part.get("type") == "output_text":
-                    parts.append(part.get("text", ""))
-    answer = "".join(parts).strip()
-    if not answer:
-        raise RuntimeError(f"no answer text (status: {data.get('status')})")
-    return answer[:1500]
-
-def ask_hashbrown(client, question):
-    if state.hashbrown is None:
-        client.say("🥔💤 Hashbrown is asleep (the server owner hasn't set it up yet).", "error")
-        return
-    if not question:
-        client.say("🥔 Ask something! Like: @hashbrown tell me a joke", "error")
-        return
-    key, room = client.key, client.room
-    wait = state.hashbrown_last.get(key, 0) + config.HASHBROWN_COOLDOWN - time.time()
-    if wait > 0:
-        client.say(f"🥔 Hashbrown needs a breather. Ask again in {int(wait) + 1}s.", "error")
-        return
-    day, asked = state.hashbrown_today.get(key, ("", 0))
-    if day != textutil.today():
-        day, asked = textutil.today(), 0
-    if asked >= config.HASHBROWN_DAILY_LIMIT:
-        client.say(f"🥔 You've asked {config.HASHBROWN_DAILY_LIMIT} questions today. Come back tomorrow!", "error")
-        return
-    all_day, all_asked = state.hashbrown_all_today
-    if all_day != textutil.today():
-        all_day, all_asked = textutil.today(), 0
-    if all_asked >= config.HASHBROWN_DAILY_CAP:
-        client.say(f"🥔😴 Hashbrown already answered {config.HASHBROWN_DAILY_CAP} questions today and is taking "
-                   f"a nap. Ask again tomorrow!", "error")
-        return
-    if state.hashbrown_busy >= config.HASHBROWN_MAX_BUSY:
-        client.say("🥔 Hashbrown is busy answering others. Try again in a few seconds.", "error")
-        return
-
-    # Give it the recent chat so it knows what everyone is talking about
-    recent = "\n".join(f"{m['name']}: {m['text']}" for m in list(state.history[room])[-10:])
-    messages = [{"role": "system", "content": config.HASHBROWN_PROMPT},
-                {"role": "user", "content": f"Recent chat:\n{recent}\n\n{rooms.nick(key)} asks you: {question}"}]
-
-    # Who pays: the group bank (with the 🥔 upgrade) or the person asking.
-    # We remember the group itself, not just its name: it could be disbanded (and a new group
-    # with the same name created) before the answer comes back.
-    group = state.groups.get(room)
-    if group and "hashbrown" in group["upgrades"] and group["bank"] >= config.HASHBROWN_COST:
-        group["bank"] -= config.HASHBROWN_COST
-        payer = ("group", group)
-    elif state.accounts[key]["tokens"] >= config.HASHBROWN_COST:
-        state.accounts[key]["tokens"] -= config.HASHBROWN_COST
-        payer = ("user", key)
-    else:
-        client.say(f"💸 Asking Hashbrown costs {config.HASHBROWN_COST} 🪙.", "error")
-        return
-
-    state.hashbrown_last[key] = time.time()
-    state.hashbrown_today[key] = (day, asked + 1)
-    state.hashbrown_all_today = (all_day, all_asked + 1)
-    state.hashbrown_busy += 1
-    rooms.notify_room(room, "🥔 Hashbrown is thinking...", kind="event")
-    threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer), daemon=True).start()
-
-def refund_hashbrown(asker, payer):
-    """The question failed: give the tokens back and don't count it as one of today's questions."""
-    kind, who = payer
-    if kind == "user" and who in state.accounts:
-        state.accounts[who]["tokens"] += config.HASHBROWN_COST
-    elif kind == "group" and state.groups.get(who["name"].lower()) is who:
-        who["bank"] += config.HASHBROWN_COST
-    elif kind == "group" and who["owner"] in state.accounts:  # the group is gone: its bank went to the owner
-        state.accounts[who["owner"]]["tokens"] += config.HASHBROWN_COST
-    day, asked = state.hashbrown_today.get(asker, ("", 0))
-    if day == textutil.today() and asked > 0:
-        state.hashbrown_today[asker] = (day, asked - 1)
-    all_day, all_asked = state.hashbrown_all_today
-    if all_day == textutil.today() and all_asked > 0:
-        state.hashbrown_all_today = (all_day, all_asked - 1)
-
-def hashbrown_worker(asker, room, group, messages, payer):
-    """Runs in its own thread so the chat keeps working while the AI thinks.
-    `group` is the group the question was asked in (None in the lobby)."""
-    try:
-        answer, error = textutil.clean_text(call_hashbrown(messages), keep_newlines=True), None
-    except Exception as e:  # network down, bad key, timeout... the chat must survive all of it
-        answer, error = None, e
-    with state.lock:
-        state.hashbrown_busy -= 1
-        room_still_there = state.groups.get(room) is group  # True for the lobby too (None is None)
-        if answer is None:
-            textutil.log(f"[HASHBROWN] Error: {type(error).__name__}: {error}")
-            refund_hashbrown(asker, payer)
-            oops = "🥔💥 Hashbrown tripped over something and couldn't answer. The tokens were refunded."
-            if room_still_there:
-                rooms.notify_room(room, oops, kind="error")
-            else:
-                rooms.tell(asker, oops, "error")
-            return
-        if room_still_there:
-            msg = rooms.chat_message("Hashbrown", "🥔", answer)
-            state.history[room].append(msg)
-            rooms.send_room(room, msg)
-            textutil.log(f"[{room}] Hashbrown: {answer}")
-        else:  # the group was disbanded while Hashbrown thought: answer just the asker
-            rooms.tell(asker, f"🥔 Hashbrown (only you): {answer}", "private")
-        if asker in state.accounts:
-            achievements.unlock(asker, "potato")
-            storage.save_data()
-
 @registry.command("/ask", "/ask question", f"ask Hashbrown, the AI ({config.HASHBROWN_COST} 🪙)", "🥔 Hashbrown")
 def cmd_ask(client, args):
-    if post_chat(client, "@hashbrown " + args):
-        ask_hashbrown(client, args)
-
-def post_chat(client, text, action=False):
-    """Send a chat line to the client's room. Returns False if they're muted."""
-    room = client.room
-    until = state.mutes.get((room, client.key), 0)
-    if until > time.time():
-        client.say(f"🔇 You're muted here for {int((until - time.time()) // 60) + 1} more min.", "error")
-        return False
-    account = state.accounts[client.key]
-    msg = rooms.chat_message(account["nick"], account["badge"], text, action)
-    state.history[room].append(msg)
-    rooms.send_room(room, msg)  # the sender gets it too, so they see their own line with the time
-    textutil.log(f"[{room}] {account['nick']}: {text}")
-    account["messages"] += 1
-    if account["messages"] >= 100:
-        achievements.unlock(client.key, "chatty")
-    return True
-
-def check_quiz(client, text):
-    if state.quiz and client.room == "lobby" and text.strip() == state.quiz["answer"] and client.key not in state.matches:
-        state.accounts[client.key]["tokens"] += state.quiz["reward"]
-        rooms.notify_room("lobby", f"🎉 {rooms.shown(client.key)} got it first! {state.quiz['answer']} is right, "
-                             f"+{state.quiz['reward']} 🪙", kind="event")
-        state.quiz = None
-        storage.save_data()
-
-def handle_line(client, text):
-    text = text.strip()
-    if not text:
-        return
-    match = state.matches.get(client.key)
-    if match and not text.startswith("/") and match.game.looks_like_move(text):
-        do_move(client, text)  # in a game, "5" or "c3 d4" or "w" is a move, not chat
-        return
-    if text.startswith("/"):
-        name, _, args = text.partition(" ")
-        entry = registry.COMMANDS.get(name.lower())
-        if entry is None:
-            client.say(f"❓ Unknown command {name}. Type /help", "error")
-            return
-        entry[0](client, args.strip())
-        return
-    if not post_chat(client, text):
-        return
-    if text.lower().startswith("@hashbrown"):
-        ask_hashbrown(client, text[len("@hashbrown"):].lstrip(" ,:"))
-    check_quiz(client, text)
-
-# ---------------------------------------------------------------- background threads
-# Each loop sleeps, then runs one "tick" through run_safely(): if a tick crashes, the error
-# is logged and the loop keeps going (a dead income thread would mean no more tokens, silently).
-
-def run_safely(job, *args):
-    try:
-        return job(*args)
-    except Exception:
-        textutil.log("[SERVER] Error in a background job (it keeps running):\n" + traceback.format_exc())
-        return None
-
-def income_tick():
-    """Online users get tokens, and so does every group with a member online."""
-    with state.lock:
-        for key, c in state.online.items():
-            group = state.groups.get(c.room)
-            bonus = 2 if group and "income" in group["upgrades"] else 0
-            state.accounts[key]["tokens"] += config.TOKENS_PER_MINUTE + bonus
-            achievements.check_rich(key)
-        for group in state.groups.values():
-            if any(member in state.online for member in group["members"]):
-                group["bank"] += config.GROUP_INCOME
-        now = time.time()
-        for key in [k for k, times in state.login_fails.items() if not times or now - times[-1] > config.LOGIN_FAIL_WINDOW]:
-            del state.login_fails[key]  # old wrong-password records: forget them
-        if state.online:
-            storage.save_data()
-
-def income_loop():
-    while True:
-        time.sleep(60)
-        run_safely(income_tick)
-
-def quiz_open():
-    """Ask a quick math question in the lobby. Returns (the quiz, who was asked), or None."""
-    with state.lock:
-        free = [c for c in state.online.values()
-                if c.room == "lobby" and c.key not in state.matches and c.key not in state.solo]
-        if not free:
-            return None
-        a, b = random.randint(2, 20), random.randint(2, 20)
-        op = random.choice("+-×")
-        answer = a + b if op == "+" else a - b if op == "-" else a * b
-        state.quiz = {"answer": str(answer), "reward": 50 if op == "×" else 30}
-        for c in free:  # people in the middle of a game don't get interrupted
-            c.say(f"⚡ QUICK MATH! First to answer wins {state.quiz['reward']} 🪙:   {a} {op} {b} = ?", "event")
-        return state.quiz, free
-
-def quiz_close(current, free):
-    """Nobody answered in time: tell the people who were asked."""
-    with state.lock:
-        if state.quiz is not current:
-            return
-        for c in free:
-            # online.get(c.key) is c: they're still on the SAME connection (not logged in again)
-            if state.online.get(c.key) is c and c.key not in state.matches and c.key not in state.solo:
-                c.say(f"⏰ Time's up! The answer was {current['answer']}.", "event")
-        state.quiz = None
-
-def quiz_loop():
-    """Every few minutes, a quick math question pops up in the lobby."""
-    while True:
-        time.sleep(random.randint(180, 420))
-        opened = run_safely(quiz_open)
-        if opened:
-            time.sleep(45)
-            run_safely(quiz_close, *opened)
-
-def console_command(line):
-    """One command typed into the server window. Only whoever runs the server can use these."""
-    cmd, _, rest = line.strip().partition(" ")
-    with state.lock:
-        if cmd == "say" and rest:
-            rooms.announce(f"📢 [SERVER] {rest}")
-        elif cmd == "give":
-            parts = rest.split()
-            key = rooms.find_account(parts[0]) if parts else None
-            try:
-                amount = int(parts[1]) if len(parts) == 2 else None
-            except ValueError:
-                amount = None
-            if key and amount is not None:
-                account = state.accounts[key]
-                account["tokens"] = max(0, account["tokens"] + amount)  # negative takes tokens away
-                storage.save_data()
-                rooms.tell(key, f"🎁 The server gave you {amount} 🪙!" if amount >= 0
-                     else f"💸 The server took {-amount} 🪙.", "money")
-                textutil.log(f"[CONSOLE] {rooms.nick(key)} now has {account['tokens']}")
-            else:
-                textutil.log("[CONSOLE] Usage: give <name> <amount>")
-        elif cmd == "kick":
-            key = rooms.find_account(rest)
-            if key in state.online:
-                state.online[key].kick("👢 You were kicked by the server.")
-            else:
-                textutil.log("[CONSOLE] Not online.")
-        elif cmd == "list":
-            for key, c in state.online.items():
-                textutil.log(f"  {rooms.nick(key)} {c.address} in {c.room}, {state.accounts[key]['tokens']} tokens")
-        elif cmd == "save":
-            if storage.save_data():
-                textutil.log("[CONSOLE] Saved.")
-        elif cmd:
-            textutil.log("[CONSOLE] Commands: say, give, kick, list, save")
-
-def console_loop():
-    textutil.log("[CONSOLE] Commands: say <text> | give <name> <amount> | kick <name> | list | save")
-    while True:
-        try:
-            line = input()
-        except (EOFError, OSError):
-            textutil.log("[CONSOLE] No keyboard here, so console commands are off.")
-            return
-        except ValueError:  # a key the console couldn't decode
-            continue
-        run_safely(console_command, line)
+    if chat.post_chat(client, "@hashbrown " + args):
+        hashbrown_ai.ask_hashbrown(client, args)
 
 # ---------------------------------------------------------------- connections
 
@@ -1441,7 +970,7 @@ def disconnect(client):
                 del state.online[key]
                 match = state.matches.get(key)
                 if match:
-                    finish_match(match, match.opponent(key), f"{rooms.nick(key)} disconnected")
+                    matches.finish_match(match, match.opponent(key), f"{rooms.nick(key)} disconnected")
                 state.invites.pop(key, None)
                 state.solo.pop(key, None)
                 for waiting in state.invites.values():
@@ -1483,12 +1012,12 @@ def handle_message(client, msg):
     """A message from someone who is logged in. Called while holding the lock."""
     try:
         text = textutil.clean_text(msg.get("text", ""))[:config.MAX_TEXT]
-        if not is_game_move(client, text) and not rooms.spam_ok(client):
+        if not matches.is_game_move(client, text) and not rooms.spam_ok(client):
             return  # game moves don't count as spam
         if msg.get("type") == "line":
-            handle_line(client, text)
+            chat.handle_line(client, text)
         elif msg.get("type") == "file":
-            handle_file(client, msg)
+            chat.handle_file(client, msg)
     except Exception:  # a bug in one command must not kick the person out
         textutil.log("[SERVER] Error while handling a message:\n" + traceback.format_exc())
         client.say("💥 Something went wrong on the server with that. Try something else.", "error")
@@ -1527,21 +1056,17 @@ def talk_to(sock, address):
     finally:
         disconnect(client)
 
-def is_game_move(client, text):
-    match = state.matches.get(client.key)
-    return bool(match) and not text.startswith("/") and match.game.looks_like_move(text)
-
 def start_server(host=config.HOST, port=config.PORT, run_loops=True, run_console=True):
     """Load the data, wake Hashbrown, start the helper threads and open the port.
     Returns the listening socket, or None if the server can't start.
     (The tests call this with port 0 and without the loops and the console.)"""
     if not storage.load_data():
         return None
-    state.hashbrown = load_hashbrown()
+    state.hashbrown = hashbrown_ai.load_hashbrown()
     if config.admin_password() == config.DEFAULT_ADMIN_PASSWORD:  # never print the password itself
         textutil.log("[SERVER] 🔒 /admin is off. To turn it on, set the HASHBROWN_ADMIN_PASSWORD environment "
             "variable (or put a password in ADMIN_PASSWORD in server.py).")
-    loops = ([income_loop, quiz_loop] if run_loops else []) + ([console_loop] if run_console else [])
+    loops = ([background.income_loop, background.quiz_loop] if run_loops else []) + ([background.console_loop] if run_console else [])
     for loop in loops:
         threading.Thread(target=loop, daemon=True).start()
 
@@ -1583,7 +1108,7 @@ def serve_forever(server_socket):
         textutil.log("\n[SERVER] Shutting down.")
     finally:
         with state.lock:
-            run_safely(end_all_matches)  # nobody loses their bet because the server stopped
+            background.run_safely(matches.end_all_matches)  # nobody loses their bet because the server stopped
         storage.save_data()
         server_socket.close()
 

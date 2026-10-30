@@ -4,8 +4,7 @@ import time
 
 import pytest
 
-import server
-from chatserver import config, state
+from chatserver import background, config, matches, state
 from test_smoke import play, start_game
 
 pytestmark = pytest.mark.integration
@@ -117,7 +116,7 @@ def test_bets_are_refunded_when_the_server_stops(user):
     ben.line("/accept")
     adi.expect_board()
     with state.lock:
-        server.end_all_matches()
+        matches.end_all_matches()
         assert state.accounts["adi"]["tokens"] == config.START_TOKENS
         assert state.accounts["ben"]["tokens"] == config.START_TOKENS
         assert not state.matches
@@ -193,7 +192,7 @@ def test_slots_jackpot_achievement_is_saved(user, monkeypatch):
 
 def test_quiz_time_up_is_not_sent_to_a_stale_connection(user):
     adi = user("Adi")
-    opened = server.quiz_open()
+    opened = background.quiz_open()
     assert opened is not None
     current, free = opened
     real = state.online["adi"]
@@ -203,7 +202,7 @@ def test_quiz_time_up_is_not_sent_to_a_stale_connection(user):
     with state.lock:
         state.online["adi"] = replacement  # Adi reconnected: `real` is now stale
     try:
-        server.quiz_close(current, free)
+        background.quiz_close(current, free)
     finally:
         with state.lock:
             state.online["adi"] = real

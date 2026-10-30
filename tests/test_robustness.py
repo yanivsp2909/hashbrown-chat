@@ -9,7 +9,7 @@ import unicodedata
 import pytest
 
 import server
-from chatserver import config, session, state, storage
+from chatserver import background, config, session, state, storage
 from helpers import FakeClient, auth
 
 pytestmark = pytest.mark.integration
@@ -304,21 +304,21 @@ def test_huge_line_before_login_closes_the_connection(connect):
 # ---------------------------------------------------------------- background loops and the console
 
 def test_run_safely_logs_errors_instead_of_raising(capsys):
-    server.run_safely(lambda: 1 / 0)
+    background.run_safely(lambda: 1 / 0)
     assert "ZeroDivisionError" in capsys.readouterr().out
 
 
 def test_console_give_with_a_bad_amount_does_not_crash():
     with state.lock:
         state.accounts["adi"] = storage.new_account("Adi", "00", "00")
-    server.console_command("give Adi --5")
+    background.console_command("give Adi --5")
     assert state.accounts["adi"]["tokens"] == config.START_TOKENS
 
 
 def test_console_give_cannot_make_a_balance_negative():
     with state.lock:
         state.accounts["adi"] = storage.new_account("Adi", "00", "00")
-    server.console_command("give Adi -500")
+    background.console_command("give Adi -500")
     assert state.accounts["adi"]["tokens"] == 0
 
 
@@ -327,7 +327,7 @@ def test_income_tick_pays_online_people_and_group_banks(user):
     adi.line("/create Potatoes")
     adi.expect_text("Created")
     before = state.accounts["adi"]["tokens"]
-    server.income_tick()
+    background.income_tick()
     assert state.accounts["adi"]["tokens"] == before + config.TOKENS_PER_MINUTE
     assert state.groups["potatoes"]["bank"] == config.GROUP_INCOME
 
@@ -349,5 +349,5 @@ def test_login_time_limit_counts_from_connecting_not_from_the_last_byte(connect,
 def test_old_wrong_password_records_are_forgotten():
     with state.lock:
         state.login_fails["ghost"] = [time.time() - 10_000]
-    server.income_tick()
+    background.income_tick()
     assert "ghost" not in state.login_fails
