@@ -37,6 +37,10 @@ def cmd_send(client, args):
     if len(parts) < 2:
         client.say("Usage: /send name message", "error")
         return
+    offline = rooms.find_account(parts[0])
+    if offline is not None and offline not in state.online:
+        keep_for_later(client, offline, parts[1])
+        return
     target = rooms.find_online(client, parts[0])
     if target is None:
         return
@@ -46,6 +50,17 @@ def cmd_send(client, args):
     stamp = datetime.now().strftime("%H:%M")
     rooms.tell(target, f"💌 [{stamp}] {rooms.shown(client.key)} → you: {parts[1]}", "private")
     client.say(f"💌 [{stamp}] you → {rooms.shown(target)}: {parts[1]}", "private")
+
+
+def keep_for_later(client, target, text):
+    """📬 They're offline: keep the message, it's delivered when they log in."""
+    inbox = state.accounts[target]["inbox"]
+    if len(inbox) >= config.OFFLINE_MAX:
+        client.say(f"📬 {rooms.nick(target)}'s inbox is full. Try again when they're online.", "error")
+        return
+    inbox.append({"from": rooms.shown(client.key), "time": datetime.now().strftime("%H:%M"), "text": text})
+    storage.save_data()
+    client.say(f"📬 {rooms.nick(target)} is offline. They'll get your message when they log in.")
 
 
 @registry.command("/me", "/me action", "act it out: * Yaniv dances", "💬 Chat")

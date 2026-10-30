@@ -86,7 +86,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | 22 | Battleship | done: 6x6 seas, ships 3-2-2-1 placed for you, fire like c3; each player's state hides the other's ships; website: their sea = buttons |
 | 23 | Spectating | done: /watch name (boards + result, players are told), /watch alone stops; spectator view hides Battleship ships; website shows 👀 Watching |
 | 24 | ELO + leaderboards | done: START_ELO 1000, K 32, after every match (old saves get 1000 on load), /leaderboard [elo|wins|tokens], ELO in /whois |
-| 25 | Offline messages | not started |
+| 25 | Offline messages | done: /send to someone offline is kept in their account's inbox (OFFLINE_MAX 20), delivered at login as a normal 💌 line |
 | 26 | Edit/delete | not started |
 | 27 | Jackpot pool | not started |
 | 28 | Hashbrown trivia | not started |

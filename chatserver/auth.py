@@ -41,6 +41,16 @@ def clean_features(value):
     return frozenset(value)
 
 
+def deliver_inbox(key):
+    """📬 Private messages that came while you were offline (the same format as a live /send)."""
+    inbox = state.accounts[key].get("inbox") or []
+    for note in inbox:
+        rooms.tell(key, f"💌 [{note['time']}] {note['from']} → you: {note['text']} (while you were away)", "private")
+    if inbox:
+        state.accounts[key]["inbox"] = []
+        storage.save_data()
+
+
 def handle_auth(client, msg):
     """Log in or create an account. Returns True on success."""
     action = msg.get("action")
@@ -112,5 +122,6 @@ def handle_auth(client, msg):
         client.say(f"✨ {hint}Type /help to see everything you can do.")
         rooms.move_to_room(client, "lobby")
         rooms.notify_room("lobby", f"👋 {rooms.shown(key)} joined the chat", exclude=client)
+        deliver_inbox(key)
         textutil.log(f"[SERVER] {rooms.nick(key)} logged in from {client.address}")
     return True
