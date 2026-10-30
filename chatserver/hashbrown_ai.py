@@ -3,6 +3,7 @@
 """
 import json
 import os
+import re
 import threading
 import time
 
@@ -112,6 +113,9 @@ def build_messages(key, room, question, lines=None):
              f"Recent chat:\n{recent}\n\n"
              f"{rooms.nick(key)} asks you: {question}")
     system = f"{config.HASHBROWN_PROMPT}\n\nThe app's commands:\n{command_list()}"
+    personality = state.groups.get(room, {}).get("personality")   # 🎭 a group's upgrade
+    if personality:
+        system += f"\n\nIn this group, play this personality (all the rules above still apply): {personality}"
     return [{"role": "system", "content": system}, {"role": "user", "content": facts}]
 
 
@@ -198,7 +202,7 @@ def call_hashbrown(messages, on_text=None):
     return answer
 
 
-def ask_hashbrown(client, question, private=False, lines=None):
+def ask_hashbrown(client, question, private=False, lines=None, forbidden=None):
     """Check the rules, take the payment and start the worker thread.
     private=True is /ask: only the asker sees the thinking notice and the answer, and they always pay."""
     if state.hashbrown is None:
@@ -258,7 +262,7 @@ def ask_hashbrown(client, question, private=False, lines=None):
     else:
         rooms.notify_room(room, "🥔 Hashbrown is thinking...", kind="event", temp_id=temp_id)
     try:
-        threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer, private, temp_id),
+        threading.Thread(target=hashbrown_worker, args=(key, room, group, messages, payer, private, temp_id, forbidden),
                          daemon=True).start()
     except RuntimeError:  # the computer can't start another thread right now: undo everything
         state.hashbrown_busy -= 1
@@ -334,12 +338,12 @@ class LiveStream:
             self.send({"done": True, "failed": True})
 
 
-def hashbrown_worker(asker, room, group, messages, payer, private, temp_id):
+def hashbrown_worker(asker, room, group, messages, payer, private, temp_id, forbidden=None):
     """Runs in its own thread so the chat keeps working while the AI thinks.
     `group` is the group the question was asked in (None in the lobby)."""
     live = LiveStream(asker, room, group, private, temp_id)
     try:
-        answer, error = textutil.clean_text(call_hashbrown(messages, live.feed), keep_newlines=True), None
+        answer, error = textutil.clean_text(call_hashbrown(messages, None if forbidden else live.feed), keep_newlines=True), None
     except Exception as e:  # network down, bad key, timeout... the chat must survive all of it
         answer, error = None, e
     with state.lock:
@@ -357,6 +361,8 @@ def hashbrown_worker(asker, room, group, messages, payer, private, temp_id):
             return
         live.flush()
         # "stream_id" + "done" tell streaming clients to swap their live bubble for this final text
+        if forbidden:   # 🟩 a /hint must never give the word away, whatever the AI wrote
+            answer = re.sub(re.escape(forbidden), "•••••", answer, flags=re.IGNORECASE)
         done = {"replaces": temp_id, "stream_id": temp_id, "done": True}
         if private or not room_still_there:  # /ask, or the group was disbanded while Hashbrown thought
             rooms.tell(asker, f"🥔 Hashbrown (only you): {answer}", "private", **done)

@@ -23,6 +23,17 @@ If someone asks how to do something in the app, use the command list you're give
 HASHBROWN_REASONING = "low"      # how hard it thinks: "low", "medium", "high" ("" = don't send the setting)
 HASHBROWN_MAX_OUTPUT = 4000      # most tokens per answer (thinking models use some of this to think)
 HASHBROWN_HISTORY = 15           # how many recent chat lines of the room it gets to read
+COMMENTATOR = True                # 🎙️ Hashbrown comments on every finished match (the server pays)
+COMMENTATOR_PER_DAY = 30         # at most this many comments a day
+QOTD_HOUR = 10                   # ❓ the question of the day comes after this hour (Israel time), once a day
+JUDGE_HISTORY = 30               # ⚖️ /judge reads this many messages
+JUDGE_QUESTION = ("Be the judge of the argument in the recent chat: say in 2 or 3 short sentences who made "
+                  "the best point and why. Be fair and kind, no insults.")
+TR_QUESTION = ("Translate this text. If it's in Hebrew, translate it to English; otherwise to casual Hebrew. "
+               "Answer with the translation only: {text}")
+HINT_QUESTION = ("Give a short, playful hint for the 5-letter Wordle word \"{word}\" in one sentence. "
+                 "NEVER write the word itself or spell it out.")
+PERSONALITY_MAX = 120            # 🎭 characters in a group's /personality
 TLDR_HISTORY = 50                # 📝 /tldr reads this many, to sum them up
 TLDR_QUESTION = ("Summarize what this room talked about recently, in 2 or 3 short sentences: who said what "
                  "and what got decided. In the language most of the chat is in.")
@@ -95,6 +106,7 @@ GROUP_UPGRADES = {  # name: (icon, price paid from the group bank, what it does)
     "history": ("📜", 200, "chat history 15 -> 50 messages"),
     "emoji": ("🎨", 150, "a custom emoji next to the group name (/groupemoji)"),
     "hashbrown": ("🥔", 250, "Hashbrown questions asked here are paid by the bank"),
+    "personality": ("🎭", 200, "give Hashbrown a personality in this group (/personality)"),
 }
 ACHIEVEMENTS = {  # id: (icon, title, how to get it, reward)
     "first_win": ("🥇", "First Blood", "win a game", 50),

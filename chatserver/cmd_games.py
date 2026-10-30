@@ -11,7 +11,7 @@ import time
 
 import games
 
-from chatserver import achievements, config, matches, registry, rooms, state, storage, textutil
+from chatserver import achievements, config, hashbrown_ai, matches, registry, rooms, state, storage, textutil
 
 
 GAMES = {"ttt": games.TicTacToe, "tictactoe": games.TicTacToe,
@@ -111,6 +111,26 @@ def cmd_decline(client, args):
 @registry.command("/move", "/move ...", "a move (or just type it)", "🎮 Games")
 def cmd_move(client, args):
     matches.do_move(client, args)
+
+
+@registry.command("/hint", "/hint", f"a Wordle hint from Hashbrown, one per game ({config.HASHBROWN_COST} 🪙)",
+                  "🎮 Games")
+def cmd_hint(client, args):
+    game = state.solo.get(client.key)
+    if game is None or game.finished:
+        client.say("🟩 Start a /wordle first.", "error")
+        return
+    if getattr(game, "hinted", False):
+        client.say("🟩 Only one hint per game!", "error")
+        return
+    game.hinted = True
+    if state.hashbrown is None:   # no AI: show one letter that isn't green yet
+        found = {i for word, colors in game.guesses for i, color in enumerate(colors) if color == "🟩"}
+        place = next((i for i in range(len(game.answer)) if i not in found), 0)
+        client.say(f"💡 Hint: letter {place + 1} is {game.answer[place].upper()}")
+        return
+    hashbrown_ai.ask_hashbrown(client, config.HINT_QUESTION.format(word=game.answer), private=True,
+                               forbidden=game.answer)
 
 
 @registry.command("/rematch", "/rematch", "challenge your last opponent again 🔁", "🎮 Games")

@@ -3,7 +3,7 @@
 """
 import unicodedata
 
-from chatserver import achievements, config, registry, rooms, state, storage
+from chatserver import achievements, config, registry, rooms, state, storage, textutil
 
 
 # ----- 🏦 Group bank
@@ -90,6 +90,25 @@ def cmd_groupemoji(client, args):
         rooms.send_room_list(member)
     storage.save_data()
     rooms.notify_room(key, f"🎨 The group is now {rooms.room_title(key)}", kind="event")
+
+
+@registry.command("/personality", "/personality text", "how Hashbrown acts in this group (🎭 upgrade)",
+                  "🏦 Group bank")
+def cmd_personality(client, args):
+    key, group = rooms.current_group(client)
+    if group is None:
+        return
+    if not rooms.is_admin(group, client.key):
+        client.say("🎭 Only group admins can set Hashbrown's personality.", "error")
+        return
+    if "personality" not in group["upgrades"]:
+        client.say("🎭 This needs the 🎭 personality upgrade first: /upgrade personality", "error")
+        return
+    text = textutil.clean_text(args).strip()[:config.PERSONALITY_MAX]
+    group["personality"] = text or None   # empty: back to the normal Hashbrown
+    storage.save_data()
+    rooms.notify_room(key, f"🎭 Hashbrown's personality here: {text}" if text else "🎭 Hashbrown is back to normal here.",
+                      kind="event")
 
 
 @registry.command("/topgroups", "/topgroups", "richest groups", "🏦 Group bank")

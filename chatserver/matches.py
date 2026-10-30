@@ -8,6 +8,11 @@ from chatserver import achievements, config, rooms, state, storage, textutil
 
 
 
+# Functions to call after every finished match, like Hashbrown's game commentator (hashbrown_extras adds it):
+# the match code doesn't need to know about the AI.
+finish_hooks = []
+
+
 class Match:
     def __init__(self, game_class, p1, p2, bet):
         first, second = random.sample([p1, p2], 2)  # random player goes first
@@ -86,6 +91,8 @@ def finish_match(match, winner, reason=""):
             achievements.unlock(winner, "ten_wins")
         achievements.check_rich(winner)
     storage.save_data()
+    for hook in finish_hooks:
+        hook(match, winner)
 
 
 def end_all_matches():

@@ -160,7 +160,7 @@ def start_server(host=config.HOST, port=config.PORT, run_loops=True, run_console
     if config.admin_password() == config.DEFAULT_ADMIN_PASSWORD:  # never print the password itself
         textutil.log("[SERVER] 🔒 /admin is off. To turn it on, set the HASHBROWN_ADMIN_PASSWORD environment "
                      "variable (or put a password in ADMIN_PASSWORD in chatserver/config.py).")
-    loops = (([background.income_loop, background.quiz_loop] if run_loops else [])
+    loops = (([background.income_loop, background.quiz_loop, background.qotd_loop] if run_loops else [])
              + ([background.console_loop] if run_console else []))
     for loop in loops:
         threading.Thread(target=loop, daemon=True).start()

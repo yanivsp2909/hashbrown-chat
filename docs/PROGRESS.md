@@ -70,12 +70,12 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 | # | Feature | Status |
 |---|---|---|
-| 14 | Game commentator | not started |
-| 15 | Group personality upgrade | not started |
-| 16 | `/judge` | not started |
-| 17 | Wordle `/hint` | not started |
-| 18 | `/tr` | not started |
-| 19 | Question of the day | not started |
+| 14 | Game commentator | done: after every match both players get one line (matches.finish_hooks, server pays, COMMENTATOR_PER_DAY) |
+| 15 | Group personality upgrade | done: 🎭 bank upgrade + /personality (admins), added to Hashbrown's instructions in that group |
+| 16 | `/judge` | done: public verdict on the last JUDGE_HISTORY messages, paid like @hashbrown |
+| 17 | Wordle `/hint` | done: one per game, private; the word is masked in code (and not streamed); no AI: a letter |
+| 18 | `/tr` | done: private Hebrew <-> English translation, paid like /ask |
+| 19 | Question of the day | done: once a day after QOTD_HOUR (Israel) with 2+ online, posted in the lobby (server pays), /qotd |
 
 ## Group 6: second round
 
@@ -95,6 +95,8 @@ If you're picking this up after a break: read the rules, then continue from the 
 ## Decisions made on the way
 
 (Choices made without asking, so the owner can review them.)
+
+- Group 5 was built as one commit: its six features share chatserver/hashbrown_extras.py.
 - Item 1: `chat_data.json` never held history, so there was nothing to migrate and its format is unchanged. A disbanded group's rows are deleted from `history.db` so a new group with the same name starts empty. Falls back to in-memory history if the DB can't open.
 - Item 2: `/ask` is always paid by the asker (never the group bank) and works while muted. `temp_id` is `hb-N` from a counter in `state`; `replaces` is only on the copy sent to clients, the saved history line stays plain. The website removes the "thinking" card on `replaces`, or after 2 minutes. The private answer card is labelled "🥔 Only you" (`hashbrownPrivate` in `patterns.js`, a plain `startsWith`, not a regex). The prompt, `HASHBROWN_REASONING`, `HASHBROWN_MAX_OUTPUT`, `HASHBROWN_HISTORY` (15), `HASHBROWN_MAX_CHARS` (700) and `HASHBROWN_MAX_CODE_LINES` (50) are at the top of `config.py`. `clean_answer` and the Israel time (zoneinfo, with a UTC+2/+3 fallback for Python 3.8) live in `chatserver/hashbrown_text.py`. Any 400 while `reasoning` was sent means: retry once without it and never send it again until restart (one log line). The old 1500-character cut of raw answers is gone (it could cut a code block); `clean_answer` limits the length instead. A code block cut to 50 lines gets its note after the closing fence.
 - Item 3: `openai>=1.66,<2` in `requirements.txt`, pinned below 2 because 2.x needs a newer Python than 3.8. It is imported only inside `hashbrown_ai.import_openai()`; without it the server starts, Hashbrown is off and one line says `pip install -r requirements.txt`. `client.py` never imports it. The client is made per question with `max_retries=0` (a failed question is refunded, no hidden waits); errors are logged as class name + HTTP status only, never `str(e)`. The settings dict now has `base_url` (ending `/openai/v1`) instead of `url`. The login packet has an optional `features` list (at most 8 strings of 20 characters, otherwise ignored; `Client.features`); the website sends `["stream"]` and `web/bridge.py` refuses a malformed list with 400. Stream packets: `{"type":"stream","stream_id":"hb-N","name","badge","time","append"}`, the first also has `"replaces": "hb-N"`; the stream_id is the thinking notice's temp_id. At the end everybody in the audience gets the usual final message plus `stream_id` and `done: true`; a broken stream sends `{"type":"stream","stream_id","done":true,"failed":true}` first, then the usual refund error. Pieces are batched (0.15 s or 40 characters). Live text is the raw AI text; the final is the `clean_answer` text. A stream that ends without `response.completed` counts as broken. A runaway answer is cut off after 4x `HASHBROWN_MAX_CHARS` + 100 characters per allowed code line. Website: the live bubble is updated in place by the final message; for `/ask` it is removed when the private card arrives.

@@ -38,6 +38,7 @@
   /donate amount                   put your tokens in the group bank
   /upgrade name                    buy an upgrade with the bank (admins)
   /groupemoji emoji                set the group emoji (needs 🎨)
+  /personality text                how Hashbrown acts in this group (🎭 upgrade)
   /topgroups                       richest groups
 
 🪙 Tokens
@@ -62,6 +63,7 @@
   /accept [name]                   accept a challenge
   /decline [name]                  say no to a challenge
   /move ...                        a move (or just type it)
+  /hint                            a Wordle hint from Hashbrown, one per game (20 🪙)
   /rematch                         challenge your last opponent again 🔁
   /claim                           win if the other player hasn't moved for 2 min ⏰
   /board                           show the board again
@@ -80,6 +82,9 @@
 🥔 Hashbrown
   /ask question                    ask Hashbrown, the AI (20 🪙)
   /tldr                            Hashbrown sums up the chat, only for you (20 🪙)
+  /judge                           Hashbrown judges the argument, everyone sees it (20 🪙)
+  /tr text                         translate Hebrew <-> English, only for you (20 🪙)
+  /qotd                            today's question of the day ❓
 
 🌐 Network
   /ping                            how long a packet takes there and back 🏓

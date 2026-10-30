@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, config, rooms, state, storage, textutil
+from chatserver import achievements, config, hashbrown_extras, rooms, state, storage, textutil
 
 
 # ---------------------------------------------------------------- background threads
@@ -81,6 +81,13 @@ def quiz_loop():
         if opened:
             time.sleep(45)
             run_safely(quiz_close, *opened)
+
+
+def qotd_loop():
+    """❓ Once a minute: is it time for Hashbrown's question of the day?"""
+    while True:
+        time.sleep(60)
+        run_safely(hashbrown_extras.question_of_the_day_tick)
 
 
 def network_lab(cmd, value):
