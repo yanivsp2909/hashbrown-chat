@@ -58,10 +58,10 @@ LOGIN_LOCK_SECONDS = 300                       # ...lock that username for 5 min
 HASHING_AT_ONCE = 4              # password checks running at the same time (they're slow on purpose)
 ACCEPT_WAKEUP = 1                # seconds; the accept loop wakes up this often (so Ctrl+C works on Windows)
 
-# /admin <password> makes your account an admin. While the password is still "123", /admin is
-# switched off. Change it here, or better: set the HASHBROWN_ADMIN_PASSWORD environment variable.
-DEFAULT_ADMIN_PASSWORD = "123"
-ADMIN_PASSWORD = DEFAULT_ADMIN_PASSWORD
+# /admin <password> makes your account an admin. Change it here, or set the
+# HASHBROWN_ADMIN_PASSWORD environment variable (that one wins). An empty password switches /admin off.
+DEFAULT_ADMIN_PASSWORD = ""
+ADMIN_PASSWORD = "123"
 ADMIN_FAIL_LIMIT, ADMIN_FAIL_WINDOW = 3, 600   # 3 wrong /admin tries by ANYONE in 10 minutes locks /admin
 ADMIN_TOKENS = 1000              # what /admintokens gives
 
@@ -2215,7 +2215,7 @@ def start_server(host=HOST, port=PORT, run_loops=True, run_console=True):
     hashbrown = load_hashbrown()
     if admin_password() == DEFAULT_ADMIN_PASSWORD:  # never print the password itself
         log("[SERVER] 🔒 /admin is off. To turn it on, set the HASHBROWN_ADMIN_PASSWORD environment "
-            "variable (or change ADMIN_PASSWORD in server.py).")
+            "variable (or put a password in ADMIN_PASSWORD in server.py).")
     loops = ([income_loop, quiz_loop] if run_loops else []) + ([console_loop] if run_console else [])
     for loop in loops:
         threading.Thread(target=loop, daemon=True).start()

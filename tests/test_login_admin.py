@@ -105,9 +105,17 @@ def test_unknown_usernames_take_as_long_as_real_ones(connect, monkeypatch):
 
 # ---------------------------------------------------------------- D5: /admin
 
-def test_admin_is_disabled_while_the_password_is_the_default(user):
+def test_admin_works_with_the_password_at_the_top(user):
     adi = user("Adi")
     adi.line("/admin 123")
+    adi.expect_text("You're now an admin", kind="event")
+    assert server.accounts["adi"]["admin"]
+
+
+def test_admin_is_disabled_while_the_password_is_empty(user, monkeypatch):
+    monkeypatch.setattr(server, "ADMIN_PASSWORD", "")
+    adi = user("Adi")
+    adi.line("/admin ")
     adi.expect_text("disabled", kind="error")
     assert not server.accounts["adi"]["admin"]
 
@@ -132,18 +140,23 @@ def test_admin_lockout_counts_wrong_guesses_from_all_accounts(user, monkeypatch)
     assert not server.accounts["dan"]["admin"]
 
 
+def startup_output(capsys):
+    listener = server.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
+    listener.close()
+    return capsys.readouterr().out
+
+
 @pytest.mark.parametrize("password", [None, "long-test-password"])
 def test_startup_never_prints_the_admin_password(monkeypatch, capsys, password):
     if password:
         monkeypatch.setenv("HASHBROWN_ADMIN_PASSWORD", password)
-    listener = server.start_server("127.0.0.1", 0, run_loops=False, run_console=False)
-    listener.close()
-    out = capsys.readouterr().out
     secret = password or server.ADMIN_PASSWORD
-    admin_lines = [line for line in out.splitlines() if "admin" in line.lower()]
-    assert all(secret not in line for line in admin_lines)
-    if password is None:
-        assert any("HASHBROWN_ADMIN_PASSWORD" in line for line in admin_lines)
+    assert secret not in startup_output(capsys)
+
+
+def test_startup_says_how_to_turn_admin_on_when_the_password_is_empty(monkeypatch, capsys):
+    monkeypatch.setattr(server, "ADMIN_PASSWORD", "")
+    assert "HASHBROWN_ADMIN_PASSWORD" in startup_output(capsys)
 
 
 def test_taking_over_tells_your_old_group_that_you_left(connect, user):
