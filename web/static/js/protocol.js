@@ -18,6 +18,7 @@ import * as groups from "./groups.js";
 import * as profile from "./profile.js";
 import * as netmap from "./netmap.js";
 import * as drawing from "./drawing.js";
+import * as market from "./market.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
 import * as bigfiles from "./bigfiles.js";
@@ -248,6 +249,10 @@ export function handleMessage(msg, live, sendLine) {
       return drawing.onRound(msg, live);
     case "stroke":
       return live ? drawing.onStroke(msg) : undefined;
+    case "market":
+      return live ? market.onTick(msg) : undefined;
+    case "market_info":
+      return market.onInfo(msg);
     case "netmap":
       return live ? netmap.onMap(msg) : undefined;
     case "probe":

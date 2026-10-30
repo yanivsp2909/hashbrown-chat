@@ -4,7 +4,7 @@ import random
 
 import pytest
 
-from chatserver import config, state, storage
+from chatserver import config, fund, state, storage
 
 pytestmark = pytest.mark.integration
 
@@ -27,7 +27,8 @@ def test_three_diamonds_win_the_whole_pot(user, monkeypatch):
     ben.expect_text("JACKPOT")
     assert state.jackpot == 0
     jackpot_trophy = config.ACHIEVEMENTS["jackpot"][-1]
-    assert state.accounts["adi"]["tokens"] == before - 10 + 250 + 400 + jackpot_trophy
+    tax = fund.casino_tax(240)   # 🧾 the 240 win pays the casino tax (the pot itself doesn't)
+    assert state.accounts["adi"]["tokens"] == before - 10 + 250 - tax + 400 + jackpot_trophy
 
 
 def test_the_pot_is_saved_and_loaded(tmp_path):

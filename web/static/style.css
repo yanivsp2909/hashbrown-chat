@@ -846,3 +846,28 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .draw-size { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
 .draw-hint { margin: 0; color: var(--text-2); font-weight: 650; }
 @media (pointer: coarse) { .draw-color { width: 40px; height: 40px; } }
+
+/* ----- 📈 the market */
+.market { width: min(900px, calc(100vw - 32px)); }
+.mk-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; overflow-y: auto; }
+.mk-card { padding: 14px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line-soft); display: grid; gap: 8px; }
+.mk-head { display: flex; align-items: center; gap: 10px; }
+.mk-icon { font-size: 28px; }
+.mk-names { flex: 1; min-width: 0; }
+.mk-sym { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: 0.02em; }
+.mk-name { margin: 0; font-size: 13px; color: var(--muted); }
+.mk-price { display: grid; justify-items: end; }
+.mk-num { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.mk-change { font-size: 12.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mk-change.mk-up { color: var(--pickle); }
+.mk-change.mk-down { color: var(--ketchup); }
+:root[data-theme="light"] .mk-change.mk-up { color: #2d5a12; }
+:root[data-theme="light"] .mk-change.mk-down { color: #a82a17; }
+.mk-chart { width: 100%; height: 70px; display: block; }
+.mk-chart .mk-line { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.mk-chart.mk-up .mk-line { stroke: var(--pickle); } .mk-chart.mk-up .mk-area { fill: var(--pickle-soft); }
+.mk-chart.mk-down .mk-line { stroke: var(--ketchup); } .mk-chart.mk-down .mk-area { fill: var(--ketchup-soft); }
+.mk-chart-empty { margin: 0; font-size: 13px; color: var(--muted); }
+.mk-owned { margin: 0; font-size: 13.5px; color: var(--text-2); }
+.mk-trade { display: flex; gap: 6px; }
+.mk-n { min-height: 40px; max-width: 110px; }
