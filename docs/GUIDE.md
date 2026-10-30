@@ -145,6 +145,10 @@ If an owner disbands a group, whatever is left in the bank goes to them.
 
 The admin password is `ADMIN_PASSWORD` in `chatserver/config.py`. **Change it from 123**, or your friends will guess it.
 
+## Chat switcher 💬 (website)
+
+The **💬 Chats** list in the sidebar shows 🌍 the Lobby and every group you're in. Messages from a room you're not looking at don't fill your screen: that room gets an unread count and a preview of its last message. Click a room to open it (the same as `/join name` or `/lobby`): its recent history loads. The terminal client keeps working the old way (you only get the room you're in).
+
 ## For the networking class 🔬
 
 - **Packet X-ray** (website, bottom of the sidebar): the **Packets** tab shows every JSON packet your tab sends ⬆ and gets ⬇. The **TCP** tab shows the raw bytes of each `recv()` the website's bridge did: newlines are shown as ⏎, and a chunk that ends in the middle of a packet says so. Login packets (your password) are never recorded.

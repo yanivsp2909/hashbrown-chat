@@ -23,6 +23,7 @@
 
 - 💬 **Chat**: a lobby, group rooms, private messages (`/send`), `/me` actions, nicknames and Hebrew (right-to-left) text.
 - 👥 **Groups**: public groups, or 🔒 private groups where an admin approves you. Admins can kick, ban, mute, promote and demote.
+- 💬 **Chat switcher** (website): 🌍 the Lobby and all your groups in one list, with unread counts and the last message, like a messaging app.
 - 🏦 **Group bank**: every group earns its own tokens and spends them on upgrades.
 - 🪙 **Tokens**: earn them by being online, with a `/daily` streak, winning games and achievements. Spend them in the badge shop or the casino (fake tokens only).
 - 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel and solo Wordle. Challenge a friend, with an optional token bet.
@@ -132,12 +133,13 @@ Every packet is **one JSON object on one line**, ending with `\n`. That's called
 
 | Direction | Type | Fields |
 |---|---|---|
-| client → server | `auth` | `action` (`login` or `register`), `username`, `password`, optional `features` (e.g. `["stream"]`) |
+| client → server | `auth` | `action` (`login` or `register`), `username`, `password`, optional `features` (e.g. `["stream", "rooms"]`) |
+| server → client | `rooms` | `current`, `rooms` (`key`, `name`, `title`): only for clients with the `rooms` feature |
 | client → server | `line` | `text` (a chat message or a `/command`) |
 | client → server | `file` | `to`, `filename`, `data` (base64) |
 | server → client | `auth_result` | `ok`, `text` |
 | server → client | `msg` | `kind`, `text` (board messages also have a `state` object) |
-| server → client | `chat` | `time`, `name`, `badge`, `text`, `action`, `id` |
+| server → client | `chat` | `time`, `name`, `badge`, `text`, `action`, `id`, and `room` (its key) for clients with the `rooms` feature |
 | server → client | `stream` | `stream_id`, `append` (a piece of Hashbrown's answer, only for clients with the `stream` feature) |
 | client → server | `ping` | `t` (any number; it comes straight back) |
 | server → client | `pong` | `t` (the same number: now minus `t` is the round trip) |
