@@ -27,11 +27,11 @@ def answer():
 
 
 def is_request(data):
-    if len(data) > MAX_REQUEST:
+    if len(data) > MAX_REQUEST or not data.lstrip().startswith(b"{"):
         return False
     try:
         packet = json.loads(data.decode("utf-8"))
-    except (UnicodeDecodeError, ValueError):
+    except (UnicodeDecodeError, ValueError, RecursionError):
         return False
     return isinstance(packet, dict) and packet.get("type") == "discover"
 
@@ -42,8 +42,12 @@ def serve(sock):
     while True:
         try:
             data, sender = sock.recvfrom(MAX_REQUEST + 1)
+        except ConnectionResetError:
+            continue  # Windows reports an earlier "port unreachable" here: not our problem
         except OSError:
-            return  # the socket was closed: the server is stopping
+            if sock.fileno() == -1:
+                return  # the socket was closed: the server is stopping
+            continue
         if not is_request(data):
             continue
         now = time.time()

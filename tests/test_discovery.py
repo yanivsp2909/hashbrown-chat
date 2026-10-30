@@ -68,7 +68,27 @@ def test_with_no_server_found_and_no_keyboard_it_uses_this_computer(monkeypatch)
     assert client.find_server() == "127.0.0.1"
 
 
-def test_one_server_found_is_used_without_asking(monkeypatch):
+def test_one_server_found_without_a_keyboard_is_used_without_asking(monkeypatch):
     monkeypatch.setattr(client, "discover", lambda **kwargs: [("10.0.0.7", "Hashbrown Chat")])
+    monkeypatch.setattr(client.sys.stdin, "isatty", lambda: False, raising=False)
     monkeypatch.setattr("builtins.input", lambda prompt="": pytest.fail("asked"))
     assert client.find_server() == "10.0.0.7"
+
+
+def test_deeply_nested_garbage_doesnt_kill_the_answerer(responder):
+    assert ask(responder, b"[" * 500, timeout=0.3) is None
+    assert ask(responder, b'{"type": "discover"}')["type"] == "server"      # still alive
+
+
+def test_a_single_server_found_at_a_keyboard_is_confirmed_first(monkeypatch):
+    monkeypatch.setattr(client, "discover", lambda **kwargs: [("10.0.0.7", "Hashbrown Chat")])
+    monkeypatch.setattr(client.sys.stdin, "isatty", lambda: True, raising=False)
+    answers = iter(["n", "192.168.1.20"])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
+    assert client.find_server() == "192.168.1.20"     # said no, then typed the right IP
+
+
+def test_at_most_nine_servers_are_listed(responder):
+    found = client.discover(targets=[("127.0.0.1", responder)] * 1, timeout=0.3)
+    assert len(found) <= 9
+    assert client.MAX_SERVERS == 9

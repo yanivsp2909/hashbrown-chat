@@ -25,6 +25,7 @@ WEB_PORT = 8080   # where the host's website runs (server.py starts it)
 
 
 DISCOVERY_PORT = 8821   # UDP port where servers answer {"type": "discover"}
+MAX_SERVERS = 9         # list at most this many answers
 
 
 def parse_args(args):
@@ -522,15 +523,22 @@ def discover(targets=None, timeout=1.5):
                 continue
             if isinstance(reply, dict) and reply.get("type") == "server" and ip not in [f[0] for f in found]:
                 found.append((ip, printable(str(reply.get("name", "Hashbrown Chat")))[:40]))
+                if len(found) >= MAX_SERVERS:
+                    return found
 
 
 def find_server():
     """No IP given: look for servers on the Wi-Fi, then on this computer, else ask."""
     print("🔎 Looking for a Hashbrown server on this Wi-Fi...")
     servers = discover() or discover(targets=[("127.0.0.1", DISCOVERY_PORT)], timeout=0.3)
-    if len(servers) == 1 or (servers and not sys.stdin.isatty()):
+    if servers and not sys.stdin.isatty():
         print(f"🔎 Found {servers[0][1]} at {servers[0][0]}")
         return servers[0][0]
+    # Anyone on the Wi-Fi can answer a broadcast, so a person checks the address before we send a password
+    if len(servers) == 1:
+        if input(f"🔎 Found {servers[0][1]} at {servers[0][0]}. Connect? (Enter = yes, n = no) ").strip().lower() != "n":
+            return servers[0][0]
+        servers = []
     if servers:
         for number, (ip, name) in enumerate(servers, 1):
             print(f"  {number}) {name} at {ip}")

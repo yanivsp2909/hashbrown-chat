@@ -20,7 +20,8 @@ MAX_FILE_B64 = 2_800_000     # a 2 MB file after base64
 MAX_FEATURES, MAX_FEATURE_LENGTH = 8, 20   # the optional "features" list in the login packet
 LOG_MAX_EVENTS = 1000        # events kept per session for replay after a reload
 LOG_MAX_BYTES = 6 * 1024 * 1024
-XRAY_MAX_TEXT = 4000           # 🔬 bytes of each raw chunk shown in the Packet X-ray (big files are cut)
+XRAY_MAX_TEXT = 2000           # 🔬 bytes of each raw chunk shown in the Packet X-ray (big files are cut)
+XRAY_KEEP = 100                # 🔬 X-ray events kept in the replay log, so chat messages aren't pushed out
 DETACHED_GRACE = 90          # seconds a session lives with no tab attached (reload / phone in pocket)
 LOGIN_GRACE = 120            # seconds to log in before an unused session is closed
 CLOSED_LINGER = 30           # seconds a dead session is kept so its tab can read why it died
@@ -222,10 +223,16 @@ class Session:
     # ----- 🔬 Packet X-ray: the raw bytes, exactly as TCP delivered them (shown only to this tab)
 
     def _xray(self, direction, data):
-        if self.xray:
-            self._append(json.dumps({"type": "xray", "dir": direction, "bytes": len(data), "time": time.time(),
-                                     "text": data[:XRAY_MAX_TEXT].decode("utf-8", "replace")},
-                                    ensure_ascii=False, separators=(",", ":")))
+        if not self.xray:
+            return
+        with self.cond:   # keep only the newest XRAY_KEEP x-ray events: the log is for chat replay first
+            old = [event for event in self.events if event[1].startswith('{"type":"xray"')]
+            if len(old) >= XRAY_KEEP:
+                self.events.remove(old[0])
+                self.size -= len(old[0][1])
+        self._append(json.dumps({"type": "xray", "dir": direction, "bytes": len(data), "time": time.time(),
+                                 "text": data[:XRAY_MAX_TEXT].decode("utf-8", "replace")},
+                                ensure_ascii=False, separators=(",", ":")))
 
     def _xray_in(self, chunk):
         self._xray("in", chunk)
