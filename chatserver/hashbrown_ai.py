@@ -1,16 +1,29 @@
 """
-🥔 Hashbrown, the AI member (GPT on Microsoft Foundry).
+🥔 Hashbrown, the AI member (GPT on Microsoft Foundry, through the official `openai` package).
 """
 import json
 import os
 import threading
 import time
-import urllib.error
-import urllib.request
 
 from chatserver import achievements, config, history, registry, rooms, state, storage, textutil
 from chatserver.hashbrown_text import clean_answer, israel_time_text
 
+REQUEST_TIMEOUT = 90         # seconds the AI may stay silent
+STREAM_SEND_EVERY = 0.15     # seconds: send a live piece at most this often...
+STREAM_SEND_CHARS = 40       # ...or as soon as this many new characters are waiting
+RAW_LENGTH_FACTOR = 4        # stop reading an answer that grows past this many times the allowed length
+CODE_LINE_CHARS = 100        # room per allowed code line, added to that limit
+
+
+def import_openai():
+    """The openai package, or None if it isn't installed (then Hashbrown stays off and the chat still works).
+    Imported here, not at the top, so the server starts without it."""
+    try:
+        import openai
+    except ImportError:
+        return None
+    return openai
 
 
 def is_placeholder(value):
@@ -55,11 +68,14 @@ def load_hashbrown():
         textutil.log(f"[HASHBROWN] 🥔 Fill in endpoint and deployment in {config.HASHBROWN_CONFIG}. "
                      "Hashbrown is off.")
         return None
+    if import_openai() is None:
+        textutil.log("[HASHBROWN] 🥔 Hashbrown needs the openai package: pip install -r requirements.txt")
+        return None
     # Works with https://NAME.openai.azure.com/ or https://NAME.services.ai.azure.com/
     endpoint = str(settings["endpoint"]).strip().rstrip("/")
     if not endpoint.endswith("/openai/v1"):
         endpoint += "/openai/v1"
-    settings["url"] = endpoint + "/responses"
+    settings["base_url"] = endpoint  # the openai package adds /responses itself
     textutil.log(f"[HASHBROWN] 🥔 Awake! Using deployment '{settings['deployment']}'")
     return settings
 
@@ -98,60 +114,85 @@ def build_messages(key, room, question):
     return [{"role": "system", "content": system}, {"role": "user", "content": facts}]
 
 
-def explain_http_error(e):
-    detail = e.read().decode("utf-8", "replace")[:300]
-    hint = HASHBROWN_HINTS.get(e.code, "")
-    return RuntimeError(f"HTTP {e.code} ({hint}): {detail}")
+def describe_error(e):
+    """A safe one-line description of an error for the log: the class name, the HTTP status and a hint.
+    Never str(e): the text of an API error can quote the request, and the key must never reach the log."""
+    status = getattr(e, "status_code", None)
+    if status is None:
+        return type(e).__name__
+    return f"{type(e).__name__} (HTTP {status}{', ' + HASHBROWN_HINTS[status] if status in HASHBROWN_HINTS else ''})"
 
 
-def post_to_foundry(body):
-    """One request to Foundry. Returns the reply as a dict; raises urllib.error.HTTPError on an error status."""
-    request = urllib.request.Request(state.hashbrown["url"], data=json.dumps(body).encode(), method="POST", headers={
-        "Content-Type": "application/json",
-        "api-key": state.hashbrown["api_key"],
-    })
-    with urllib.request.urlopen(request, timeout=90) as response:
-        return json.loads(response.read().decode("utf-8"))
+def max_raw_length():
+    """The longest raw answer worth reading. clean_answer cuts to far less; past this we stop the stream."""
+    return RAW_LENGTH_FACTOR * config.HASHBROWN_MAX_CHARS + config.HASHBROWN_MAX_CODE_LINES * CODE_LINE_CHARS
 
 
-def call_hashbrown(messages):
-    """Send the conversation to Foundry (Responses API, the same one as client.responses.create)
-    and return the cleaned answer text. Slow: never call this while holding the lock."""
+def read_stream(client, request, on_text):
+    """Send one request and read the answer piece by piece. on_text(piece) gets each new piece of text.
+    Returns the whole raw text. Raises if the stream breaks before the end."""
+    stream = client.responses.create(**request, stream=True)
+    pieces, length, finished = [], 0, False
+    try:
+        for event in stream:
+            if event.type == "response.output_text.delta":
+                pieces.append(event.delta)
+                length += len(event.delta)
+                on_text(event.delta)
+                if length > max_raw_length():  # a runaway answer: stop paying attention to it
+                    finished = True
+                    break
+            elif event.type == "response.completed":
+                finished = True
+                break
+            elif event.type in ("response.failed", "response.incomplete", "error"):
+                raise RuntimeError(f"the AI ended the answer early ({event.type})")
+    finally:
+        stream.close()
+    if not finished:
+        raise RuntimeError("the connection ended before the answer was complete")
+    return "".join(pieces)
+
+
+def call_hashbrown(messages, on_text=None):
+    """Send the conversation to Foundry (Responses API, like client.responses.create(..., stream=True))
+    and return the cleaned answer text. on_text(piece) is called for every piece as it arrives.
+    Slow: never call this while holding the lock."""
     if state.hashbrown is None:  # no key: never contact Foundry
         raise RuntimeError("Hashbrown is off (no API key)")
-    body = {
+    openai = import_openai()
+    if openai is None:
+        raise RuntimeError("the openai package is missing")
+    on_text = on_text or (lambda piece: None)
+    request = {
         "model": state.hashbrown["deployment"],
         "instructions": messages[0]["content"],  # the system prompt
         "input": messages[1:],                  # the facts + question
         "max_output_tokens": config.HASHBROWN_MAX_OUTPUT,
     }
     if config.HASHBROWN_REASONING and not state.hashbrown_no_reasoning:
-        body["reasoning"] = {"effort": config.HASHBROWN_REASONING}
+        request["reasoning"] = {"effort": config.HASHBROWN_REASONING}
+    # max_retries=0: a failed question is refunded, and we don't want hidden waits
+    client = openai.OpenAI(base_url=state.hashbrown["base_url"], api_key=state.hashbrown["api_key"],
+                           timeout=REQUEST_TIMEOUT, max_retries=0)
     try:
-        data = post_to_foundry(body)
-    except urllib.error.HTTPError as e:
-        if e.code != 400 or "reasoning" not in body:
-            raise explain_http_error(e) from None
-        # Some deployments don't know the reasoning setting: ask again without it, and remember
-        if not state.hashbrown_no_reasoning:
-            textutil.log("[HASHBROWN] 🥔 This deployment doesn't support reasoning effort. Not sending it from now on.")
-        state.hashbrown_no_reasoning = True
-        del body["reasoning"]
         try:
-            data = post_to_foundry(body)
-        except urllib.error.HTTPError as again:
-            raise explain_http_error(again) from None
-    # The answer is in output -> items of type "message" -> parts of type "output_text"
-    # (there can also be a "reasoning" item first, which we skip)
-    parts = []
-    for item in data.get("output", []):
-        if item.get("type") == "message":
-            for part in item.get("content", []):
-                if part.get("type") == "output_text":
-                    parts.append(part.get("text", ""))
-    answer = clean_answer("".join(parts))
+            raw = read_stream(client, request, on_text)
+        except openai.BadRequestError:
+            if "reasoning" not in request:
+                raise
+            # Some deployments don't know the reasoning setting: ask again without it, and remember
+            if not state.hashbrown_no_reasoning:
+                textutil.log("[HASHBROWN] 🥔 This deployment doesn't support reasoning effort. "
+                             "Not sending it from now on.")
+            state.hashbrown_no_reasoning = True
+            del request["reasoning"]
+            raw = read_stream(client, request, on_text)
+    finally:
+        client.close()
+    answer = clean_answer(raw)
     if not answer:
-        raise RuntimeError(f"no answer text (status: {data.get('status')})")
+        raise RuntimeError("no answer text")
     return answer
 
 
@@ -235,18 +276,71 @@ def refund_hashbrown(asker, payer):
         state.hashbrown_all_today = (all_day, all_asked - 1)
 
 
+class LiveStream:
+    """Sends Hashbrown's answer, piece by piece, to the people who asked for "stream" at login.
+    Pieces are batched (a packet at most every STREAM_SEND_EVERY seconds, or when STREAM_SEND_CHARS new
+    characters are waiting) so a fast AI can't flood anybody's outbox. The thinking notice's temp_id is
+    the stream_id: the first packet also says "replaces", so the website swaps the notice for the live bubble."""
+
+    def __init__(self, asker, room, group, private, temp_id):
+        self.asker, self.room, self.group, self.private, self.temp_id = asker, room, group, private, temp_id
+        self.time = rooms.chat_message("", "", "")["time"]
+        self.waiting = ""     # text received but not sent yet
+        self.last_sent = 0    # time.monotonic() of the last packet
+        self.started = False  # has the first packet gone out?
+
+    def audience(self):
+        """The clients that get the live pieces. Call while holding the lock."""
+        if self.private:
+            targets = [state.online.get(self.asker)]
+        elif state.groups.get(self.room) is not self.group:   # the group was disbanded: only the asker is left
+            targets = [state.online.get(self.asker)]
+        else:
+            targets = [c for c in list(state.online.values()) if c.room == self.room]
+        return [c for c in targets if c is not None and "stream" in c.features]
+
+    def send(self, packet):
+        """Call while holding the lock."""
+        for client in self.audience():
+            client.send({"type": "stream", "stream_id": self.temp_id, **packet})
+
+    def flush(self):
+        """Call while holding the lock."""
+        if not self.waiting:
+            return
+        packet = {"name": "Hashbrown", "badge": "🥔", "time": self.time, "append": self.waiting}
+        if not self.started:
+            packet["replaces"] = self.temp_id
+        self.send(packet)
+        self.started, self.waiting, self.last_sent = True, "", time.monotonic()
+
+    def feed(self, piece):
+        """A new piece of text arrived (worker thread, lock NOT held)."""
+        self.waiting += piece
+        if len(self.waiting) >= STREAM_SEND_CHARS or time.monotonic() - self.last_sent >= STREAM_SEND_EVERY:
+            with state.lock:
+                self.flush()
+
+    def fail(self):
+        """The answer broke: tell the streaming clients to drop the live bubble. Call while holding the lock."""
+        if self.started:
+            self.send({"done": True, "failed": True})
+
+
 def hashbrown_worker(asker, room, group, messages, payer, private, temp_id):
     """Runs in its own thread so the chat keeps working while the AI thinks.
     `group` is the group the question was asked in (None in the lobby)."""
+    live = LiveStream(asker, room, group, private, temp_id)
     try:
-        answer, error = textutil.clean_text(call_hashbrown(messages), keep_newlines=True), None
+        answer, error = textutil.clean_text(call_hashbrown(messages, live.feed), keep_newlines=True), None
     except Exception as e:  # network down, bad key, timeout... the chat must survive all of it
         answer, error = None, e
     with state.lock:
         state.hashbrown_busy -= 1
         room_still_there = state.groups.get(room) is group  # True for the lobby too (None is None)
         if answer is None:
-            textutil.log(f"[HASHBROWN] Error: {type(error).__name__}: {error}")
+            textutil.log(f"[HASHBROWN] Error: {describe_error(error)}")
+            live.fail()
             refund_hashbrown(asker, payer)
             oops = "🥔💥 Hashbrown tripped over something and couldn't answer. The tokens were refunded."
             if room_still_there and not private:
@@ -254,12 +348,15 @@ def hashbrown_worker(asker, room, group, messages, payer, private, temp_id):
             else:
                 rooms.tell(asker, oops, "error", replaces=temp_id)
             return
+        live.flush()
+        # "stream_id" + "done" tell streaming clients to swap their live bubble for this final text
+        done = {"replaces": temp_id, "stream_id": temp_id, "done": True}
         if private or not room_still_there:  # /ask, or the group was disbanded while Hashbrown thought
-            rooms.tell(asker, f"🥔 Hashbrown (only you): {answer}", "private", replaces=temp_id)
+            rooms.tell(asker, f"🥔 Hashbrown (only you): {answer}", "private", **done)
         else:
             msg = rooms.chat_message("Hashbrown", "🥔", answer)
             history.add(room, msg)
-            rooms.send_room(room, {**msg, "replaces": temp_id})  # history keeps the plain message
+            rooms.send_room(room, {**msg, **done})  # history keeps the plain message
             textutil.log(f"[{room}] Hashbrown: {answer}")
         if asker in state.accounts:
             achievements.unlock(asker, "potato")

@@ -33,7 +33,7 @@
 
 ## 🚀 Quick start
 
-Python 3.8 or newer. **Nothing to install**: it uses only the standard library. Everyone must be on the **same Wi-Fi** (or LAN).
+Python 3.8 or newer. **Nothing to install** for the chat itself: it uses only the standard library (only Hashbrown, the AI, needs one package, see [below](#-waking-up-hashbrown-optional)). Everyone must be on the **same Wi-Fi** (or LAN).
 
 **1. Get the code**
 
@@ -63,7 +63,15 @@ Type `/help` once you're in to see every command. The full list is in the [user 
 
 ## 🥔 Waking up Hashbrown (optional)
 
-Hashbrown needs an API key for an AI endpoint on Microsoft Foundry. Pick one of these ways to give it the key:
+Hashbrown needs the `openai` package and an API key for an AI endpoint on Microsoft Foundry. Install the package once (nothing else in the project needs it):
+
+```bash
+pip install -r requirements.txt
+```
+
+Without the package the server still starts; it just prints `Hashbrown needs the openai package` and Hashbrown stays off. Answers appear word by word in the website (the terminal client shows the full answer at the end).
+
+Pick one of these ways to give it the key:
 
 **Option A: an environment variable** (wins over the file)
 

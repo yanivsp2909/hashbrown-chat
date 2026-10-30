@@ -161,7 +161,38 @@ function chatNode(msg, { mine = false, old = false } = {}) {
 }
 
 export function addChat(msg, { live, mine }) {
+  const bubble = msg.stream_id ? findStream(str(msg.stream_id)) : null;
+  if (bubble) {   // the final text of an answer that was streaming: it takes the place of the live bubble
+    bubble.querySelector(".msg-text").textContent = str(msg.text);
+    delete bubble.dataset.streamId;
+    return;
+  }
   add(chatNode(msg, { mine }), { live });
+}
+
+// ---------------------------------------------------------------- Hashbrown typing live
+
+function findStream(streamId) {
+  return [...list.querySelectorAll("[data-stream-id]")].find((node) => node.dataset.streamId === streamId) || null;
+}
+
+/** A piece of Hashbrown's answer: the first one makes the live bubble, the next ones add to it. */
+export function addStreamPiece(msg, { live }) {
+  const streamId = str(msg.stream_id);
+  let bubble = findStream(streamId);
+  if (!bubble) {
+    bubble = add(chatNode({ name: "Hashbrown", badge: str(msg.badge), time: str(msg.time), text: "" }), { live });
+    bubble.dataset.streamId = streamId;
+    // If the final message never comes (the server died), don't leave a half answer forever
+    setTimeout(() => { if (bubble.dataset.streamId) bubble.remove(); }, THINKING_MS);
+  }
+  bubble.querySelector(".msg-text").textContent += str(msg.append);
+  if (pinned) scrollToBottom();
+}
+
+/** Remove the live bubble of an answer that failed (or that arrives as a private card instead). */
+export function removeStream(streamId) {
+  findStream(streamId)?.remove();
 }
 
 // ---------------------------------------------------------------- server notices

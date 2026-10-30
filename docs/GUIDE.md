@@ -6,7 +6,7 @@
 
 A multiplayer chat that runs in the terminal (PyCharm, CMD, Terminal), with an AI bot called Hashbrown. One person runs the server, everyone else runs the client and joins over the same Wi-Fi.
 
-Pure Python, no installs. Python 3.8 or newer.
+Pure Python, no installs for the chat itself (only Hashbrown, the AI, needs the `openai` package: see "Waking up Hashbrown"). Python 3.8 or newer.
 
 ## What's inside
 
@@ -78,6 +78,7 @@ Same warning as the terminal client: the website is plain HTTP, so anyone on the
 
 ## Waking up Hashbrown 🥔
 
+0. Install the one package Hashbrown needs: `pip install -r requirements.txt`. (Everything else needs no install. It is pinned below version 2 because newer `openai` versions need a newer Python than 3.8.)
 1. Put `hashbrown_config.json` next to `server.py`. If it's missing, the server creates it on first run.
 2. Open it and replace `PASTE-YOUR-KEY-HERE` with your key:
    ```json
@@ -91,6 +92,8 @@ Same warning as the terminal client: the website is plain HTTP, so anyone on the
 4. Start the server. It should print `🥔 Awake!`.
 
 Hashbrown uses the same Responses API as `client.responses.create(...)` in the Foundry sample, but with an API key instead of `az login`.
+
+**Streaming:** the server asks for the answer in pieces (`stream=True`). Clients that say `"features": ["stream"]` when they log in (the website does) see the answer appear live, in a few updates per second, and then the final cleaned text replaces it. Other clients, like `client.py`, get one full message at the end, exactly as before. If the AI breaks halfway, the live text disappears and the tokens are refunded.
 
 If you'd rather not keep the key in the file, set the environment variable `HASHBROWN_API_KEY` instead. It overrides the file.
 

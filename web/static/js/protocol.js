@@ -158,7 +158,10 @@ function onServerText(msg, live) {
 
 export function handleMessage(msg, live, sendLine) {
   if (msg.replaces) chat.removeTemp(str(msg.replaces));   // the answer takes the place of "thinking..."
+  if (msg.stream_id && (msg.failed || (msg.done && msg.type !== "chat"))) chat.removeStream(str(msg.stream_id));
   switch (msg.type) {
+    case "stream":
+      return msg.done ? undefined : chat.addStreamPiece(msg, { live });
     case "auth_result":
       return onAuthResult(msg, live, sendLine);
     case "msg":

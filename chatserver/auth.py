@@ -32,6 +32,15 @@ def check_password(password, salt_hex):
         return hash_password(password, salt_hex)
 
 
+def clean_features(value):
+    """The optional "features" list of the auth packet -> a set. Anything that isn't a list of at most
+    MAX_FEATURES strings of at most MAX_FEATURE_LENGTH characters is ignored (an empty set)."""
+    if (not isinstance(value, list) or len(value) > config.MAX_FEATURES
+            or not all(isinstance(f, str) and len(f) <= config.MAX_FEATURE_LENGTH for f in value)):
+        return frozenset()
+    return frozenset(value)
+
+
 def handle_auth(client, msg):
     """Log in or create an account. Returns True on success."""
     action = msg.get("action")
@@ -93,6 +102,7 @@ def handle_auth(client, msg):
             old.kick("🔁 You logged in from another window, so this one was disconnected.")
             textutil.log(f"[SERVER] {rooms.nick(key)} logged in again, closing the old connection")
         client.key = key
+        client.features = clean_features(msg.get("features"))
         state.online[key] = client
         greeting = "Welcome back" if action == "login" else "Account created! Welcome"
         client.send({"type": "auth_result", "ok": True, "text": f"✅ {greeting}, {rooms.nick(key)}!"})

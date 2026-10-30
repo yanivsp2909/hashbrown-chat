@@ -82,10 +82,11 @@ def connect(chat_server):
 
 @pytest.fixture
 def user(connect):
-    """user("adi") -> a FakeClient that registered (or logged in) and is in the lobby."""
-    def make(name, password="pass1234", action="register"):
+    """user("adi") -> a FakeClient that registered (or logged in) and is in the lobby.
+    features=["stream"] is the optional list of things this client understands."""
+    def make(name, password="pass1234", action="register", features=None):
         client = connect()
-        result = auth(client, action, name, password)
+        result = auth(client, action, name, password, features)
         assert result["ok"], result
         client.expect(lambda m: m.get("type") == "history")
         client.name = name
@@ -99,6 +100,6 @@ def user(connect):
 def fake_hashbrown(chat_server):
     """Wakes Hashbrown up, pointed at a FakeFoundry on 127.0.0.1."""
     foundry = FakeFoundry()
-    state.hashbrown = {"deployment": "fake-model", "api_key": "test-key", "url": foundry.url}
+    state.hashbrown = {"deployment": "fake-model", "api_key": "test-key", "base_url": foundry.url}
     yield foundry
     foundry.stop()

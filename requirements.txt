@@ -1,0 +1,3 @@
+# Only needed for Hashbrown, the AI member (the chat itself uses just the standard library).
+# Below 2 on purpose: openai 2.x needs a newer Python than 3.8.
+openai>=1.66,<2

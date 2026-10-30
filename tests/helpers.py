@@ -96,21 +96,50 @@ class FakeClient:
             pass
 
 
-def auth(client, action, name, password):
-    client.send({"type": "auth", "action": action, "username": name, "password": password})
+def auth(client, action, name, password, features=None):
+    packet = {"type": "auth", "action": action, "username": name, "password": password}
+    if features is not None:
+        packet["features"] = features
+    client.send(packet)
     return client.expect(lambda m: m.get("type") == "auth_result")
 
 
 class FakeFoundry:
-    """A local stand-in for Microsoft Foundry's Responses API. Never the real thing."""
+    """A local stand-in for Microsoft Foundry's Responses API, speaking what the openai package
+    expects: Server-Sent Events (response.output_text.delta ... response.completed). Never the real thing.
+
+    Settings a test can change:
+      answer / pieces   the text, sent as one piece or as the list of pieces
+      status            answer with this HTTP status instead (a JSON error body)
+      reject_reasoning  answer 400 to requests that contain "reasoning"
+      break_after       after this many pieces, break the stream...
+      break_with        ..."failed" (response.failed event), "error" (error event), "incomplete"
+                        or "drop" (just hang up)
+      delay             seconds to wait before answering; piece_delay between pieces
+    """
 
     def __init__(self):
         self.status = 200
         self.answer = "Hi from fake Hashbrown 🥔"
+        self.pieces = None
         self.delay = 0
-        self.reject_reasoning = False  # answer 400 to requests that contain "reasoning"
+        self.piece_delay = 0
+        self.reject_reasoning = False
+        self.break_after = None
+        self.break_with = "failed"
         self.requests = []  # (headers, body) of every request
         fake = self
+
+        def event(handler, kind, number, **fields):
+            data = json.dumps({"type": kind, "sequence_number": number, **fields}, ensure_ascii=False)
+            handler.wfile.write(f"event: {kind}\ndata: {data}\n\n".encode("utf-8"))
+            handler.wfile.flush()
+
+        def response_object(text, status):
+            return {"id": "resp_1", "object": "response", "created_at": 0, "model": "fake-model", "status": status,
+                    "output": [{"id": "msg_1", "type": "message", "role": "assistant", "status": status,
+                                "content": [{"type": "output_text", "text": text, "annotations": []}]}],
+                    "parallel_tool_calls": False, "tool_choice": "auto", "tools": []}
 
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
@@ -118,20 +147,46 @@ class FakeFoundry:
                 fake.requests.append((dict(self.headers), body))
                 time.sleep(fake.delay)
                 status = 400 if fake.reject_reasoning and "reasoning" in body else fake.status
-                reply = {"output": [{"type": "message", "content": [
-                    {"type": "output_text", "text": fake.answer}]}]} if status == 200 else {"error": "boom"}
-                data = json.dumps(reply).encode()
-                self.send_response(status)
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Content-Length", str(len(data)))
+                if status != 200:
+                    data = json.dumps({"error": {"message": "boom", "type": "fake_error", "code": None}}).encode()
+                    self.send_response(status)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
                 self.end_headers()
-                self.wfile.write(data)
+                try:
+                    self.stream_answer()
+                except OSError:  # the server hung up on us (it has read enough)
+                    pass
+
+            def stream_answer(self):
+                pieces = fake.pieces if fake.pieces is not None else [fake.answer]
+                number = 0
+                for number, piece in enumerate(pieces, 1):
+                    if fake.break_after is not None and number > fake.break_after:
+                        break
+                    event(self, "response.output_text.delta", number, item_id="msg_1", output_index=0,
+                          content_index=0, delta=piece)
+                    time.sleep(fake.piece_delay)
+                else:
+                    event(self, "response.completed", number + 1, response=response_object("".join(pieces), "completed"))
+                    return
+                if fake.break_with == "failed":
+                    event(self, "response.failed", number + 1, response=response_object("", "failed"))
+                elif fake.break_with == "incomplete":
+                    event(self, "response.incomplete", number + 1, response=response_object("", "incomplete"))
+                elif fake.break_with == "error":
+                    event(self, "error", number + 1, code="server_error", message="boom", param=None)
 
             def log_message(self, *args):
                 pass
 
         self.http = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        self.url = f"http://127.0.0.1:{self.http.server_port}/openai/v1/responses"
+        self.url = f"http://127.0.0.1:{self.http.server_port}/openai/v1"  # the openai package's base_url
         threading.Thread(target=self.http.serve_forever, daemon=True).start()
 
     def stop(self):

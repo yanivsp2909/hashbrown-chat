@@ -217,8 +217,11 @@ class Browser:
         status, body = self.send({"type": "line", "text": text})
         assert status == 202, f"sending {text!r} failed: {status} {body}"
 
-    def auth(self, username, password, action="login"):
-        status, body = self.send({"type": "auth", "action": action, "username": username, "password": password})
+    def auth(self, username, password, action="login", features=None):
+        packet = {"type": "auth", "action": action, "username": username, "password": password}
+        if features is not None:
+            packet["features"] = features
+        status, body = self.send(packet)
         assert status == 202, f"auth send failed: {status} {body}"
         return self.stream.wait_for(lambda e: e["data"].get("type") == "auth_result", what="auth_result")["data"]
 

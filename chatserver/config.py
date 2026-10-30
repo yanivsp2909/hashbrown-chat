@@ -54,6 +54,7 @@ MIN_MOVES_FOR_BONUS = 2          # moves EACH player must make before a resign/d
 
 # Protection against broken or abusive connections
 MAX_CONNECTIONS = 200            # connections at the same time
+MAX_FEATURES, MAX_FEATURE_LENGTH = 8, 20   # the optional "features" list in the login packet
 MAX_LOGIN_LINE = 64 * 1024       # biggest message from someone who hasn't logged in yet
 LOGIN_TIMEOUT = 120              # seconds a new connection has to log in (in total)
 OUTBOX_LIMIT = 1000              # messages waiting for one person; more = they stopped reading, disconnect them

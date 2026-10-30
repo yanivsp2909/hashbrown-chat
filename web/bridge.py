@@ -17,6 +17,7 @@ from collections import deque
 MAX_LINE = 4 * 1024 * 1024   # same limit as the chat server
 MAX_TEXT = 500               # longest chat line the server accepts
 MAX_FILE_B64 = 2_800_000     # a 2 MB file after base64
+MAX_FEATURES, MAX_FEATURE_LENGTH = 8, 20   # the optional "features" list in the login packet
 LOG_MAX_EVENTS = 1000        # events kept per session for replay after a reload
 LOG_MAX_BYTES = 6 * 1024 * 1024
 DETACHED_GRACE = 90          # seconds a session lives with no tab attached (reload / phone in pocket)
@@ -70,6 +71,14 @@ def clean(value, limit, what):
     return value
 
 
+def clean_features(value):
+    """The optional list of short feature names (same limits as the chat server: 8 names, 20 characters)."""
+    if (not isinstance(value, list) or len(value) > MAX_FEATURES
+            or not all(isinstance(f, str) and len(f) <= MAX_FEATURE_LENGTH for f in value)):
+        raise BridgeError(400, "Features must be a short list of short words.")
+    return value
+
+
 def validate(msg, logged_in):
     """Turn what the browser sent into a fresh dict with only the fields the chat server knows."""
     if not isinstance(msg, dict):
@@ -80,9 +89,12 @@ def validate(msg, logged_in):
             raise BridgeError(400, "You're already logged in.")
         if msg.get("action") not in ("login", "register"):
             raise BridgeError(400, "Bad login request.")
-        return {"type": "auth", "action": msg["action"],
+        auth = {"type": "auth", "action": msg["action"],
                 "username": clean(msg.get("username"), 64, "Username"),
                 "password": clean(msg.get("password"), 128, "Password")}
+        if "features" in msg:   # optional: what this browser understands, like ["stream"]
+            auth["features"] = clean_features(msg["features"])
+        return auth
     if kind not in ("line", "file"):
         raise BridgeError(400, "Unknown message type.")
     if not logged_in:

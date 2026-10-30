@@ -20,6 +20,7 @@ class Client:
         self.address = address
         self.key = None          # login name once logged in
         self.room = "lobby"
+        self.features = frozenset()  # optional things this client understands, like "stream" (set at login)
         self.quitting = False
         self.login_deadline = time.time() + config.LOGIN_TIMEOUT  # strangers must log in before this
         self.recent = deque()    # times of recent messages, for spam protection

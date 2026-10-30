@@ -29,10 +29,10 @@ class TestThinkingNotice(unittest.TestCase):
         cls.stack.stop()
         cls.foundry.stop()
 
-    def tab(self):
+    def tab(self, features=None):
         browser = Browser(self.stack.web_port)
         self.addCleanup(browser.close)
-        self.assertTrue(browser.auth(next(names), PASSWORD, "register")["ok"])
+        self.assertTrue(browser.auth(next(names), PASSWORD, "register", features)["ok"])
         browser.wait(is_msg(type_="history"), what="the lobby history")
         return browser
 
@@ -53,6 +53,44 @@ class TestThinkingNotice(unittest.TestCase):
         while answer.get("name") != "Hashbrown":
             answer = tab.wait(is_msg(type_="chat"), what="Hashbrown's chat message")
         self.assertEqual(answer["replaces"], thinking["temp_id"])
+
+    # ----- streaming: a tab that logged in with features=["stream"] gets the live pieces
+
+    def set_pieces(self, pieces):
+        self.foundry.pieces = pieces
+        self.addCleanup(setattr, self.foundry, "pieces", None)
+
+    def test_stream_packets_reach_the_browser_then_the_final_message(self):
+        self.set_pieces(["Hello ", "from ", "the stream"])
+        tab = self.tab(["stream"])
+        tab.line("@hashbrown hi")
+        thinking = tab.wait(is_msg("🥔 Hashbrown is thinking"), what="the thinking notice")
+        first = tab.wait(is_msg(type_="stream"), what="the first stream packet")
+        self.assertEqual(first["replaces"], thinking["temp_id"])
+        self.assertEqual(first["stream_id"], thinking["temp_id"])
+        final = tab.wait(lambda e: e["data"].get("type") == "chat" and e["data"].get("name") == "Hashbrown",
+                         what="Hashbrown's final message")
+        self.assertEqual(final["stream_id"], thinking["temp_id"])
+        self.assertTrue(final["done"])
+        self.assertEqual(final["text"], "Hello from the stream")
+        pieces = [e["data"]["append"] for e in tab.stream.seen if e["data"].get("type") == "stream"]
+        self.assertEqual("".join(pieces), "Hello from the stream")
+
+    def test_a_tab_without_features_gets_no_stream_packets(self):
+        self.set_pieces(["Hello ", "from ", "the stream"])
+        tab = self.tab()
+        tab.line("@hashbrown hi")
+        final = tab.wait(lambda e: e["data"].get("name") == "Hashbrown", what="Hashbrown's message")
+        self.assertEqual(final["text"], "Hello from the stream")
+        self.assertFalse([e for e in tab.stream.seen if e["data"].get("type") == "stream"])
+
+    def test_bad_features_are_refused_by_the_bridge(self):
+        browser = Browser(self.stack.web_port)
+        self.addCleanup(browser.close)
+        for bad in ("stream", ["x" * 21], ["a"] * 9, [1]):
+            status, _ = browser.send({"type": "auth", "action": "login", "username": "nobody1",
+                                      "password": PASSWORD, "features": bad})
+            self.assertEqual(status, 400, bad)
 
 
 if __name__ == "__main__":
