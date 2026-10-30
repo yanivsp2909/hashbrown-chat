@@ -58,13 +58,15 @@ def send_room(room, obj, exclude=None):
     chat of their OTHER rooms, and every packet tells them which room it's from with "room"."""
     tagged = {**obj, "room": room}
     for c in list(state.online.values()):
-        if c is exclude:
-            continue
-        switcher = "rooms" in c.features
-        if c.room == room:
-            c.send(tagged if switcher else obj)
-        elif switcher and obj.get("type") == "chat" and is_member(c.key, room):
-            c.send(tagged)
+        if c is not exclude and gets_it(c, room, obj):
+            c.send(tagged if "rooms" in c.features else obj)
+
+
+def gets_it(client, room, obj):
+    """Everyone in the room; and chat switcher clients also get the chat of their other rooms."""
+    if client.room == room:
+        return True
+    return "rooms" in client.features and obj.get("type") == "chat" and is_member(client.key, room)
 
 
 def send_room_list(key):

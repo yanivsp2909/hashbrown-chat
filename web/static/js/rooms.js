@@ -5,23 +5,29 @@
 // the room you're looking at are shown as usual; the others only count as unread (and give a preview).
 // Clicking a room sends /join (or /lobby): the server moves you and sends that room's history.
 
-import { $, clear, el } from "./dom.js";
+import { $, clear, el, str } from "./dom.js";
+import { removeStream, removeTemp } from "./chat.js";
 import { sendLine } from "./api.js";
 import { getState, setState, subscribe } from "./store.js";
 import { refresh } from "./online.js";
 
 const PREVIEW = 60;   // characters of the last message shown under a room's name
 
-/** A packet from the server. Returns true if it belongs to another room (so the chat shouldn't show it). */
+const previewOf = (msg) => `${String(msg.name ?? "")}: ${String(msg.text ?? "")}`.slice(0, PREVIEW);
+
+/** A packet from the server. Returns true if it belongs to another room: then it's only counted as unread
+ *  (and it still clears that room's "thinking..." card or live answer if you were there when it started). */
 export function fromOtherRoom(msg, live) {
   const { currentRoom } = getState();
   // (a "history" packet's "room" is the room's title, not its key: it's always for the room you're in)
   if (msg.type === "history" || typeof msg.room !== "string" || !currentRoom || msg.room === currentRoom) return false;
+  if (msg.replaces) removeTemp(str(msg.replaces));
+  if (msg.stream_id) removeStream(str(msg.stream_id));
   if (msg.type === "chat" && live) {   // a replay after a reload doesn't count twice
     const { unread, previews } = getState();
     setState({
       unread: { ...unread, [msg.room]: (unread[msg.room] || 0) + 1 },
-      previews: { ...previews, [msg.room]: `${String(msg.name ?? "")}: ${String(msg.text ?? "")}`.slice(0, PREVIEW) },
+      previews: { ...previews, [msg.room]: previewOf(msg) },
     });
   }
   return true;
@@ -32,14 +38,17 @@ export function setRooms(msg) {
   const rooms = Array.isArray(msg.rooms) ? msg.rooms.filter((r) => r && typeof r.key === "string") : [];
   const current = typeof msg.current === "string" ? msg.current : "lobby";
   if (current !== getState().currentRoom) refresh("users");   // the Online list shows where people are
-  setState({ rooms, currentRoom: current, unread: { ...getState().unread, [current]: 0 } });
+  // Only keep counts for rooms still in the list (a new group with an old name starts fresh)
+  const keep = (table) => Object.fromEntries(rooms.filter((r) => r.key in table).map((r) => [r.key, table[r.key]]));
+  const { unread, previews } = getState();
+  setState({ rooms, currentRoom: current, unread: { ...keep(unread), [current]: 0 }, previews: keep(previews) });
 }
 
 /** A message from the room you're in: remember it as that room's preview. */
 export function notePreview(msg) {
   const { currentRoom, previews } = getState();
   if (msg.type === "chat" && currentRoom) {
-    setState({ previews: { ...previews, [currentRoom]: `${String(msg.name ?? "")}: ${String(msg.text ?? "")}`.slice(0, PREVIEW) } });
+    setState({ previews: { ...previews, [currentRoom]: previewOf(msg) } });
   }
 }
 
