@@ -112,7 +112,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 
 | # | Item | Status |
 |---|---|---|
-| R8 | Admin password from the Keychain | not started |
+| R8 | Admin password from the Keychain | done: `ADMIN_PASSWORD = "123"` removed from config.py (it was in the public repo: don't reuse 123); the password only comes from HASHBROWN_ADMIN_PASSWORD, which start.sh loads from the Keychain item "hashbrown-admin" (warning line if missing); any length works, under 8 gets one startup warning (no value, no length printed); none = /admin off. start.sh only syntax-checked (zsh -n), never run |
 
 ### Part C: bug-hunt items
 

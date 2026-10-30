@@ -106,19 +106,21 @@ def test_unknown_usernames_take_as_long_as_real_ones(connect, monkeypatch):
 
 # ---------------------------------------------------------------- D5: /admin
 
-def test_admin_works_with_the_password_at_the_top(user):
+def test_no_password_in_the_code_so_admin_is_off_without_the_environment(user):
+    """The repo is public: the password only comes from HASHBROWN_ADMIN_PASSWORD (start.sh reads it from the
+    Keychain). Without it /admin is off, and the old built-in "123" doesn't work."""
+    assert not hasattr(config, "ADMIN_PASSWORD")
     adi = user("Adi")
     adi.line("/admin 123")
-    adi.expect_text("You're now an admin", kind="event")
-    assert state.accounts["adi"]["admin"]
-
-
-def test_admin_is_disabled_while_the_password_is_empty(user, monkeypatch):
-    monkeypatch.setattr(config, "ADMIN_PASSWORD", "")
-    adi = user("Adi")
-    adi.line("/admin ")
     adi.expect_text("disabled", kind="error")
     assert not state.accounts["adi"]["admin"]
+
+
+def test_a_short_password_works_too(user, monkeypatch):
+    monkeypatch.setenv("HASHBROWN_ADMIN_PASSWORD", "abc")
+    adi = user("Adi")
+    adi.line("/admin abc")
+    adi.expect_text("You're now an admin", kind="event")
 
 
 def test_admin_password_can_come_from_the_environment(user, monkeypatch):
@@ -147,17 +149,23 @@ def startup_output(capsys):
     return capsys.readouterr().out
 
 
-@pytest.mark.parametrize("password", [None, "long-test-password"])
+@pytest.mark.parametrize("password", ["long-test-password", "abc12"])
 def test_startup_never_prints_the_admin_password(monkeypatch, capsys, password):
-    if password:
-        monkeypatch.setenv("HASHBROWN_ADMIN_PASSWORD", password)
-    secret = password or config.ADMIN_PASSWORD
-    assert secret not in startup_output(capsys)
+    monkeypatch.setenv("HASHBROWN_ADMIN_PASSWORD", password)
+    assert password not in startup_output(capsys)
 
 
-def test_startup_says_how_to_turn_admin_on_when_the_password_is_empty(monkeypatch, capsys):
-    monkeypatch.setattr(config, "ADMIN_PASSWORD", "")
-    assert "HASHBROWN_ADMIN_PASSWORD" in startup_output(capsys)
+def test_a_short_password_gets_one_warning_line_at_startup(monkeypatch, capsys):
+    monkeypatch.setenv("HASHBROWN_ADMIN_PASSWORD", "abc12")
+    out = startup_output(capsys)
+    assert len([line for line in out.splitlines() if "shorter than 8" in line]) == 1 and "abc12" not in out
+    monkeypatch.setenv("HASHBROWN_ADMIN_PASSWORD", "long-test-password")
+    assert "shorter than 8" not in startup_output(capsys)
+
+
+def test_startup_says_how_to_turn_admin_on_when_there_is_no_password(capsys):
+    out = startup_output(capsys)
+    assert "HASHBROWN_ADMIN_PASSWORD" in out and "hashbrown-admin" in out
 
 
 def test_taking_over_tells_your_old_group_that_you_left(connect, user):

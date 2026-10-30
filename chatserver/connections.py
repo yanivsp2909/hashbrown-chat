@@ -189,9 +189,13 @@ def start_server(host=config.HOST, port=config.PORT, run_loops=True, run_console
     if not storage.load_data():
         return None
     state.hashbrown = hashbrown_ai.load_hashbrown()
-    if config.admin_password() == config.DEFAULT_ADMIN_PASSWORD:  # never print the password itself
-        textutil.log("[SERVER] 🔒 /admin is off. To turn it on, set the HASHBROWN_ADMIN_PASSWORD environment "
-                     "variable (or put a password in ADMIN_PASSWORD in chatserver/config.py).")
+    password = config.admin_password()   # never print the password itself, not even its length
+    if password == config.DEFAULT_ADMIN_PASSWORD:
+        textutil.log("[SERVER] 🔒 /admin is off. To turn it on, save a password in the Mac Keychain as "
+                     "\"hashbrown-admin\" (start.sh loads it) or set the HASHBROWN_ADMIN_PASSWORD environment variable.")
+    elif len(password) < config.ADMIN_PASSWORD_WARN_UNDER:
+        textutil.log(f"[SERVER] ⚠️ The admin password is shorter than {config.ADMIN_PASSWORD_WARN_UNDER} characters. "
+                     "It works, but a longer one is much harder to guess.")
     loops = (([background.income_loop, background.quiz_loop, background.qotd_loop] if run_loops else [])
              + ([background.console_loop] if run_console else []))
     for loop in loops:

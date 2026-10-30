@@ -102,10 +102,11 @@ LOGIN_LOCK_SECONDS = 300                       # ...lock that username for 5 min
 HASHING_AT_ONCE = 4              # password checks running at the same time (they're slow on purpose)
 ACCEPT_WAKEUP = 1                # seconds; the accept loop wakes up this often (so Ctrl+C works on Windows)
 
-# /admin <password> makes your account an admin. Change it here, or set the
-# HASHBROWN_ADMIN_PASSWORD environment variable (that one wins). An empty password switches /admin off.
+# /admin <password> makes your account an admin. The password is NOT in this file (the repo is public): it comes
+# from the HASHBROWN_ADMIN_PASSWORD environment variable, which start.sh loads from the Mac Keychain item
+# "hashbrown-admin". No password: /admin is off.
 DEFAULT_ADMIN_PASSWORD = ""
-ADMIN_PASSWORD = "123"
+ADMIN_PASSWORD_WARN_UNDER = 8    # a shorter password still works, but the server warns once at startup
 ADMIN_FAIL_LIMIT, ADMIN_FAIL_WINDOW = 3, 600   # 3 wrong /admin tries by ANYONE in 10 minutes locks /admin
 ADMIN_TOKENS = 1000              # what /admintokens gives
 
@@ -146,5 +147,5 @@ SLOT_SYMBOLS = ["🍒", "🍋", "🍇", "🔔", "⭐", "💎"]
 # ----- 🛠️ Admin
 
 def admin_password():
-    """HASHBROWN_ADMIN_PASSWORD wins, otherwise ADMIN_PASSWORD. Never print this."""
-    return os.environ.get("HASHBROWN_ADMIN_PASSWORD", "").strip() or ADMIN_PASSWORD
+    """The HASHBROWN_ADMIN_PASSWORD environment variable, or "" (= /admin is off). Never print this."""
+    return os.environ.get("HASHBROWN_ADMIN_PASSWORD", "").strip()
