@@ -15,6 +15,11 @@
   /vote number                     vote in the room's poll
   /endpoll                         close your poll and show who won
 
+👤 Profile
+  /profile [name]                  someone's profile card 👤 (yours without a name)
+  /setprofile field value          change your profile (avatar, bio, status...)
+  /password old new                change your password (the old one first) 🔑
+
 👥 Groups
   /groups                          list all groups
   /create name [private]           new group (50 🪙)

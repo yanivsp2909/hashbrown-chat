@@ -18,7 +18,8 @@ const REFRESH_EVERY = 60_000;
 let sendLine = async () => null;
 let youAskedAt = { users: 0, balance: 0 };   // when you typed /users or /balance yourself
 let last = { users: 0, balance: 0 };         // when we last asked in the background
-let nextFree = 0;                            // the earliest time the next background question may go
+let nextFree = 0;   // the earliest time the next background question may go
+let hooks = { onProfile: () => {} };   // 👤 clicking a name opens their profile
 const timers = {};
 
 async function ask(kind) {
@@ -67,7 +68,9 @@ function personRow(person, me, { onChallenge, onMessage }) {
   return el("li", { class: "person" },
     el("span", { class: `avatar ${nameClass(person.name)}`, "aria-hidden": "true", text: initial(person.name) }),
     el("span", { class: "person-main" },
-      el("span", { class: "person-name", title: person.shown }, person.shown, isMe ? el("span", { class: "you", text: " (you)" }) : null),
+      el("button", { class: "person-name person-name-btn", type: "button", title: person.shown, "data-key": `profile:${person.name}`,
+        "aria-label": `${person.shown}${isMe ? " (you)" : ""}: profile`, onclick: () => hooks.onProfile(person.name) },
+      person.shown, isMe ? el("span", { class: "you", text: " (you)" }) : null),
       el("span", { class: "person-room", text: where })),
     isMe ? null : el("span", { class: "person-actions" },
       el("button", { class: "mini-btn", type: "button", "aria-label": `Challenge ${person.name}`, title: "Challenge",
@@ -80,6 +83,7 @@ function personRow(person, me, { onChallenge, onMessage }) {
 
 export function initOnline(options) {
   sendLine = options.sendLine;
+  hooks = options;
   $("online-refresh").addEventListener("click", () => {
     last = { ...last, users: 0 };   // you asked: don't wait for the usual gap
     refresh("users");

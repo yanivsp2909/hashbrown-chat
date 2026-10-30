@@ -3,7 +3,7 @@
 """
 from datetime import datetime
 
-from chatserver import chat, config, history, quests, receipts, registry, reminders, rooms, state, storage
+from chatserver import chat, config, history, profiles, quests, receipts, registry, reminders, rooms, state, storage
 
 
 # ----- 💬 Chat
@@ -38,6 +38,10 @@ def cmd_send(client, args):
         client.say("Usage: /send name message", "error")
         return
     offline = rooms.find_account(parts[0])
+    refusal = profiles.dm_refusal(client.key, offline) if offline is not None and offline != client.key else None
+    if refusal:   # 👤 their privacy setting
+        client.say(refusal, "error")
+        return
     if offline is not None and offline not in state.online:
         keep_for_later(client, offline, parts[1])
         return

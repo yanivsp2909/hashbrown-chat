@@ -359,6 +359,12 @@ export function onGroupInfo(msg) {
   if (first) $("gs-details-title")?.focus();
 }
 
+/** 🔁 After a (re)login the server doesn't know the screen is open: tell it again. */
+export function resync() {
+  if (view === "") send({ type: "get_groups" });
+  else if (view) send({ type: "get_group", group: view });
+}
+
 /** After logout: closed and empty. */
 export function resetGroups() {
   view = null;

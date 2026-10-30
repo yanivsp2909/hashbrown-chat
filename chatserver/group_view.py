@@ -82,11 +82,25 @@ def war_status(key):
     return None
 
 
+_bank_cache = {}   # group key -> (balance, when, history, donors, chart): the SQLite part, reused for a while
+
+
 def bank(key, group):
+    """The bank view. Its database part is read again only when the balance changed or BANK_CACHE_SECONDS passed
+    (the 1-second refresh mustn't hit the disk every time)."""
     online = [m for m in group["members"] if m in state.online]
+    cached = _bank_cache.get(key)
+    if cached is None or cached[0] != group["bank"] or time.time() - cached[1] > config.BANK_CACHE_SECONDS:
+        cached = (group["bank"], time.time(), bank_log.recent(key), bank_log.top_donors(key), bank_log.chart(key))
+        _bank_cache[key] = cached
+    _, _, history, donors, chart = cached
     return {"balance": group["bank"], "per_minute": config.GROUP_INCOME if online else 0,
             "members_online": len(online), "income_upgrade": "income" in group["upgrades"],
-            "history": bank_log.recent(key), "top_donors": bank_log.top_donors(key), "chart": bank_log.chart(key)}
+            "history": history, "top_donors": donors, "chart": chart}
+
+
+def forget_bank(key):
+    _bank_cache.pop(key, None)
 
 
 def details(key, viewer):

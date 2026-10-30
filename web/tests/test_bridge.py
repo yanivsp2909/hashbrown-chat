@@ -409,6 +409,19 @@ class TestResume(BridgeTestCase):
         self.assertEqual(c.send({"type": "auth", "action": "resume", "username": a_name, "token": token, "seq": "x"})[0], 400)
 
 
+class TestProfiles(BridgeTestCase):
+    def test_profiles_and_password_changes_go_through_the_bridge(self):
+        a = self.tab()
+        name = next(names)
+        self.assertTrue(a.auth(name, PASSWORD, "register", ["profiles"])["ok"])
+        mine = a.wait(lambda e: e["data"].get("type") == "profile", what="my profile at login")
+        self.assertTrue(mine["mine"])
+        self.assertEqual(a.send({"type": "get_profile", "name": name})[0], 202)
+        self.assertEqual(a.send({"type": "change_password", "old": PASSWORD, "new": "another77"})[0], 202)
+        a.wait(is_msg("🔑 Password changed"), what="the password change")
+        self.assertEqual(a.send({"type": "change_password", "old": PASSWORD})[0], 400)
+
+
 class TestGroupsScreen(BridgeTestCase):
     def test_the_groups_packets_go_through_the_bridge(self):
         a, _ = self.user()

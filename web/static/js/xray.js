@@ -49,7 +49,9 @@ function announce(text) {
 }
 
 function packetRow(dir, packet, wireText) {
-  const shown = packet.type === "auth" ? JSON.stringify({ ...packet, password: "•••", ...(packet.token ? { token: "•••" } : {}) }) : wireText;
+  const secret = packet.type === "auth" || packet.type === "change_password";   // never show a password
+  const shown = secret ? JSON.stringify({ ...packet, ...(packet.password ? { password: "•••" } : {}), ...(packet.token ? { token: "•••" } : {}),
+    ...(packet.old ? { old: "•••", new: "•••" } : {}) }) : wireText;
   return el("li", { class: "xray-row" },
     head(dir, String(packet.type ?? "?"), `${bytesOf(wireText) + 1} B`, clock(Date.now() / 1000)),
     el("pre", { class: "xray-body", text: shown }));

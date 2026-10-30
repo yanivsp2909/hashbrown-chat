@@ -545,6 +545,7 @@ def reconnect():
                 old.close()
                 console.out(paint("🔁 Reconnected! Here's what you missed:", KIND_COLORS["money"]))
                 return messages
+            sock.close()   # it closed before answering: try again
         except OSError:
             sock.close()
     return None

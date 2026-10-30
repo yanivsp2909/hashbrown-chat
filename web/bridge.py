@@ -85,6 +85,7 @@ def clean_features(value):
 
 # What a browser may send (everything else is refused before it reaches the chat server)
 BROWSER_PACKETS = ("line", "file", "ping", "typing", "typing_stop", "seen", "get_groups", "get_group", "groups_closed",
+                   "get_profile", "change_password",
                    "react", "edit", "delete",
                    "file_start", "file_chunk", "file_cancel")
 
@@ -113,6 +114,11 @@ def validate(msg, logged_in):
         raise BridgeError(403, "Log in first.")
     if kind in ("typing", "typing_stop"):   # ⌨️ no fields at all
         return {"type": kind}
+    if kind == "get_profile":   # 👤 someone's profile card, by name
+        return {"type": "get_profile", "name": clean(msg.get("name"), 16, "Name")}
+    if kind == "change_password":   # 👤 the old password first, then the new one (the server checks both)
+        return {"type": "change_password", "old": clean(msg.get("old"), 128, "Password"),
+                "new": clean(msg.get("new"), 128, "Password")}
     if kind in ("get_groups", "groups_closed"):   # 👥 the Groups screen: no fields
         return {"type": kind}
     if kind == "get_group":   # 👥 one group, by its key (a group name in lowercase)
@@ -329,7 +335,7 @@ class Session:
                     raise BridgeError(429, "⏳ Still checking your last try…")
                 self.auth_pending = True
         with self.send_lock:
-            if clean_msg["type"] != "auth":   # a login carries a password: never echo that, not even to yourself
+            if clean_msg["type"] not in ("auth", "change_password"):   # passwords: never echoed, not even to yourself
                 self._xray("out", line)
             try:
                 self.sock.sendall(line)

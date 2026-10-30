@@ -5,7 +5,7 @@ import json
 import os
 import time
 
-from chatserver import config, qotd, reminders, state, textutil
+from chatserver import config, profiles, qotd, reminders, state, textutil
 
 
 # ---------------------------------------------------------------- saving / loading
@@ -33,6 +33,8 @@ def load_data():
     # Files saved by an older version are missing the newer fields: fill them in
     for account in state.accounts.values():
         account.setdefault("created", 0)   # made before we kept the time: certainly older than a day
+        for field, default in profiles.defaults().items():   # 👤 profiles came later too
+            account.setdefault(field, default)
         for field, default in new_account("", "", "").items():
             account.setdefault(field, default)
     for key, group in state.groups.items():
@@ -79,7 +81,8 @@ def new_account(username, salt, digest):
             "admin": False, "joined": textutil.today(), "elo": config.START_ELO,
             "inbox": [],   # 📬 private messages that came while they were offline
             "created": time.time(),   # 🎁 when it was made: new accounts can't /give yet
-            "given": ["", 0]}         # 🎁 [day, tokens given with /give that day]
+            "given": ["", 0],         # 🎁 [day, tokens given with /give that day]
+            **profiles.defaults()}    # 👤 avatar, bio, status, colour, favourite game, theme, privacy
 
 
 def new_group(name, owner, private):

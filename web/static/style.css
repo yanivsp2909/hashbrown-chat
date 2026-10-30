@@ -770,3 +770,35 @@ a { color: var(--gold); text-underline-offset: 3px; }
   .gs-head .gs-chip { margin-inline-start: 52px; }
 }
 @media (pointer: coarse) { .gs-tool, .gs-select, .gs-small, .gs-name { min-height: 44px; } }
+
+/* ----- 👤 profile card and editor (dialogs) */
+.pf-dialog { width: min(480px, calc(100vw - 32px)); position: relative; }
+.pf-close { position: absolute; top: 14px; inset-inline-end: 14px; }
+.pf-head { display: flex; align-items: center; gap: 14px; padding-inline-end: 48px; }
+.pf-avatar {
+  display: grid; place-items: center; width: 64px; height: 64px; flex: none; border-radius: 50%;
+  background: var(--crust); border: 1px solid var(--crust-line); font-size: 32px; font-weight: 800;
+}
+.pf-name { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.015em; overflow-wrap: anywhere; }
+.pf-login { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.pf-rows { margin: 16px 0 0; display: grid; gap: 8px; }
+.pf-row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; }
+.pf-row dt { color: var(--muted); font-size: 13px; font-weight: 650; }
+.pf-row dd { margin: 0; overflow-wrap: anywhere; }
+.pf-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+.pf-form { display: grid; gap: 12px; max-height: calc(86vh - 40px); overflow-y: auto; padding: 2px; }
+.pf-form h2 { margin: 0; font-size: 20px; }
+.pf-form textarea { width: 100%; padding: 10px 14px; background: var(--bg-deep); border: 1px solid var(--line); border-radius: var(--radius-sm); resize: vertical; font: inherit; color: inherit; }
+.pf-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pf-fieldset { margin: 0; padding: 10px 12px 12px; border: 1px solid var(--line-soft); border-radius: 12px; display: grid; gap: 10px; }
+.pf-fieldset legend { padding: 0 6px; font-size: 13px; font-weight: 700; color: var(--text-2); }
+.pf-colours { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf-swatch { position: relative; display: inline-grid; place-items: center; min-width: 44px; height: 36px; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; font-weight: 800; cursor: pointer; }
+.pf-swatch input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.pf-swatch:has(input:checked) { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-soft); }
+.pf-swatch:has(input:focus-visible) { outline: 2px solid var(--gold); outline-offset: 2px; }
+.person-name-btn { padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-align: start; cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.person-name-btn:hover { text-decoration: underline; text-decoration-color: var(--gold); text-underline-offset: 3px; }
+.msg-head .who { cursor: pointer; }
+@media (max-width: 760px) { .pf-two { grid-template-columns: 1fr; } }

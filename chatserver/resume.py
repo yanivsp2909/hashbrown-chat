@@ -49,18 +49,23 @@ def missed(key, seq):
 
 
 def new_token(key):
+    """A new secret. The one before it still works once more, in case the answer carrying the new one was lost."""
+    old = state.resume_tokens.get(key, {}).get("now")
     token = secrets.token_urlsafe(18)
-    state.resume_tokens[key] = token
+    state.resume_tokens[key] = {"now": token, "before": old}
     return token
 
 
 def token_ok(key, token):
     """The right token, and they went away less than RESUME_SECONDS ago (or still look online)."""
-    good = state.resume_tokens.get(key)
-    if not isinstance(token, str) or not good or not secrets.compare_digest(token.encode(), good.encode()):
+    tokens = state.resume_tokens.get(key, {})
+    if not isinstance(token, str) or not any(
+            good and secrets.compare_digest(token.encode(), good.encode()) for good in (tokens.get("now"), tokens.get("before"))):
         return False
     away = state.away.get(key)
-    return key in state.online or (away is not None and time.time() < away["until"])
+    if key in state.online:
+        return not state.online[key].no_resume   # (being kicked right now: no)
+    return away is not None and time.time() < away["until"]
 
 
 def went_away(client):
@@ -82,6 +87,9 @@ def away_keys():
     for key in [k for k, a in state.away.items() if now >= a["until"]]:
         state.away.pop(key, None)
         state.resume_tokens.pop(key, None)
+        if key not in state.online:
+            with _lock:
+                state.replays.pop(key, None)   # they didn't come back: free the kept packets
     return list(state.away)
 
 

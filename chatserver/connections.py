@@ -12,6 +12,7 @@ from chatserver import (auth, background, chat, config, discovery, group_view, h
                         resume, rooms,
                         session, state, storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
+from chatserver import cmd_profile, profiles
 
 
 # ---------------------------------------------------------------- connections
@@ -23,8 +24,9 @@ def disconnect(client):
             if key and state.online.get(key) is client:
                 rooms.end_typing(client)
                 del state.online[key]
-                if client.quitting:
-                    resume.forget(key)       # /quit: on purpose, no coming back with the token
+                state.accounts[key]["last_seen"] = time.time()   # 👤 "last seen" on profiles
+                if client.quitting or client.no_resume:
+                    resume.forget(key)       # /quit or kicked: no coming back with the token
                 else:
                     resume.went_away(client)   # 🔁 a drop: they may reconnect and catch up
                 group_view.mark_dirty()   # 👥 one fewer online
@@ -132,6 +134,13 @@ def handle_message(client, msg):
         if kind in ("get_groups", "get_group", "groups_closed"):   # 👥 the website's Groups screen
             if kind == "groups_closed" or rooms.spam_ok(client):
                 group_view.handle(client, msg)
+            return
+        if kind in ("get_profile", "change_password"):   # 👤 the website's profile card / edit screen
+            if rooms.spam_ok(client):
+                if kind == "get_profile":
+                    cmd_profile.get_profile(client, msg)
+                elif isinstance(msg.get("old"), str) and isinstance(msg.get("new"), str):
+                    profiles.change_password(client, msg["old"], msg["new"], auth.check_password)
             return
         if kind == "seen":       # ✓✓ the same: one per private message at most
             receipts.seen(client, msg)

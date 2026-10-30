@@ -18,9 +18,10 @@ import { initTyping } from "./js/typing.js";
 import { initEdits, submitEdit } from "./js/edits.js";
 import { showLab, showTopic } from "./js/banners.js";
 import { initGroups, resetGroups } from "./js/groups.js";
+import { initProfiles, resetProfile, saveTheme, showProfile } from "./js/profile.js";
 import * as resume from "./js/resume.js";
 
-const FEATURES = ["stream", "rooms", "typing", "chunks", "offers"];   // what this website understands (told at login)
+const FEATURES = ["stream", "rooms", "typing", "chunks", "offers", "profiles"];   // what this website understands (told at login)
 const RESUME_WAITS = [1, 2, 4, 8, 15, 30, 60];   // 🔁 seconds between tries to reconnect, then we give up
 
 const THEME_KEY = "hashbrown.theme";
@@ -47,14 +48,19 @@ function applyTheme(theme) {
 }
 
 applyTheme(storedTheme() || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
-$("theme-toggle").addEventListener("click", () => {
-  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-  applyTheme(next);
+function rememberTheme(theme) {
   try {
-    localStorage.setItem(THEME_KEY, next);
+    localStorage.setItem(THEME_KEY, theme);
   } catch {
     // private mode: the choice just isn't remembered
   }
+}
+
+$("theme-toggle").addEventListener("click", () => {
+  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  applyTheme(next);
+  rememberTheme(next);
+  saveTheme(next);   // 👤 on the server too, so your other devices follow
 });
 
 // ----- drawers (sidebar on phones, game panel on smaller laptops)
@@ -119,6 +125,7 @@ function resetChat() {
   closeDrawer();
   resetOnline();
   resetGroups();
+  resetProfile();
   resetCommands();
   setState({ nick: "", room: "🏠 Lobby", commands: [], match: null, wordle: null, invites: [], online: null, balance: null,
     currentRoom: "", rooms: [], unread: {}, previews: {} });   // 💬 the next login starts with a clean switcher
@@ -276,9 +283,16 @@ initXray();
 initTyping();
 initEdits();
 initRooms({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
+initProfiles({
+  onError: showError,
+  applyTheme: (theme) => { applyTheme(theme); rememberTheme(theme); },
+  onMessage: (name) => focusInput(`/send ${name} `),
+  onChallenge: (name) => { if (narrow.matches) setDrawer("side"); focusChallenge(name); },
+});
 initGroups({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
 initOnline({
   sendLine: api.sendLine,
+  onProfile: (name) => showProfile(name),
   onChallenge: (name) => {
     if (!narrow.matches) closeDrawer();
     focusChallenge(name);

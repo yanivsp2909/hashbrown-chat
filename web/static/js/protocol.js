@@ -15,6 +15,7 @@ import { startsNewList } from "./roomlogic.js";
 import { showLab, showTopic } from "./banners.js";
 import { applyReceipt } from "./receipts.js";
 import * as groups from "./groups.js";
+import * as profile from "./profile.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
 import * as bigfiles from "./bigfiles.js";
@@ -87,6 +88,7 @@ function onAuthResult(msg, live, sendLine) {
     return;
   }
   if (msg.resumed === true && live) chat.addNotice("system", "🔁 Reconnected! You've caught up on what you missed.");
+  if (live) groups.resync();   // 👥 an open Groups screen keeps refreshing
   clearPasswords();
   setState({ screen: "chat" });
   setNick(welcomeNick(text) || pendingUsername);
@@ -112,6 +114,7 @@ function onBoard(msg, text, live) {
 function onServerText(msg, live) {
   const kind = str(msg.kind, "system");
   const text = str(msg.text);
+  if (profile.isQuietSave(text)) return;   // 👤 the Edit profile dialog says so itself
   if (kind === "help") {
     setState({ commands: parseHelp(text) });
     if (live && quietHelp > 0) {
@@ -236,6 +239,8 @@ export function handleMessage(msg, live, sendLine) {
       return live ? typing.someoneTyping(str(msg.name)) : undefined;
     case "lab":
       return showLab(msg);
+    case "profile":
+      return profile.onProfile(msg, live);
     case "groups":
       return groups.onGroups(msg);
     case "group_info":

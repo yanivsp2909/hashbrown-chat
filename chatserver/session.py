@@ -23,11 +23,13 @@ class Client:
         self.room = "lobby"
         self.features = frozenset()  # optional things this client understands, like "stream" (set at login)
         self.quitting = False
+        self.no_resume = False   # 🔁 kicked: no coming back with the resume token
         self.login_deadline = time.time() + config.LOGIN_TIMEOUT  # strangers must log in before this
         self.recent = deque()    # times of recent messages, for spam protection
         # Sending goes through a queue + its own thread, so a slow connection
         # can never freeze the server while it holds the lock.
-        self.outbox = queue.Queue(maxsize=config.OUTBOX_LIMIT)   # (when it was queued, the message)
+        self.outbox = queue.Queue(maxsize=config.OUTBOX_LIMIT)
+        self.send_lock = threading.Lock()   # (when it was queued, the message)
         # 📊 for /netstats: what went over this connection
         self.connected_at = time.time()
         self.packets_in = self.bytes_in = self.packets_out = self.bytes_out = 0
@@ -66,10 +68,11 @@ class Client:
     def send(self, obj, after=None, stamped=False):
         """Queue a message. after() runs (in the writer thread) once it has really gone out.
         Logged in: it gets its 🔁 "seq" number (unless it already has one: a resumed packet)."""
-        if self.key and not stamped:
-            obj = resume.stamp(self.key, obj)
         try:
-            self.outbox.put_nowait((time.monotonic(), obj, after))
+            with self.send_lock:   # the seq number and the place in the queue go together (in order, always)
+                if self.key and not stamped:
+                    obj = resume.stamp(self.key, obj)
+                self.outbox.put_nowait((time.monotonic(), obj, after))
         except queue.Full:
             # They stopped reading. Dropping messages would break their game board, so disconnect them.
             hang_up(self)
@@ -81,6 +84,7 @@ class Client:
     def kick(self, text):
         """Tell them why, then hang up half a second later (so the message gets there first)."""
         self.say(text, "error", kicked=True)   # (🔁 an app shouldn't reconnect by itself after this)
+        self.no_resume = True                   # (and the server won't let it: the token dies on disconnect)
         threading.Timer(0.5 + state.lab_lag_ms / 1000, hang_up, args=(self,)).start()  # the lab may slow it down
 
     def close(self):

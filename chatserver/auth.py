@@ -5,7 +5,7 @@ import hashlib
 import secrets
 import time
 
-from chatserver import config, group_view, offers, reminders, resume, rooms, state, storage, textutil, transfers
+from chatserver import config, group_view, offers, profiles, reminders, resume, rooms, state, storage, textutil, transfers
 
 
 # ---------------------------------------------------------------- passwords
@@ -129,6 +129,8 @@ def handle_auth(client, msg):
         hint = "🥔 Say @hashbrown + a question to ask the AI. " if state.hashbrown else ""
         client.say(f"✨ {hint}Type /help to see everything you can do.")
         rooms.move_to_room(client, "lobby")
+        if "profiles" in client.features:   # 👤 your own profile (the website takes your theme from it)
+            client.send({"type": "profile", "mine": True, "profile": profiles.mine(key)})
         if state.lab_lag_ms or state.lab_loss_percent:
             client.send(rooms.lab_packet())   # 🧪 the network lab is on: show the banner
         rooms.notify_room("lobby", f"👋 {rooms.shown(key)} joined the chat", exclude=client)
@@ -146,7 +148,9 @@ def resume_login(client, msg, username, fail):
     seq = msg.get("seq")
     with state.lock:
         if login_locked(key):
-            return fail("🔒 Too many wrong tries for this account. Try again in 5 minutes.")
+            client.send({"type": "auth_result", "ok": False, "resume_failed": True,
+                         "text": "🔒 Too many wrong tries for this account. Try again in 5 minutes."})
+            return False
         if key not in state.accounts or not isinstance(seq, int) or isinstance(seq, bool) or not resume.token_ok(key, msg.get("token")):
             state.login_fails.setdefault(key, []).append(time.time())
             client.send({"type": "auth_result", "ok": False, "resume_failed": True,

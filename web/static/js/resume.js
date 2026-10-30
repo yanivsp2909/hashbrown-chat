@@ -11,6 +11,7 @@ let kicked = false;
 export function noteLogin(name) {
   username = name;
   kicked = false;
+  lastSeq = 0;   // a password login starts the numbers again (the server may have restarted)
 }
 
 /** Every packet goes through here first. Returns false for one we already have. */
@@ -18,7 +19,10 @@ export function seePacket(msg, live) {
   if (msg.kicked === true) kicked = true;
   if (msg.type === "auth_result") {
     if (msg.ok && typeof msg.resume_token === "string") token = msg.resume_token;
-    if (msg.resume_failed) token = "";
+    if (msg.resume_failed) {
+      token = "";
+      lastSeq = 0;
+    }
   }
   if (!Number.isInteger(msg.seq)) return true;
   if (live && msg.seq <= lastSeq) return false;

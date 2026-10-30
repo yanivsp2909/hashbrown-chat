@@ -55,11 +55,14 @@ def chart(group_key, days=None):
 def snapshot_all(now=None):
     """Once an hour at most, each group's balance becomes a chart point (called every minute)."""
     now = time.time() if now is None else now
+    took = False
     for key in list(state.groups):
         if now - state.bank_snapshots.get(key, 0) >= 3600:
             state.bank_snapshots[key] = now
             record(key, "snapshot", "", 0)
-            prune(now)
+            took = True
+    if took:
+        prune(now)   # once per sweep
 
 
 def prune(now):
@@ -73,6 +76,8 @@ def prune(now):
 def forget(group_key):
     """A disbanded group's history goes with it (a new group with the same name starts empty)."""
     state.bank_snapshots.pop(group_key, None)
+    from chatserver import group_view   # (group_view reads this module: importing it at the top would loop)
+    group_view.forget_bank(group_key)
 
     def wipe(connection):
         connection.execute("DELETE FROM bank_log WHERE grp = ?", (group_key,))

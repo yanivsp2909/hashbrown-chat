@@ -77,14 +77,32 @@ def test_a_wrong_token_is_refused(user, connect):
     assert not result["ok"] and "Log in again" in result["text"]
 
 
-def test_a_token_works_once(user, connect):
+def test_an_old_token_stops_working_once_the_new_one_was_used(user, connect):
+    """The token before the newest still works (the answer that carried the new one may have been lost),
+    but not after the new one was used."""
+    adi = user("Adi")
+    first, seen = login_info(adi)["resume_token"], last_seq(adi)
+    adi.close()
+    back, result = come_back(connect, "Adi", first, seen)
+    second = result["resume_token"]
+    back.close()
+    third_try, result = come_back(connect, "Adi", second, seen)
+    assert result["ok"]
+    third_try.close()
+    _, again = come_back(connect, "Adi", first, seen)
+    assert not again["ok"]
+
+
+def test_a_kicked_client_cant_resume(user, connect):
+    """Code review: a kick (like logging in from another window) ends the token on the server too."""
     adi = user("Adi")
     token, seen = login_info(adi)["resume_token"], last_seq(adi)
-    adi.close()
-    back, _ = come_back(connect, "Adi", token, seen)
-    back.close()
-    _, again = come_back(connect, "Adi", token, seen)
-    assert not again["ok"]
+    with state.lock:
+        state.online["adi"].kick("👢 Bye")
+    user("Ben").line("/users")
+    adi.expect(lambda m: m.get("kicked") is True)
+    _, result = come_back(connect, "Adi", token, seen)
+    assert not result["ok"]
 
 
 def test_too_old_to_resume_logs_in_normally_with_history(user, connect, monkeypatch):
