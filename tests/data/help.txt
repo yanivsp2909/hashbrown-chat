@@ -1,0 +1,79 @@
+📖 COMMANDS
+
+💬 Chat
+  /help                            show this list
+  /users                           who's online and where
+  /send name message               private message 💌
+  /me action                       act it out: * Yaniv dances
+  /nick newname                    change your display name
+  /whois name                      someone's profile
+  /quit                            leave the chat
+
+👥 Groups
+  /groups                          list all groups
+  /create name [private]           new group (50 🪙)
+  /join name                       enter a group (or ask to)
+  /lobby                           go back to the lobby
+  /leave                           quit the group you're in
+  /members                         who's in this group
+  /requests                        join requests (admins)
+  /approve name [group]            let someone in (admins)
+  /reject name [group]             turn down a request (admins)
+
+🛡️ Group admin
+  /kick name                       remove from group
+  /ban name                        kick + can't come back
+  /unban name                      allow back in
+  /mute name [minutes]             silence someone (default 5)
+  /unmute name                     let them talk again
+  /promote name                    make admin (owner)
+  /demote name                     remove admin (owner)
+  /disband                         delete your group (owner)
+
+🏦 Group bank
+  /bank                            the group's bank and upgrades
+  /donate amount                   put your tokens in the group bank
+  /upgrade name                    buy an upgrade with the bank (admins)
+  /groupemoji emoji                set the group emoji (needs 🎨)
+  /topgroups                       richest groups
+
+🪙 Tokens
+  /balance [name]                  how many tokens 🪙
+  /top                             richest players 🏆
+  /give name amount                send tokens to someone
+  /daily                           free tokens every day, more for streaks 🔥
+  /rob name                        40% chance to steal, or pay a fine 🦹
+  /shop                            badges for your name
+  /buy badge                       buy a badge from /shop
+  /badge emoji|off                 wear a badge you own
+  /achievements                    your trophies and how to get the rest
+
+🎰 Casino
+  /coinflip amount heads|tails     double or nothing
+  /dice amount                     2 dice vs the house 🎲
+  /slots amount                    3 same = x10, 💎💎💎 = x25
+
+🎮 Games
+  /games                           what you can play
+  /challenge name game [bet]       invite to a 1v1
+  /accept [name]                   accept a challenge
+  /decline [name]                  say no to a challenge
+  /move ...                        a move (or just type it)
+  /board                           show the board again
+  /resign                          give up the game 🏳️
+  /wordle                          solo word game, win tokens 🟩
+  /g word                          guess in your Wordle
+  /giveup                          quit your Wordle
+
+🛠️ Admin
+  /admin password                  become a server admin
+  /admintokens [name]              admin: +1000 🪙
+
+📁 Files
+  /sendfile name path              send a file (up to 2 MB) 📁
+
+🥔 Hashbrown
+  /ask question                    ask Hashbrown, the AI (20 🪙)
+
+Anything that isn't a command is a chat message to the room you're in.
+🥔 Start a message with @hashbrown to ask the AI (20 🪙).
