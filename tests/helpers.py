@@ -108,6 +108,7 @@ class FakeFoundry:
         self.status = 200
         self.answer = "Hi from fake Hashbrown 🥔"
         self.delay = 0
+        self.reject_reasoning = False  # answer 400 to requests that contain "reasoning"
         self.requests = []  # (headers, body) of every request
         fake = self
 
@@ -116,10 +117,11 @@ class FakeFoundry:
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 fake.requests.append((dict(self.headers), body))
                 time.sleep(fake.delay)
+                status = 400 if fake.reject_reasoning and "reasoning" in body else fake.status
                 reply = {"output": [{"type": "message", "content": [
-                    {"type": "output_text", "text": fake.answer}]}]} if fake.status == 200 else {"error": "boom"}
+                    {"type": "output_text", "text": fake.answer}]}]} if status == 200 else {"error": "boom"}
                 data = json.dumps(reply).encode()
-                self.send_response(fake.status)
+                self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()

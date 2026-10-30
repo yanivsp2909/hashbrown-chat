@@ -30,15 +30,16 @@ hashbrown_busy = 0      # questions being answered right now
 hashbrown_last = {}     # login -> time of their last question
 hashbrown_today = {}    # login -> (date, questions asked that day)
 hashbrown_all_today = ("", 0)  # (date, questions asked by everyone that day)
+hashbrown_no_reasoning = False  # True once the AI said no to the "reasoning" setting: stop sending it
 hashbrown_questions = 0        # counts questions: gives each "thinking" notice its temp_id
 
 
 def reset_state():
     """Forget everything in memory (the tests use this to start each test from zero)."""
-    global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions
+    global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
     with lock:
         for table in (accounts, groups, online, mutes, invites, matches, last_rob, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)
-        hashbrown_questions = 0
+        hashbrown_questions, hashbrown_no_reasoning = 0, False
