@@ -540,7 +540,8 @@ a { color: var(--gold); text-underline-offset: 3px; }
   border: 1px solid transparent; border-radius: 12px; background: none; color: var(--text); text-align: start; cursor: pointer;
 }
 .room-btn:hover { background: var(--panel-2); }
-.room-btn.here { background: var(--panel-2); border-color: var(--line); }
+.room-btn.here { background: var(--panel-2); border-color: var(--line); box-shadow: inset 3px 0 0 var(--gold); }
+:root[data-theme="light"] .room-btn.here { box-shadow: inset 3px 0 0 var(--crisp); }
 .room-main { flex: 1; min-width: 0; display: grid; }
 .room-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .room-preview { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -12,6 +12,25 @@ import { getState, setState, subscribe } from "./store.js";
 import { refresh } from "./online.js";
 
 const PREVIEW = 60;   // characters of the last message shown under a room's name
+const ANNOUNCE_AFTER = 2000;   // ms: new messages in other rooms are announced together, not one by one
+let waiting = {};               // room title -> new messages not announced yet
+let announceTimer = null;
+
+/** One short sentence for screen readers, like "2 new messages in #Potatoes" (never the message text). */
+function announce(text) {
+  $("chat-live").textContent = text;
+}
+
+function announceLater(roomKey) {
+  const room = getState().rooms.find((r) => r.key === roomKey);
+  const title = room ? (room.key === "lobby" ? "the Lobby" : String(room.title || room.name)) : roomKey;
+  waiting = { ...waiting, [title]: (waiting[title] || 0) + 1 };
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => {
+    announce(Object.entries(waiting).map(([t, n]) => `${n} new message${n === 1 ? "" : "s"} in ${t}`).join(", "));
+    waiting = {};
+  }, ANNOUNCE_AFTER);
+}
 
 const previewOf = (msg) => `${String(msg.name ?? "")}: ${String(msg.text ?? "")}`.slice(0, PREVIEW);
 
@@ -29,6 +48,7 @@ export function fromOtherRoom(msg, live) {
       unread: { ...unread, [msg.room]: (unread[msg.room] || 0) + 1 },
       previews: { ...previews, [msg.room]: previewOf(msg) },
     });
+    announceLater(msg.room);
   }
   return true;
 }
@@ -37,7 +57,11 @@ export function fromOtherRoom(msg, live) {
 export function setRooms(msg) {
   const rooms = Array.isArray(msg.rooms) ? msg.rooms.filter((r) => r && typeof r.key === "string") : [];
   const current = typeof msg.current === "string" ? msg.current : "lobby";
-  if (current !== getState().currentRoom) refresh("users");   // the Online list shows where people are
+  if (current !== getState().currentRoom) {
+    refresh("users");   // the Online list shows where people are
+    const room = rooms.find((r) => r.key === current);
+    if (getState().currentRoom && room) announce(`Now in ${current === "lobby" ? "the Lobby" : String(room.title || room.name)}`);
+  }
   // Only keep counts for rooms still in the list (a new group with an old name starts fresh)
   const keep = (table) => Object.fromEntries(rooms.filter((r) => r.key in table).map((r) => [r.key, table[r.key]]));
   const { unread, previews } = getState();
@@ -55,7 +79,7 @@ export function notePreview(msg) {
 function roomRow(room, state, onPick) {
   const isHere = room.key === state.currentRoom;
   const unread = state.unread[room.key] || 0;
-  const title = room.key === "lobby" ? "🌍 Lobby" : String(room.title || room.name);
+  const title = room.key === "lobby" ? "Lobby" : String(room.title || room.name);
   return el("li", {},
     el("button", {
       class: `room-btn${isHere ? " here" : ""}${unread ? " has-unread" : ""}`, type: "button",
@@ -63,10 +87,11 @@ function roomRow(room, state, onPick) {
       onclick: () => onPick(room),
     },
     el("span", { class: "room-main" },
-      el("span", { class: "room-name", dir: "auto", text: title }),
+      el("span", { class: "room-name", dir: "auto" },
+        room.key === "lobby" ? el("span", { "aria-hidden": "true", text: "🌍 " }) : null, title),
       el("span", { class: "room-preview", dir: "auto", text: state.previews[room.key] || (room.key === "lobby" ? "everyone" : "") })),
-    unread ? el("span", { class: "room-unread", text: unread > 99 ? "99+" : String(unread) }) : null,
-    unread ? el("span", { class: "visually-hidden", text: `, ${unread} unread` }) : null));
+    unread ? el("span", { class: "room-unread", "aria-hidden": "true", text: unread > 99 ? "99+" : String(unread) }) : null,
+    unread ? el("span", { class: "visually-hidden", text: `, ${unread} unread message${unread === 1 ? "" : "s"}` }) : null));
 }
 
 export function initRooms({ onError, closeDrawer }) {
@@ -87,6 +112,6 @@ export function initRooms({ onError, closeDrawer }) {
     const focusedKey = list.contains(document.activeElement) ? document.activeElement.dataset.key : null;
     clear(list).append(...state.rooms.map((room) => roomRow(room, state, pick)));
     const again = focusedKey && list.querySelector(`[data-key="${CSS.escape(focusedKey)}"]`);
-    if (again) again.focus();
+    if (again) again.focus({ preventScroll: true });
   });
 }
