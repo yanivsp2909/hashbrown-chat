@@ -26,6 +26,7 @@ transfers = {}  # 📦 big file transfers on their way: their key -> details
 offers = {}     # 📎 files waiting for their receiver to /accept: offer number -> details (see offers.py)
 offer_count = 0   # 📎 the last offer number given out
 replays = {}       # 🔁 login -> {"seq": last number, "items": deque of (time, packet)} (resume.py)
+resume_fails = {}   # 🔁 login -> times of wrong resume tokens (its own lock-out: password logins aren't blocked)
 resume_tokens = {}  # 🔁 login -> the secret that lets them reconnect without the password
 away = {}          # 🔁 login -> {room, features, until}: dropped a moment ago, may come back
 bank_snapshots = {}   # 🏦 group key -> when its balance was last saved as a chart point
@@ -69,7 +70,7 @@ def reset_state():
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
     global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers, offer_count, pm_count, reminders, lobby_topic, hashbrown_tokens, hashbrown_usage, groups_dirty
     with lock:
-        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, drawings, draw_last, bank_snapshots, replays, resume_tokens, away, trivia, war_invites, solo, login_fails,
+        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, drawings, draw_last, bank_snapshots, replays, resume_tokens, resume_fails, away, trivia, war_invites, solo, login_fails,
                       admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)

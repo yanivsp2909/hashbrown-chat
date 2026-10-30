@@ -43,14 +43,16 @@ def missed(key, seq):
         if box is None or seq > box["seq"]:
             return None
         items = [packet for _, packet in box["items"] if packet["seq"] > seq]
-    if seq < box["seq"] and (not items or items[0]["seq"] != seq + 1):
+        last = box["seq"]
+    if seq < last and (not items or items[0]["seq"] != seq + 1):
         return None
     return items
 
 
-def new_token(key):
-    """A new secret. The one before it still works once more, in case the answer carrying the new one was lost."""
-    old = state.resume_tokens.get(key, {}).get("now")
+def new_token(key, fresh=False):
+    """A new secret. The one before it still works once more, in case the answer carrying the new one was lost
+    (fresh=True, a password login: no old token keeps working)."""
+    old = None if fresh else state.resume_tokens.get(key, {}).get("now")
     token = secrets.token_urlsafe(18)
     state.resume_tokens[key] = {"now": token, "before": old}
     return token
@@ -66,6 +68,22 @@ def token_ok(key, token):
     if key in state.online:
         return not state.online[key].no_resume   # (being kicked right now: no)
     return away is not None and time.time() < away["until"]
+
+
+def resume_locked(key):
+    """Too many wrong tokens for this name lately: no resume for a while (a password login still works)."""
+    now = time.time()
+    recent = [t for t in state.resume_fails.get(key, []) if now - t < config.LOGIN_FAIL_WINDOW]
+    if recent:
+        state.resume_fails[key] = recent
+    else:
+        state.resume_fails.pop(key, None)
+    return len(recent) >= config.LOGIN_FAIL_LIMIT
+
+
+def note_failure(key):
+    if key in state.accounts:   # (made-up names aren't remembered: they can't fill the memory)
+        state.resume_fails.setdefault(key, []).append(time.time())
 
 
 def went_away(client):
@@ -96,7 +114,9 @@ def away_keys():
 def record_for_away(room, obj, chat_switcher_member):
     """A room packet that people who just dropped would have got: keep it for their resume."""
     for key in away_keys():
-        away = state.away[key]
+        away = state.away.get(key)
+        if away is None or not chat_switcher_member(key, room):   # (kicked from that group meanwhile: nothing)
+            continue
         here = away["room"] == room
         if here or ("rooms" in away["features"] and obj.get("type") == "chat" and chat_switcher_member(key, room)):
             stamp(key, {**obj, "room": room} if "rooms" in away["features"] else obj)

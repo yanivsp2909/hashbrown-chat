@@ -199,3 +199,57 @@ def test_client_py_reconnects_by_itself_and_catches_up(chat_server, user, monkey
             break
     assert terminal.link["sock"] is not sock and "adi" in state.online
     terminal.link["sock"].close()
+
+
+# ---------------------------------------------------------------- security review
+
+def test_someone_kicked_from_a_private_group_while_away_doesnt_get_its_chat(user, connect):
+    adi, ben = user("Adi"), user("Ben")
+    adi.line("/create Secret private")
+    adi.expect_text("Created")
+    ben.line("/join Secret")
+    ben.expect_text("Request sent")
+    adi.line("/approve Ben Secret")
+    ben.expect_text("accepted into")
+    ben.line("/join Secret")
+    ben.expect(lambda m: m.get("type") == "history" and m.get("key") == "secret")
+    token, seen = login_info(ben)["resume_token"], last_seq(ben)
+    ben.close()
+    adi.expect_text("Ben left")
+    adi.line("/kick Ben")
+    adi.expect_text("kicked")
+    adi.line("secret plans")
+    adi.expect(lambda m: m.get("text") == "secret plans")
+    back, _ = come_back(connect, "Ben", token, seen)
+    back.line("/users")
+    back.expect_text("Online now")
+    assert not [m for m in back.messages if m.get("text") == "secret plans"]
+
+
+def test_wrong_tokens_lock_resume_but_not_the_password_login(user, connect):
+    adi = user("Adi")
+    seen = last_seq(adi)
+    adi.close()
+    for _ in range(config.LOGIN_FAIL_LIMIT):
+        come_back(connect, "Adi", "wrong", seen)
+    _, locked = come_back(connect, "Adi", "wrong", seen)
+    assert "Too many" in locked["text"]
+    user("Adi", action="login")                    # the password still works
+
+
+def test_made_up_names_arent_remembered(connect):
+    for i in range(30):
+        come_back(connect, f"ghost{i}", "x", 1)
+    assert not [k for k in state.resume_fails if k.startswith("ghost")]
+    _, result = come_back(connect, "x" * 40, "x", 1)
+    assert not result["ok"]
+
+
+def test_a_password_change_ends_the_reconnect_token(user, connect):
+    adi = user("Adi")
+    token, seen = login_info(adi)["resume_token"], last_seq(adi)
+    adi.line("/password pass1234 newpass99")
+    adi.expect_text("Password changed")
+    adi.close()
+    _, result = come_back(connect, "Adi", token, seen)
+    assert not result["ok"]

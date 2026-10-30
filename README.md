@@ -29,10 +29,13 @@
 - 🪙 **Tokens**: earn them by being online, with a `/daily` streak, three daily `/quests`, winning games and achievements. Spend them in the badge shop or the casino (fake tokens only). `/give` has limits against farming with extra accounts (not in an account's first 24 hours, at most 500 a day).
 - 🎮 **Games**: Tic-Tac-Toe, Damka (checkers), Math Duel, Connect 4, Battleship and solo Wordle; ELO ratings and `/leaderboard`, `/watch` someone's game. Challenge a friend, with an optional token bet; `/rematch`, and `/claim` if they stop moving.
 - 🥔 **Hashbrown**: an AI member. Type `@hashbrown` in chat, or `/ask` for a private answer; it also comments on your games, judges arguments (`/judge`), translates (`/tr`), gives Wordle hints and asks a question of the day (answer it with `/answer`: the answer with the most reactions wins 50 🪙). Each question costs tokens; you can tip Hashbrown with `/give hashbrown 10`. Without an API key, Hashbrown is simply off.
+- 🔁 **Reconnect and catch up**: if the Wi-Fi drops (or the website restarts), the website and `client.py` log back in by themselves and get exactly the messages they missed, once.
+- 👤 **Profiles**: click a name for a profile card (avatar, status, bio, favourite game, record). Edit yours: avatar, display name, bio, status, name colour, theme (the same on every device), privacy (hide "last seen", who can message you) and your password. Terminal: `/profile`, `/setprofile`, `/password`.
+- 🎨 **Drawing game**: `/draw` gives you a secret word to draw on the website's canvas; the others guess in the chat. Every brush stroke is one small packet (watch them in Packet X-ray).
 - 🌐 **Website**: chat from any phone or laptop on the same Wi-Fi. Light and dark mode, clickable game boards, file sharing.
 - ⌨️ **Terminal client**: `client.py` works in Terminal, Windows CMD and PyCharm.
 - 📁 **Files**: send a file of up to 15 MB (in 1 MB chunks with a progress bar on the website). The receiver is asked first (📎 Accept / Decline, or `/accept file`), and an offer expires after 2 minutes.
-- 🔬 **For the networking class**: a Packet X-ray window on the website (every packet, and the raw TCP chunks `recv()` got), `client.py --packets`, UDP auto-discovery, `/ping`, `/netstats`, and a network lab (the host types `lag 300` or `loss 10` in the server window to make the network worse on purpose; the website shows everyone a 🧪 banner while it's on).
+- 🔬 **For the networking class**: a Packet X-ray window on the website (every packet, and the raw TCP chunks `recv()` got), `client.py --packets`, UDP auto-discovery, `/ping`, `/netstats`, a live 🗺️ network map (every player around the server, packets flying, each one's ping), and a network lab (the host types `lag 300` or `loss 10` in the server window to make the network worse on purpose; the website shows everyone a 🧪 banner while it's on).
 
 ## 🚀 Quick start
 
@@ -155,6 +158,11 @@ Every packet is **one JSON object on one line**, ending with `\n`. That's called
 | server → client | `topic` | `room`, `text` (the pinned topic; empty = none), on every room switch and when it changes |
 | client → server | `get_groups` / `get_group` / `groups_closed` | (none) / `group` (its key) / (none): the website's Groups screen opens, looks at one group, closes |
 | server → client | `groups` / `group_info` | `groups` (one card per group) / `group` (one group's details): sent when asked and once a second while the screen is open and something changed. A private group you're not in shows only its name, emoji and size; `bank_details` only goes to members, `admin` (requests, muted, banned) only to that group's admins |
+| both ways | `auth` with `"action": "resume"` | `username`, `token`, `seq`: back after a drop. Every kept packet has an optional `seq`; `auth_result` has `resume_token` (and `resumed`); kick notices have `kicked` |
+| client → server | `get_profile` / `change_password` | `name` / `old`, `new`: the server answers `profile` (`profile`, `mine`); your own comes at login with the `profiles` feature |
+| both ways | `stroke` | `points` (0-1000), `color`, `size`, or `clear`: the drawer's brush, passed to the room's `draw` clients; `draw_round` says when a round starts and ends |
+| client → server | `get_netmap` / `netmap_closed` | the network map opens/closes: the server sends `netmap` (`players`: room, ping, packets per type) once a second |
+| both ways | `probe` / `probe_back` | `id`: the server's ping probe, only to clients with the `probe` feature |
 | server → client | `lab` | `lag_ms`, `loss_percent` (the network lab changed; 0 and 0 = off) |
 | client → server | `react` | `id` (a chat message), `emoji`: the room gets `reactions` with `id` and `counts` |
 | client → server | `edit` / `delete` | `id` (your own message, for 10 min), `text`: the room gets `edited` / `deleted` |

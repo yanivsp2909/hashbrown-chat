@@ -23,6 +23,7 @@ LOG_MAX_BYTES = 6 * 1024 * 1024
 XRAY_MAX_TEXT = 2000           # 🔬 bytes of each raw chunk shown in the Packet X-ray (big files are cut)
 CHUNK_B64 = 1_400_000          # 📦 one chunk of a big file, after base64 (as in the chat server)
 LIVE_ONLY_MAX_BYTES = 8 * 1024 * 1024    # 📦 big file chunks waiting for a tab (never replayed)
+RESUME_TOKEN = re.compile(rb'"resume_token":\s*"[^"]*"')
 LIVE_ONLY_TYPES = ("file_chunk", "stroke", "netmap", "probe", "draw_round")   # sent to the tab once, never in a reload's replay
 XRAY_KEEP = 100                # 🔬 X-ray events kept in the replay log, so chat messages aren't pushed out
 DETACHED_GRACE = 90          # seconds a session lives with no tab attached (reload / phone in pocket)
@@ -332,7 +333,8 @@ class Session:
                                 ensure_ascii=False, separators=(",", ":")))
 
     def _xray_in(self, chunk):
-        self._xray("in", chunk)
+        # 🔁 the reconnect token is a secret too: the X-ray shows the packet with the token blanked out
+        self._xray("in", RESUME_TOKEN.sub(b'"resume_token":"***"', chunk))
 
     def forward(self, msg):
         if self.dead:
@@ -350,7 +352,8 @@ class Session:
                     raise BridgeError(429, "⏳ Still checking your last try…")
                 self.auth_pending = True
         with self.send_lock:
-            if clean_msg["type"] not in ("auth", "change_password"):   # passwords: never echoed, not even to yourself
+            typed_password = clean_msg["type"] == "line" and str(clean_msg.get("text", "")).lower().startswith("/password")
+            if clean_msg["type"] not in ("auth", "change_password") and not typed_password:   # passwords: never echoed
                 self._xray("out", line)
             try:
                 self.sock.sendall(line)

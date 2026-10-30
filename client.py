@@ -546,6 +546,7 @@ def reconnect():
                     continue
                 if not msg.get("ok"):
                     console.out(paint(printable(msg.get("text", "")), KIND_COLORS["error"]))
+                    link["token"], link["seq"] = "", 0
                     sock.close()
                     return None
                 keep(msg)

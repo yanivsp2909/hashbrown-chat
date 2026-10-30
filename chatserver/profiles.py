@@ -6,6 +6,7 @@ may send you private messages). The display name is /nick; the badge is /badge; 
 """
 import secrets
 import time
+import unicodedata
 from datetime import datetime
 
 from chatserver import config, rooms, state, storage
@@ -28,6 +29,8 @@ def one_emoji(text):
     text = text.strip()
     if not text or len(text) > 8 or any(ch.isalnum() for ch in text):
         return False
+    if any(unicodedata.category(ch) in ("Mn", "Me", "Cf") and ch not in "\u200d\ufe0f" for ch in text):
+        return False   # invisible marks and combining "zalgo" don't belong in an avatar
     pictures = [ch for ch in text if ord(ch) >= 0x2100 and ch not in "‍️" and not 0x1F3FB <= ord(ch) <= 0x1F3FF]
     return len(pictures) == 1 or (len(pictures) == 2 and all(0x1F1E6 <= ord(ch) <= 0x1F1FF for ch in pictures))
 
@@ -130,7 +133,7 @@ def dm_refusal(sender, target):
     """Why `sender` may not send `target` a private message, or None."""
     rule = state.accounts[target]["privacy"]["dms"]
     if rule == "nobody":
-        return f"🔕 {rooms.nick(target)} doesn't take private messages."
+        return f"🔕 {rooms.nick(target)} doesn't take private messages or files."
     if rule == "groups" and not any(sender in g["members"] and target in g["members"] for g in state.groups.values()):
         return f"🔕 {rooms.nick(target)} only takes private messages from people in their groups."
     return None
@@ -138,9 +141,19 @@ def dm_refusal(sender, target):
 
 def change_password(client, old, new, check_password):
     """/password old new (or the website's change_password packet). check_password(password, salt) -> (salt, hash)."""
+    from chatserver import auth, resume   # (they use profiles: importing them at the top would loop)
     account = state.accounts[client.key]
+    if auth.login_locked(client.key):
+        client.say("🔒 Too many wrong passwords. Try again in 5 minutes.", "error")
+        return
+    try:
+        old.encode("utf-8"), new.encode("utf-8")
+    except UnicodeEncodeError:
+        client.say("🔑 That password has a character that can't be used.", "error")
+        return
     _, digest = check_password(old, account["salt"])
     if not secrets.compare_digest(digest, account["hash"]):
+        state.login_fails.setdefault(client.key, []).append(time.time())   # counts like a wrong login
         client.say("🔑 The old password is wrong.", "error")
         return
     if not config.PASSWORD_MIN <= len(new) <= 64:
@@ -148,5 +161,6 @@ def change_password(client, old, new, check_password):
         return
     salt, digest = check_password(new, None)
     account["salt"], account["hash"] = salt, digest
+    resume.forget(client.key)   # no old reconnect token works after a password change
     storage.save_data()
     client.say("🔑 Password changed. Use the new one next time you log in.")

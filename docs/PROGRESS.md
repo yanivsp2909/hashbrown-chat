@@ -176,6 +176,14 @@ Decision: group commands work on the room you're in, so a button for a group you
 | N12 | 🔨 Auctions | not started |
 | N13 | 📊 Economy dashboard (website) | not started |
 
+### Round 5, group A reviews
+
+- code-reviewer (Groups screen + reconnect): a fresh login now resets the website's seq, a locked resume goes back to login, open Groups screens resync after a reconnect, kicks end the token on the server, client.py closes a retry that got no answer, seq stamping and queueing happen together, bank details are cached, kept packets of accounts that never came back are freed.
+- code-reviewer (network map + drawing): strokes keep the 4:3 shape and join up between packets; /draw has a 2-minute cooldown per person and no prize for a guess in the first 8 s; the round ends when the drawer leaves; the end packet has no drawing; the board resets on a room switch; the map counts only known packet types, hides private groups from outsiders and doesn't pile up dots in a hidden tab.
+- security-reviewer (reconnect + profiles): someone kicked from a private group while away gets none of its chat; wrong resume tokens have their own lock-out (5 in 5 min) that never blocks the password login, and made-up names aren't remembered; a password login gives a fresh token (no old one keeps working) and a password change ends it; /password counts wrong old passwords like wrong logins; "who can message me" covers files too; typed /password lines and the resume token are kept out of Packet X-ray; avatars can't hide invisible marks. Left: /challenge invites and /give notices aren't covered by the "who can message me" setting.
+- Chrome (two logins): profile edit + card + theme, drawing round (stroke, right guess not posted), network map with pings, both pages reconnecting by themselves after the website restarted.
+- One test failed once in four full runs and never again (not identified).
+
 ### Round 3 reviews
 
 - a11y-architect (the @ list, the file offer buttons): all findings fixed (see R4; offer buttons keep focus, announce the answer, come back on failure, live only).

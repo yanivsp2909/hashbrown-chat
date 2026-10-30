@@ -4,7 +4,7 @@
 import os
 import time
 
-from chatserver import (achievements, config, drawing, hashbrown_ai, hashbrown_extras, history, matches, offers,
+from chatserver import (achievements, config, drawing, hashbrown_ai, hashbrown_extras, history, matches, offers, profiles,
                         quests,
                         registry, rooms, state, storage, textutil)
 
@@ -15,6 +15,10 @@ def handle_file(client, msg):
         return
     if target == client.key:
         client.say("🙃 You can't send a file to yourself.", "error")
+        return
+    refusal = profiles.dm_refusal(client.key, target)   # 👤 their "who can send me things" setting
+    if refusal:
+        client.say(refusal, "error")
         return
     data = msg.get("data")
     if not isinstance(data, str) or len(data) > config.MAX_FILE_B64:

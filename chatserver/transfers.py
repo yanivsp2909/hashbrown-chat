@@ -16,7 +16,7 @@ import binascii
 import os
 import time
 
-from chatserver import config, offers, rooms, state, textutil
+from chatserver import config, offers, profiles, rooms, state, textutil
 
 
 def _cancel(transfer, why_sender, why_getter=None):
@@ -54,6 +54,10 @@ def start(client, msg):
         return
     if target == client.key:
         client.say("🙃 You can't send a file to yourself.", "error")
+        return
+    refusal = profiles.dm_refusal(client.key, target)   # 👤 their privacy setting covers files too
+    if refusal:
+        client.say(refusal, "error")
         return
     if any(t["to"] == target and not t["waiting"] for t in state.transfers.values()):   # (offers don't count)
         client.say(f"📦 {rooms.nick(target)} is already getting a big file. Try again when it's done.", "error")

@@ -123,7 +123,7 @@ def handle_auth(client, msg):
         state.online[key] = client
         greeting = "Welcome back" if action == "login" else "Account created! Welcome"
         client.send({"type": "auth_result", "ok": True, "text": f"✅ {greeting}, {rooms.nick(key)}!",
-                     "resume_token": resume.new_token(key)})   # 🔁 optional: lets the app reconnect by itself
+                     "resume_token": resume.new_token(key, fresh=True)})   # 🔁 optional: lets the app reconnect by itself
         client.say(f"🪙 You have {state.accounts[key]['tokens']} tokens and earn {config.TOKENS_PER_MINUTE} "
                    f"every minute you're online.", "money")
         hint = "🥔 Say @hashbrown + a question to ask the AI. " if state.hashbrown else ""
@@ -146,16 +146,19 @@ def resume_login(client, msg, username, fail):
     The packets after "seq" come again (in order, once); if some aren't kept any more, a normal login instead."""
     key = username.lower()
     seq = msg.get("seq")
+
+    def refuse(text="❌ Can't reconnect by myself. Log in again."):
+        client.send({"type": "auth_result", "ok": False, "resume_failed": True, "text": text})
+        return False
+
+    if not 1 <= len(username) <= 16:
+        return refuse()
     with state.lock:
-        if login_locked(key):
-            client.send({"type": "auth_result", "ok": False, "resume_failed": True,
-                         "text": "🔒 Too many wrong tries for this account. Try again in 5 minutes."})
-            return False
+        if resume.resume_locked(key):
+            return refuse("🔒 Too many wrong reconnect tries. Log in again.")
         if key not in state.accounts or not isinstance(seq, int) or isinstance(seq, bool) or not resume.token_ok(key, msg.get("token")):
-            state.login_fails.setdefault(key, []).append(time.time())
-            client.send({"type": "auth_result", "ok": False, "resume_failed": True,
-                         "text": "❌ Can't reconnect by myself. Log in again."})
-            return False
+            resume.note_failure(key)
+            return refuse()
         old = state.online.get(key)
         room = old.room if old is not None else state.away[key]["room"]
         if old is not None:   # the old connection is dead but the server didn't notice yet

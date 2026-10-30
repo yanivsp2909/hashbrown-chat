@@ -184,6 +184,18 @@ The admin password is never in the code (the repo is public). Save it in the Mac
 
 Hover (or tab to) a message and press **☺︎+** to react with 👍 ❤️ 😂 😮 😢 or 🥔. Click a reaction under a message to add or take back yours. While someone in your room types, you see *Noa is typing…* above the message box (right away, and it goes when they send or clear the box). Type `@` for a list of the people in this chat and @hashbrown. A poll shows a button for each option.
 
+## Profiles 👤
+
+Click anyone's name (in the online list or in the chat) for their card, or **👤 My profile** for yours, then **✏️ Edit profile**: an emoji avatar, your display name (same as `/nick`), a bio, a status (🟢 online, 🌙 away, ⛔ busy, plus your own line), a name colour, your favourite game, the theme (it follows you to every device), privacy (show "last seen" or not; who can send you private messages and files: everyone, people in your groups, or nobody) and a new password (the old one first). In the terminal: `/profile name`, `/setprofile bio I love fries`, `/password old new`. Your username never changes.
+
+## Drawing game 🎨
+
+Type `/draw` (at least 2 people in the room). You get a secret word and a canvas above the chat; draw it with the mouse or a finger. Everyone else guesses in the chat. The server checks the guesses, so nobody's app ever sees the word before the end. The first right guess wins 30 🪙 and the drawer 15 🪙 (not for a guess in the first 8 seconds). A round lasts 90 seconds; `/draw stop` gives up, and you can start one every 2 minutes. Each brush stroke is one small `stroke` packet: open Packet X-ray while someone draws.
+
+## If the connection drops 🔁
+
+The website and `client.py` reconnect by themselves (they try for about two minutes) and you get exactly what you missed while you were gone. Not after `/quit`, after being kicked, or after changing your password: then you log in again.
+
 ## Groups screen 👥 (website)
 
 Press **👥 Groups** in the sidebar. You see your groups first, then every other group (🔒 = private: you ask to join and an admin approves). Search at the top, **+ Create group** to make one.
@@ -207,6 +219,7 @@ The **💬 Chats** list in the sidebar shows 🌍 the Lobby and every group you'
 - **UDP auto-discovery**: `python client.py` with no IP broadcasts `{"type": "discover"}` to UDP port 8821. Every server on the Wi-Fi answers; you confirm the one you want (anyone can answer a broadcast).
 - **`/ping`**: a `ping` packet goes to the server and comes straight back as `pong`: the time it took is the round trip.
 - **`/netstats`**: how many packets and bytes the server got from you and sent you.
+- **🗺️ Network map** (website, bottom of the sidebar): the server in the middle and every connected player around it. Dots fly toward the server for packets a player sent and away for packets they got, coloured by kind, once a second. Each player's ping is measured with a tiny `probe` packet the server sends and the app answers. Only the kinds of packets are shown, never what's in them; private groups' names are hidden from outsiders.
 - **Network lab** (type these in the server window): `lag 300` delays every packet the server sends by 300 ms; `loss 10` makes 10% of them "get lost". TCP never really loses data: it sends a lost packet again, so it arrives late and everything after it waits too (head-of-line blocking). `lab` shows the settings, `lab off` turns it off. While it's on, everyone on the website sees a 🧪 banner saying what it does.
 
 ## Server console
