@@ -10,6 +10,8 @@ let state = Object.freeze({
   wordle: null,          // {state, text, result}
   invites: [],           // [{from, text, at}] challenges waiting for you
   knownNames: [],
+  online: null,          // [{name, shown, room, playing}] from a quiet /users, null = not known yet
+  balance: null,         // your tokens from a quiet /balance, null = not known yet
 });
 
 export const getState = () => state;

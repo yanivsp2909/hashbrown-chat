@@ -12,6 +12,10 @@
 //   wordleOver     msg:         "🏳️ The word was {WORD}."  /  "💀 Out of tries! The word was {WORD}."
 //   helpLine       msg help:    "  {usage padded to 32} {description}"  (one line per command in /help)
 //   HASHBROWN      chat:        name "Hashbrown" with badge "🥔"  (chat_message("Hashbrown", "🥔", ...))
+//   onlineList     msg:         "🟢 Online now (N):" then one "  {badge nick}  {room}[  🎮 playing]" line each
+//   balance        msg money:   "🪙 You have N tokens and earn..."  /  "🪙 {badge nick} has N tokens."
+//   privateMsg     msg private: "💌 [HH:MM] {from} → {to}: {text}"   (from or to is "you")
+//   presence       msg:         "👋 {who} joined the chat" / "... left the chat" / "🚪 ... left the room" / "➡️ ... entered"
 //
 // web/tests/test_bridge.py runs the real server and checks every pattern below against what
 // it actually sends. If you reword one of these messages in server.py, that test tells you
@@ -28,6 +32,10 @@ export const PATTERNS = Object.freeze({
   draw: P(String.raw`^🤝 Draw!`),
   wordleOver: P(String.raw`^(?:🏳️ |💀 Out of tries! )The word was ([A-Z]+)\.$`),
   helpLine: P(String.raw`^  (/\S+(?: \S+)*?)\s{2,}(\S.*)$|^  (/\S+(?: \S+)*) (\S.*)$`),
+  onlineList: P(String.raw`^🟢 Online now \((\d+)\):`),
+  balance: P(String.raw`^🪙 (?:You have|(.+?) has) (\d+) tokens`),
+  privateMsg: P(String.raw`^💌 \[(\d{1,2}:\d{2})\] (.+?) → (.+?): (.*)$`),
+  presence: P(String.raw`^(?:👋 .+ (?:joined|left) the chat|🚪 .+ left the room|➡️ .+ entered)$`),
 });
 
 export const HASHBROWN = Object.freeze({ name: "Hashbrown", badge: "🥔" });
@@ -76,4 +84,34 @@ export function parseHelp(text) {
 
 export function isHashbrown(chat) {
   return chat.name === HASHBROWN.name && chat.badge === HASHBROWN.badge;
+}
+
+/** The last word of a shown name: "🔥 Noa" -> "Noa" (the badge is optional). */
+const nickOf = (shown) => shown.trim().split(/\s+/u).pop() || "";
+
+/** A "/users" reply as [{name, shown, room, playing}], or null if it isn't one. */
+export function parseOnline(text) {
+  if (!PATTERNS.onlineList.test(text)) return null;
+  return String(text).split("\n").slice(1).filter((line) => line.startsWith("  ")).map((line) => {
+    const [shown = "", room = "", ...rest] = line.trim().split(/\s{2,}/u);
+    return { name: nickOf(shown), shown, room, playing: rest.join(" ").includes("🎮") };
+  }).filter((person) => person.name);
+}
+
+/** Your own token count from a balance line, or null (also null for someone else's balance). */
+export function myBalance(text, nick) {
+  const match = PATTERNS.balance.exec(text);
+  if (!match) return null;
+  const whose = match[1] === undefined ? nick : nickOf(match[1]);
+  return whose && whose === nick ? Number(match[2]) : null;
+}
+
+/** "💌 [15:30] Noa → you: hi" as {time, from, to, text}, or null. */
+export function parsePrivate(text) {
+  const match = PATTERNS.privateMsg.exec(text);
+  return match ? { time: match[1], from: match[2], to: match[3], text: match[4] } : null;
+}
+
+export function isPresence(text) {
+  return PATTERNS.presence.test(text);
 }

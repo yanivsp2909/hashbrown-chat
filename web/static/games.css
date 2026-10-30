@@ -5,7 +5,7 @@
 .rail {
   position: relative; z-index: var(--z-rail);
   display: flex; gap: 12px; align-items: flex-start; overflow-x: auto;
-  padding: 0 18px 12px; min-height: 0;
+  padding: 0 var(--chat-pad) 12px; min-height: 0;
   background: linear-gradient(var(--line), var(--line)) 0 7px / 100% 3px no-repeat;
   scroll-snap-type: x proximity; scrollbar-width: none;
 }
@@ -199,7 +199,7 @@
 .wordle-result { text-align: center; font-weight: 750; }
 
 @media (max-width: 760px) {
-  .rail { padding: 0 12px 10px; gap: 10px; }
+  .rail { padding-bottom: 10px; gap: 10px; }
   .ticket { width: 196px; padding: 14px 12px 10px; gap: 4px; }
   .ticket-title { font-size: 14px; }
   .stamp { font-size: 16px; bottom: 8px; }

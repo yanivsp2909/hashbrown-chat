@@ -63,6 +63,14 @@
       <section class="side-card">
         <p id="room-title" class="room-title">🏠 Lobby</p>
         <p class="me-line">Logged in as <strong id="me-nick">…</strong></p>
+        <p class="me-balance"><span aria-hidden="true">🪙</span> <span id="me-balance">…</span></p>
+      </section>
+      <section class="online" aria-labelledby="online-title">
+        <div class="side-title-row">
+          <h2 id="online-title" class="side-title"><span aria-hidden="true">🟢</span> Online <span id="online-count" class="count" aria-hidden="true"></span><span id="online-sr" class="visually-hidden"></span></h2>
+          <button id="online-refresh" class="mini-btn" type="button" aria-label="Refresh who's online" title="Refresh"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button>
+        </div>
+        <ul id="people" class="people"></ul>
       </section>
       <section aria-labelledby="quick-title">
         <h2 id="quick-title" class="side-title">Quick buttons</h2>
@@ -108,8 +116,8 @@
       </header>
       <section id="rail" class="rail" aria-label="Tickets: challenges and games"></section>
       <div id="messages-wrap" class="messages-wrap">
-        <ol id="messages" class="messages" aria-live="polite" aria-relevant="additions"></ol>
-        <button id="jump-down" class="jump-down" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg> New messages</button>
+        <ol id="messages" class="messages" aria-live="polite" aria-relevant="additions" aria-label="Messages" tabindex="0"></ol>
+        <button id="jump-down" class="jump-down" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg> <span id="jump-label">New messages</span></button>
         <div id="drop-zone" class="drop-zone" hidden><p>📁 Drop to send this file</p></div>
       </div>
       <form id="composer" class="composer" autocomplete="off">

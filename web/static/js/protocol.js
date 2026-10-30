@@ -6,9 +6,10 @@ import { getState, setState } from "./store.js";
 import * as chat from "./chat.js";
 import { receive } from "./files.js";
 import { addInvite } from "./rail.js";
-import { inviteFrom, isWordleOver, matchResult, parseHelp, renamed, welcomeNick } from "./patterns.js";
+import { inviteFrom, isPresence, isWordleOver, matchResult, myBalance, parseHelp, parseOnline, renamed, welcomeNick } from "./patterns.js";
 import { clearPasswords, showLoginError } from "./login.js";
 import { noteTarget } from "./games/panel.js";
+import * as online from "./online.js";
 
 const MAX_NAMES = 60;
 const NICK_KEY = "hashbrown.nick";
@@ -18,6 +19,10 @@ let gameCount = 0;
 let pendingUsername = "";
 
 export const setPendingUsername = (name) => { pendingUsername = name; };
+
+// What the rest of the app does when something here happens (set by app.js)
+let hooks = { onNewGame: () => {}, showOnline: () => {}, showGame: () => {} };
+export const setHooks = (more) => { hooks = { ...hooks, ...more }; };
 
 /** The nick survives a reload even when the replay no longer reaches back to the login. */
 function setNick(nick) {
@@ -43,6 +48,12 @@ export function requestCommands(sendLine) {
   sendLine("/help").then((error) => { if (error) quietHelp = Math.max(0, quietHelp - 1); });
 }
 
+/** Logged out: forget the quiet /help we were waiting for, so the next login asks again. */
+export function resetCommands() {
+  quietHelp = 0;
+  replayHelpHidden = true;
+}
+
 export function needsCommands() {
   return getState().screen === "chat" && !getState().commands.length && quietHelp === 0;
 }
@@ -63,20 +74,23 @@ function onAuthResult(msg, live, sendLine) {
   clearPasswords();
   setState({ screen: "chat" });
   setNick(welcomeNick(text) || pendingUsername);
-  if (live) requestCommands(sendLine);
-  else replayHelpHidden = false;
+  if (live) {
+    requestCommands(sendLine);
+    online.refreshAll();
+  } else replayHelpHidden = false;
 }
 
-function onBoard(msg, text) {
+function onBoard(msg, text, live) {
   const s = msg.state && typeof msg.state === "object" ? msg.state : null;
-  if (s?.game === "wordle") {
-    const old = getState().wordle;
-    const id = old && !old.state?.finished ? old.id : ++gameCount;
-    return setState({ wordle: { id, state: s, text, result: null } });
+  const slot = s?.game === "wordle" ? "wordle" : "match";
+  const old = getState()[slot];
+  const sameGame = slot === "wordle" ? old && !old.state?.finished : old && !old.result && !old.state?.finished;
+  const id = sameGame ? old.id : ++gameCount;
+  setState({ [slot]: { id, state: s, text, result: null } });
+  if (!sameGame && live) {
+    hooks.onNewGame(slot);
+    if (slot === "match") online.refreshAll();   // you're "playing" now, and a bet left your balance
   }
-  const old = getState().match;
-  const id = old && !old.result && !old.state?.finished ? old.id : ++gameCount;
-  setState({ match: { id, state: s, text, result: null } });
 }
 
 function onServerText(msg, live) {
@@ -93,24 +107,49 @@ function onServerText(msg, live) {
       return;
     }
   }
-  if (kind === "board") return onBoard(msg, text);
+  if (kind === "board") return onBoard(msg, text, live);
+
+  // Lists that live in the sidebar instead of the chat
+  const people = parseOnline(text);
+  if (people) {
+    setState({ online: people });
+    if (live && online.answerIsYours("users")) hooks.showOnline();  // you asked: show you where it is
+    return;
+  }
+  const balance = kind === "money" ? myBalance(text, getState().nick) : null;
+  if (balance !== null) {
+    setState({ balance });
+    // "🪙 Yaniv has 250 tokens." is shown only if you just typed /balance; the background ones
+    // (and every old one in a replay) stay in the sidebar. The welcome "You have..." line always shows.
+    const answer = / has \d+ tokens/u.test(text);
+    if (answer && !(live && online.answerIsYours("balance"))) return;
+  } else if (live && (kind === "money" || kind === "game")) {
+    online.refresh("balance");
+  }
+  if (live && isPresence(text)) online.refresh("users");
 
   const slot = kind === "error" && live ? noteTarget() : null;
   if (slot && getState()[slot]) setState({ [slot]: { ...getState()[slot], note: text } });
   const result = matchResult(kind, text);
   const { match } = getState();
-  if (result && match && !match.result) setState({ match: { ...match, result } });
+  if (result && match && !match.result) {
+    setState({ match: { ...match, result } });
+    if (live) online.refreshAll();
+  }
   const { wordle } = getState();
-  if (isWordleOver(text) && wordle) setState({ wordle: { ...wordle, result: text, state: wordle.state && { ...wordle.state, finished: true } } });
+  const wordleOver = isWordleOver(text) && wordle;
+  if (wordleOver) setState({ wordle: { ...wordle, result: text, state: wordle.state && { ...wordle.state, finished: true } } });
   const rename = renamed(text);
   if (rename && rename[0] === getState().nick) setNick(rename[1]);
   const challenger = kind === "event" ? inviteFrom(text) : null;
   if (challenger && live) addInvite(challenger, text);
-  const actions = challenger ? [  // also here, so a reloaded tab can still answer
+  const actions = challenger && !live ? [  // live, the ticket has the buttons; after a reload there's no ticket
     el("button", { class: "btn btn-primary", type: "button", text: "Accept", onclick: () => sendLine(`/accept ${challenger}`) }),
     el("button", { class: "btn btn-ghost", type: "button", text: "Decline", onclick: () => sendLine(`/decline ${challenger}`) }),
+  ] : wordleOver && wordle.state ? [  // the grid lives in the game panel: one click away
+    el("button", { class: "btn btn-ghost", type: "button", text: "🟩 Show grid", onclick: () => hooks.showGame() }),
   ] : [];
-  chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions });
+  chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions, label: result ? "Game over" : "" });
 }
 
 export function handleMessage(msg, live, sendLine) {

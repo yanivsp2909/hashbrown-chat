@@ -36,3 +36,15 @@ export function str(value, fallback = "") {
   const text = typeof value === "string" ? value : value === undefined || value === null ? fallback : String(value);
   return text.replace(BIDI_OVERRIDES, "");
 }
+
+/** Same name, same color, on every screen: a tiny string hash picks one of 8 name colors. */
+export function nameClass(name) {
+  let hash = 0;
+  for (const ch of name) hash = (hash * 31 + ch.codePointAt(0)) >>> 0;
+  return `name-${hash % 8}`;
+}
+
+/** The first letter of a name, for its round avatar. */
+export function initial(name) {
+  return (Array.from(name.trim())[0] || "?").toUpperCase();
+}

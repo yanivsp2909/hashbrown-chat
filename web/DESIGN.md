@@ -202,7 +202,7 @@ Each sauce has a matching tint at 8-14% alpha for its notice background (sidecar
 - **Display** (800, 30px, 1.1): login and closed-room card titles only.
 - **Headline** (800, 20px): game card title; empty-state title steps down to 18px.
 - **Title** (750, 17-19px): brand, room title, chat header room name; ticket titles at 800 15px.
-- **Body** (400, 15px, 1.5; 16px under 760px): chat lines, notices at 14px. Lines cap at 78ch.
+- **Body** (400, 15px, 1.5; 16px under 760px): chat lines, notices at 14px. Bubbles cap at 68ch, cards at 72ch; the message column caps at 860px and centres on wide screens.
 - **Label** (600-700, 13px): field labels, sidebar section titles, hints.
 - **Score** (850, 40px, tabular): math duel scores; the question uses clamp(30px, 8vw, 44px).
 
@@ -213,7 +213,9 @@ Each sauce has a matching tint at 8-14% alpha for its notice background (sidecar
 
 ## Layout
 
-Desktop is a three-column grid: sidebar 280px, chat fluid, game panel 384px (the contract planned 260/380; the build's 280/384 is accepted). At 1180px and below the columns become 248px / fluid and the game panel turns into a right-hand drawer (min(400px, 100%)) opened from a "Game" button. At 760px and below it is one column and the sidebar becomes a left drawer (min(300px, 86vw)) behind a scrim. Body text steps up to 16px on phones.
+Desktop is sidebar 264px plus a fluid chat. The game column (380px) is added only while a match or a Wordle is on; with nothing on the grill the chat takes the room. At 1099px and below the columns become 248px / fluid and the game panel is a right-hand drawer (min(400px, 100%)): it opens by itself when your own action started a game (Accept, /wordle), otherwise the "Game" button lights up. At 760px and below it is one column and the sidebar becomes a left drawer (min(300px, 86vw)) behind a scrim. Body text steps up to 16px on phones.
+
+The sidebar, top to bottom: brand, room card (room, you, your balance in pickle), Online (live list with a challenge and a private-message button per person), quick buttons, the challenge form, theme and log out. "/users" and "/balance" answers feed these panels instead of the chat.
 
 The ticket rail is a horizontal, scroll-snapped strip above the messages with its rail line drawn at 7px. Tickets are 236px wide (196px on phones). Spacing rhythm is 4 / 8 / 12 / 18 / 22: 18px column gutters, 22px between sidebar and game-panel groups.
 
@@ -251,8 +253,12 @@ Pills (999px) for buttons, the segmented control, the composer input and the tur
 ### Order Ticket (signature)
 Paper card hung from a clip, with a title, a mono ticket number, muted lines and compact 34px actions. A pending invite shows its exact 180 s as a draining bar that turns red when low. The result stamp is rotated -10deg, uppercase 900 weight and multiply-blended, in won-green, lost-red or draw-brown.
 
-### Notices
-Rounded 12px tinted strips in chat, using the Sauce Rule colours. System lines are muted and indented to the text column. Help and board dumps are mono on a panel with a soft border.
+### Messages
+Four shapes, 3px apart inside a group and 14px between groups:
+- **Bubble** (chat): letter avatar in the person's name colour, then a bubble with a header (name, badge, time) over the text. Lines from one person within 5 minutes share one header. Your own bubbles sit on the right in a crisp-tinted fill without an avatar. Others use paper (light) / panel (dark). Each text has dir="auto" (and lang="he" for Hebrew).
+- **Hashbrown**: the logo as its avatar, a crust card with a resting lift and an "AI" tag.
+- **Card** (server notices): 14px radius, a small header (what it is, when), the server text below. Sauce kinds are tinted with a 35% sauce border (light: tinted paper, for contrast); neutral kinds (game, file, help, info) are outlined, not filled, so they never read as someone's bubble. List replies become rows.
+- **Meta**: short system lines, muted and centred, no box.
 
 ### Game Boards
 Tic-tac-toe cells are panel-2 with a gold-ring border while playable. Damka is a wood board (light #e7cfa6, dark #8b5a33) with a 3px brown frame. Wordle tiles are 8px squares that flip in row by row.

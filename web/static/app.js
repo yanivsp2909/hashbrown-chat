@@ -7,7 +7,8 @@ import * as chat from "./js/chat.js";
 import { initComposer, focusInput } from "./js/composer.js";
 import { closeFilePanel, initFiles, openFilePanel, revokeFiles } from "./js/files.js";
 import { focusLogin, initLogin, setBusy, showLoginError } from "./js/login.js";
-import { handleMessage, needsCommands, requestCommands, savedNick, setPendingUsername } from "./js/protocol.js";
+import { handleMessage, needsCommands, requestCommands, resetCommands, savedNick, setHooks, setPendingUsername } from "./js/protocol.js";
+import { initOnline, refreshAll, resetOnline, youAsked } from "./js/online.js";
 import { initRail } from "./js/rail.js";
 import { focusChallenge, initSidebar } from "./js/sidebar.js";
 import { initPanel } from "./js/games/panel.js";
@@ -16,7 +17,7 @@ const THEME_KEY = "hashbrown.theme";
 const SCREENS = ["loading", "login", "chat", "closed"];
 const app = $("screen-chat");
 const narrow = matchMedia("(max-width: 760px)");
-const medium = matchMedia("(max-width: 1180px)");
+const medium = matchMedia("(max-width: 1099px)");
 let quitting = false;
 
 // ----- theme: follows the computer unless you pick one
@@ -50,11 +51,13 @@ $("theme-toggle").addEventListener("click", () => {
 
 const DRAWERS = { side: ["sidebar", "open-sidebar", "close-sidebar"], game: ["game-panel", "open-game", "close-game"] };
 let openDrawer = null;
+let returnFocus = null;   // where focus was before a drawer opened, to put it back after
 
 /** Drawers act like a modal: focus moves in, the rest of the page is inert, and focus returns on close. */
 function setDrawer(name) {
   if (name === openDrawer) return;
   const previous = openDrawer;
+  if (name && !previous) returnFocus = document.activeElement;
   openDrawer = name;
   app.classList.toggle("side-open", name === "side");
   app.classList.toggle("game-open", name === "game");
@@ -66,10 +69,19 @@ function setDrawer(name) {
   }
   document.querySelector(".chat-col").inert = Boolean(name);
   if (name) $(DRAWERS[name][2]).focus();
-  else if (previous) $(DRAWERS[previous][1]).focus();
+  else if (previous) {
+    const back = returnFocus && returnFocus.isConnected && returnFocus !== document.body ? returnFocus : $(DRAWERS[previous][1]);
+    back.focus();
+  }
 }
 const closeDrawer = () => setDrawer(null);
 const openGame = () => { if (medium.matches) setDrawer("game"); };
+/** "Show grid" and similar: on smaller screens open the drawer, on wide ones jump to the panel. */
+function showGame() {
+  if (medium.matches) return setDrawer("game");
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  $("game-panel").querySelector("h2")?.scrollIntoView({ block: "nearest", behavior: calm ? "auto" : "smooth" });
+}
 
 $("open-sidebar").addEventListener("click", () => setDrawer("side"));
 $("close-sidebar").addEventListener("click", closeDrawer);
@@ -95,7 +107,9 @@ function resetChat() {
   revokeFiles();
   closeFilePanel();
   closeDrawer();
-  setState({ nick: "", room: "🏠 Lobby", commands: [], match: null, wordle: null, invites: [] });
+  resetOnline();
+  resetCommands();
+  setState({ nick: "", room: "🏠 Lobby", commands: [], match: null, wordle: null, invites: [], online: null, balance: null });
 }
 
 function showClosed(reason) {
@@ -130,6 +144,7 @@ api.setHandlers({
     }
     if (getState().screen === "chat") {
       if (needsCommands()) requestCommands(api.sendLine);
+      if (info.logged_in) refreshAll();   // a reloaded tab: fill the panels again
       if (matchMedia("(pointer: fine)").matches) focusInput();  // no surprise keyboard on phones
     }
   },
@@ -182,6 +197,7 @@ initComposer({
       return true;
     }
     if (lower === "/quit") quitting = true;
+    if (lower === "/users" || lower === "/balance") youAsked(lower.slice(1));   // show you the answer
     const error = await api.sendLine(text);
     if (error) {
       quitting = false;
@@ -189,6 +205,7 @@ initComposer({
       return false;
     }
     chat.clearLit();
+    chat.followLatest();   // you just sent something: show it, even if you were reading older messages
     return true;
   },
 });
@@ -196,6 +213,26 @@ initComposer({
 initFiles({ onSent: () => {} });
 initSidebar({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
 initRail({ openGame });
+initOnline({
+  sendLine: api.sendLine,
+  onChallenge: (name) => {
+    if (!narrow.matches) closeDrawer();
+    focusChallenge(name);
+  },
+  onMessage: (name) => {
+    if (narrow.matches) closeDrawer();
+    focusInput(`/send ${name} `);
+  },
+});
+setHooks({
+  // A game just started. If YOU started it (accepted, /wordle...), open it; if a friend's /accept
+  // started it while you were typing, don't steal your focus: the 🎮 Game button lights up instead.
+  onNewGame: () => { if (medium.matches && api.sentRecently(/^\/(?:accept|wordle|g)\b/iu, 10_000)) setDrawer("game"); },
+  showOnline: () => { if (narrow.matches) setDrawer("side"); },  // you asked who's online: there's the list
+  showGame,
+});
+// The game column only exists while a game or a Wordle is on; otherwise the chat gets the room
+subscribe((state) => app.classList.toggle("has-game", Boolean(state.match || state.wordle)));
 initPanel({
   showError,
   focusChallenge: () => {

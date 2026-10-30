@@ -116,7 +116,15 @@ function stop() {
 }
 
 /** Send one message to the chat server. Returns null on success, or an error text. */
+let recentLines = [];   // the last lines you sent: [{text, at}]
+
+/** Did you send a line matching `pattern` in the last `ms` milliseconds? */
+export function sentRecently(pattern, ms) {
+  return recentLines.some((line) => Date.now() - line.at < ms && pattern.test(line.text));
+}
+
 export async function send(msg) {
+  if (msg.type === "line") recentLines = [...recentLines.slice(-7), { text: String(msg.text), at: Date.now() }];
   if (!sid) return "Not connected.";
   const result = await post("/api/send", msg);
   if (result.status === 404 || result.status === 410) {

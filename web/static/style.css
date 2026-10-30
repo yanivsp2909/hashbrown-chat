@@ -44,6 +44,12 @@
   --shadow-2: 0 2px 6px rgb(0 0 0 / 0.4), 0 18px 40px rgb(0 0 0 / 0.35);
   --radius: 14px;
   --radius-sm: 9px;
+  --bubble: var(--panel);                                        /* other people's bubbles */
+  --mine: color-mix(in srgb, var(--crisp) 16%, var(--bubble));   /* your bubbles: a warmer fry */
+  --mine-line: color-mix(in srgb, var(--crisp) 34%, var(--bubble));
+  --row: rgb(255 255 255 / 0.035);                               /* every other row in a list card */
+  --chat-max: 860px;                                             /* messages stay readable on wide screens */
+  --chat-pad: max(18px, calc((100% - var(--chat-max)) / 2));
   --font: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew",
           Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace,
@@ -94,6 +100,10 @@
   --n5: #6b44c2;
   --n6: #b4246f;
   --n7: #a75410;
+  --bubble: var(--paper);
+  --mine: color-mix(in srgb, var(--crisp) 14%, var(--paper));
+  --row: rgb(80 50 20 / 0.05);
+  --card-base: var(--paper);   /* light cards are tinted paper, so their coloured text stays readable */
   --shadow-1: 0 1px 2px rgb(80 50 20 / 0.12), 0 4px 14px rgb(80 50 20 / 0.08);
   --shadow-2: 0 2px 6px rgb(80 50 20 / 0.14), 0 18px 40px rgb(80 50 20 / 0.14);
 }
@@ -115,6 +125,7 @@ body {
 h1, h2, p { margin: 0; }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+:root[data-theme="light"] :focus-visible { outline-color: var(--crisp); }   /* gold is too pale on tan */
 .skip-link {
   position: fixed; top: 8px; left: 8px; z-index: 100; padding: 10px 14px; border-radius: 999px;
   background: var(--gold); color: var(--gold-ink); font-weight: 700; transform: translateY(-150%);
@@ -133,7 +144,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   min-height: 40px; padding: 0 16px;
   border: 1px solid transparent; border-radius: 999px;
-  font-weight: 650; letter-spacing: 0.005em; white-space: nowrap;
+  font-weight: 650; letter-spacing: 0.005em; white-space: nowrap; text-decoration: none;
   transition: background-color 160ms ease, border-color 160ms ease, transform 100ms var(--ease-out);
 }
 .btn:active:not(:disabled) { transform: scale(0.97); }
@@ -151,7 +162,8 @@ a { color: var(--gold); text-underline-offset: 3px; }
 @media (hover: hover) and (pointer: fine) {
   .btn-primary:hover:not(:disabled) { background: var(--gold-hover); }
   .btn-ghost:hover { border-color: var(--gold-ring); color: var(--text); }
-  .icon-btn:hover { border-color: var(--gold-ring); }
+  .icon-btn:hover, .mini-btn:hover { border-color: var(--gold-ring); }
+  .person:hover { background: var(--panel-2); }
 }
 
 .field { display: grid; gap: 6px; }
@@ -221,8 +233,14 @@ a { color: var(--gold); text-underline-offset: 3px; }
 
 .app {
   display: grid; height: 100dvh;
-  grid-template-columns: 280px minmax(0, 1fr) 384px;
+  grid-template-columns: 264px minmax(0, 1fr);
 }
+.app.has-game { grid-template-columns: 264px minmax(0, 1fr) 380px; }
+@media (min-width: 1100px) {
+  .app:not(.has-game) .game-panel { display: none; }   /* nothing on: the chat gets the room */
+  .app.has-game .game-panel { animation: panel-in 260ms var(--ease-out); }
+}
+@keyframes panel-in { from { opacity: 0; transform: translateX(16px); } }
 .sidebar {
   overflow-x: hidden; overscroll-behavior: contain;
   display: flex; flex-direction: column; gap: 22px; padding: 18px 16px;
@@ -239,7 +257,31 @@ a { color: var(--gold); text-underline-offset: 3px; }
 }
 .room-title { font-size: 19px; font-weight: 750; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .me-line { font-size: 13px; color: var(--text-2); margin-top: 6px; }
+.me-balance { font-size: 14px; font-weight: 750; color: var(--pickle); font-variant-numeric: tabular-nums; }
+:root[data-theme="light"] .me-balance { color: #2d5a12; }   /* plain pickle is too light on the crust card */
 .side-title { font-size: 13px; font-weight: 700; color: var(--text-2); margin: 0 0 10px; }
+.side-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.side-title-row .side-title { margin: 0; }
+.count { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.people { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.person {
+  display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  padding: 5px 4px 5px 2px; border-radius: 10px;
+}
+.person .avatar { width: 30px; height: 30px; font-size: 13px; }
+.person-main { display: grid; min-width: 0; line-height: 1.3; }
+.person-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person-name .you { color: var(--muted); font-weight: 600; }
+.person-room { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person-actions { display: flex; gap: 4px; }
+.people-empty { color: var(--muted); font-size: 13px; padding: 4px 2px; }
+.mini-btn {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; flex: none; padding: 0;
+  border: 1px solid var(--line); border-radius: 50%; background: var(--panel-2); font-size: 14px; line-height: 1;
+  transition: border-color 160ms ease, transform 100ms var(--ease-out);
+}
+.mini-btn:active { transform: scale(0.94); }
+@media (pointer: coarse) { .mini-btn { width: 40px; height: 40px; } }
 .quick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .quick-grid .btn { min-height: 38px; padding: 0 10px; justify-content: flex-start; font-size: 14px; border-radius: 10px; min-width: 0; }
 .quick-grid .btn > span + * { overflow: hidden; text-overflow: ellipsis; }
@@ -250,28 +292,29 @@ a { color: var(--gold); text-underline-offset: 3px; }
 
 .chat-col { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .chat-head {
-  display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 10px 18px;
+  display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 10px var(--chat-pad);
   border-bottom: 1px solid var(--line-soft); background: var(--bg);
 }
 .chat-room { font-weight: 750; font-size: 17px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ----- messages */
+/* ----- messages
+   Four shapes (see chat.js): chat bubbles, notice cards, list cards and grey meta lines.
+   Spacing: 3px inside a group of bubbles, 14px between groups, so you see where each one ends. */
 
 .messages-wrap { position: relative; flex: 1; min-height: 0; }
 .messages {
-  list-style: none; margin: 0; padding: 14px 18px 18px; height: 100%; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 2px; overscroll-behavior: contain;
+  list-style: none; margin: 0; height: 100%; overflow-y: auto; overscroll-behavior: contain;
+  padding: 6px var(--chat-pad) 18px;
+  display: flex; flex-direction: column;
 }
-.messages > li { max-width: 78ch; content-visibility: auto; contain-intrinsic-size: auto 32px; }
-.msg.enter { animation: msg-in 200ms var(--ease-out); }
+.messages > li { margin-top: 14px; min-width: 0; }
+.messages > li.cont { margin-top: 3px; }
+.messages > li.meta { margin-top: 10px; }
+.msg.enter { animation: msg-in 180ms var(--ease-out); }
 @keyframes msg-in { from { opacity: 0; transform: translateY(6px); } }
 
-.chat-line { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 8px; padding: 3px 8px; border-radius: 10px; }
-.chat-line.mine { background: var(--panel); }
-.chat-line.old { opacity: 0.62; }
-.time { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
-.chat-body { min-width: 0; overflow-wrap: anywhere; }
-.who { font-weight: 750; margin-right: 6px; }
+.time { font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.who { font-weight: 750; }
 .name-0 { color: var(--n0); }
 .name-1 { color: var(--n1); }
 .name-2 { color: var(--n2); }
@@ -280,59 +323,94 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .name-5 { color: var(--n5); }
 .name-6 { color: var(--n6); }
 .name-7 { color: var(--n7); }
-.badge { margin-right: 3px; }
-.chat-text { white-space: pre-wrap; unicode-bidi: plaintext; }
-.chat-line.action .chat-text { font-style: italic; color: var(--text-2); }
 
-.hashbrown {
-  margin: 8px 0; padding: 12px 14px; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 10px;
-  background: var(--crust); border: 1px solid var(--crust-line); border-radius: 16px;
-  box-shadow: var(--shadow-1);
+/* round letter avatars, shared with the "Online" list */
+.avatar {
+  width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  background: var(--panel-2); border: 1px solid var(--line); font-weight: 800; font-size: 14px; line-height: 1;
 }
-.hashbrown .avatar {
-  width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 24px;
-  background: rgb(240 194 122 / 0.16);
-}
-.hashbrown .who { color: var(--crisp); }
-.hashbrown .time { display: inline; padding: 0; }
+.avatar-bot { border: 0; border-radius: 9px; background: none; }
 
-.notice {
-  margin: 4px 0; padding: 8px 12px; border-radius: 12px;
-  white-space: pre-wrap; overflow-wrap: anywhere; unicode-bidi: plaintext;
-  color: var(--text-2); font-size: 14px;
+/* chat bubbles: avatar on the left, header (name, badge, time) on top of the text */
+.msg.chat { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 10px; align-items: start; }
+.msg.chat.mine { grid-template-columns: minmax(0, 1fr); justify-items: end; }
+.avatar-gap { width: 32px; }
+.bubble {
+  min-width: 0; max-width: min(68ch, 100%); justify-self: start; padding: 7px 12px 8px;
+  background: var(--bubble); border: 1px solid var(--line-soft); border-radius: 4px 16px 16px 16px;
 }
-.notice.system { padding: 3px 8px 3px 60px; color: var(--muted); }
-.notice.error { background: var(--ketchup-soft); color: var(--ketchup); }
-.notice.private { background: var(--lavender-soft); color: var(--lavender); }
-.notice.money { background: var(--pickle-soft); color: var(--pickle); }
-.notice.event { background: var(--mustard-soft); color: var(--mustard); }
-.notice.game { background: var(--panel); color: var(--text-2); }
-.notice.lit { box-shadow: 0 0 0 2px var(--lavender) inset; }
-.notice.help, .notice.board {
-  font-family: var(--mono); font-size: 12.5px; line-height: 1.55; color: var(--text-2);
-  background: var(--panel); border: 1px solid var(--line-soft); overflow-x: auto; overflow-wrap: normal;
+.cont .bubble { border-radius: 16px; }
+.mine .bubble { justify-self: end; background: var(--mine); border-color: var(--mine-line); border-radius: 16px 4px 16px 16px; }
+.mine.cont .bubble { border-radius: 16px; }
+.msg-head { display: flex; align-items: baseline; gap: 7px; margin-bottom: 1px; font-size: 14px; line-height: 1.35; }
+.mine .msg-head .who { color: var(--text-2); }
+.badge { font-size: 13px; }
+.tag {
+  padding: 1px 7px; border-radius: 999px; background: var(--panel-3); color: var(--text-2);
+  font-size: 11px; font-weight: 800; letter-spacing: 0.03em;
 }
-.notice.help { max-width: 100%; }
-.notice .actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-.notice .actions .btn { min-height: 34px; padding: 0 14px; font-size: 14px; }
+.msg-text { white-space: pre-wrap; overflow-wrap: anywhere; text-align: start; }
+.messages:focus-visible { outline-offset: -3px; border-radius: 0; }
+.action .msg-text { font-style: italic; color: var(--text-2); }
+.bot .bubble { background: var(--crust); border-color: var(--crust-line); box-shadow: var(--shadow-1); }
+.bot .who { color: var(--crisp); }
+
+/* notice cards: a small header (what it is, when) and the server's text, in that kind's colour */
+.msg.card {
+  align-self: flex-start; max-width: min(72ch, 100%); padding: 8px 13px 10px;
+  border-radius: 14px; background: var(--k-soft, var(--panel)); color: var(--k, var(--text-2));
+  border: 1px solid var(--k-line, transparent);   /* each kind below sets its own --k-line */
+}
+.kind-error { --k: var(--ketchup); --k-soft: var(--ketchup-soft); }
+.kind-private { --k: var(--lavender); --k-soft: var(--lavender-soft); }
+.kind-money { --k: var(--pickle); --k-soft: var(--pickle-soft); }
+.kind-event { --k: var(--mustard); --k-soft: var(--mustard-soft); }
+.kind-error, .kind-private, .kind-money, .kind-event { --k-line: color-mix(in srgb, var(--k) 35%, transparent); }
+:root[data-theme="light"] :is(.kind-error, .kind-private, .kind-money, .kind-event) {
+  --k-soft: color-mix(in srgb, var(--k) 8%, var(--card-base));
+}
+.kind-game, .kind-system, .kind-help, .kind-board, .kind-file { --k: var(--text-2); --k-soft: transparent; --k-line: var(--line); }
+.card-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; font-size: 13px; }
+.card-label { font-weight: 750; }
+.card-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.private-text { color: var(--text); }
+.msg.lit { box-shadow: 0 0 0 2px var(--lavender) inset; }
+.msg .actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.msg .actions .btn { min-height: 34px; padding: 0 14px; font-size: 14px; }
+
+/* list cards: /groups, /top, /achievements, /shop, /help... one row per line */
+.list-title { color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
+.list-sub { margin-top: 10px; color: var(--text-2); font-weight: 700; overflow-wrap: anywhere; }
+.list-rows { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
+.list-row {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; padding: 4px 8px;
+  border-radius: 8px; color: var(--text-2); overflow-wrap: anywhere;
+}
+.list-row:nth-child(odd) { background: var(--row); }
+.list-row .cell:first-child { color: var(--text); font-weight: 650; }
+.kind-help .list-row .cell:first-child { font-family: var(--mono); font-size: 13px; font-weight: 500; min-width: 22ch; }
+
+/* meta lines: who came and went, small tips */
+.msg.meta {
+  align-self: center; max-width: min(72ch, 100%); padding: 0 10px; text-align: center;
+  color: var(--muted); font-size: 13.5px; white-space: pre-wrap; overflow-wrap: anywhere;
+}
 
 .room-divider {
-  display: flex; align-items: center; gap: 12px; margin: 16px 0 8px; color: var(--crisp);
+  display: flex; align-items: center; gap: 12px; margin: 20px 0 4px; color: var(--crisp);
   font-weight: 700; font-size: 13.5px;
 }
 .room-divider::before, .room-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
-.file-msg {
-  margin: 6px 0; padding: 10px 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  border-radius: 12px; background: var(--panel); border: 1px solid var(--line);
-}
-.file-msg .file-meta { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.file-msg .file-size { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.file-row-msg { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.file-meta { flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--text); }
+.file-size { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 
 .jump-down {
   position: absolute; bottom: 14px; left: 50%; translate: -50% 0; z-index: var(--z-rail);
+  display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border: 0; border-radius: 999px; background: var(--gold); color: var(--gold-ink);
-  font-weight: 700; box-shadow: var(--shadow-2);
+  font-weight: 700; box-shadow: var(--shadow-2); animation: pop-in 160ms var(--ease-out);
 }
 .drop-zone {
   position: absolute; inset: 10px; z-index: var(--z-popover); display: grid; place-items: center;
@@ -344,12 +422,12 @@ a { color: var(--gold); text-underline-offset: 3px; }
 
 .composer {
   position: relative; display: flex; gap: 8px; align-items: center;
-  padding: 12px 18px max(12px, env(safe-area-inset-bottom));
+  padding: 12px var(--chat-pad) max(12px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--line-soft); background: var(--bg);
 }
 .composer .input { min-height: 46px; border-radius: 999px; padding: 0 18px; background: var(--panel); }
 .suggestions {
-  position: absolute; left: 18px; right: 18px; bottom: calc(100% - 4px); z-index: var(--z-popover);
+  position: absolute; left: var(--chat-pad); right: var(--chat-pad); bottom: calc(100% - 4px); z-index: var(--z-popover);
   margin: 0; padding: 6px; list-style: none; max-height: min(320px, 50vh); overflow-y: auto;
   background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-2);
   transform-origin: bottom left; animation: pop-in 150ms var(--ease-out);
@@ -364,7 +442,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .suggestions .desc { color: var(--muted); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .file-panel {
-  position: absolute; left: 18px; bottom: calc(100% - 4px); z-index: var(--z-popover);
+  position: absolute; left: var(--chat-pad); bottom: calc(100% - 4px); z-index: var(--z-popover);
   width: min(420px, calc(100% - 36px)); padding: 16px; display: grid; gap: 12px;
   background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-2);
   transform-origin: bottom left; animation: pop-in 180ms var(--ease-out);
@@ -384,8 +462,8 @@ a { color: var(--gold); text-underline-offset: 3px; }
 
 /* ----- smaller screens: the game panel slides in from the right, then the sidebar from the left */
 
-@media (max-width: 1180px) {
-  .app { grid-template-columns: 248px minmax(0, 1fr); }
+@media (max-width: 1099px) {
+  .app, .app.has-game { grid-template-columns: 248px minmax(0, 1fr); }
   .only-medium { display: inline-flex; }
   .game-panel {
     position: fixed; inset: 0 0 0 auto; z-index: var(--z-drawer); width: min(400px, 100%);
@@ -396,8 +474,9 @@ a { color: var(--gold); text-underline-offset: 3px; }
   #open-game.has-game { border-color: var(--gold); color: var(--text); }
 }
 @media (max-width: 760px) {
+  :root { --chat-pad: 12px; }
   body { font-size: 16px; }
-  .app { grid-template-columns: minmax(0, 1fr); }
+  .app, .app.has-game { grid-template-columns: minmax(0, 1fr); }
   .only-narrow { display: inline-grid; }
   .sidebar {
     position: fixed; inset: 0 auto 0 0; z-index: var(--z-drawer); width: min(300px, 86vw);
@@ -405,11 +484,8 @@ a { color: var(--gold); text-underline-offset: 3px; }
     transition: transform 280ms var(--ease-drawer), visibility 0s linear 280ms;
   }
   .app.side-open .sidebar { transform: none; visibility: visible; transition: transform 280ms var(--ease-drawer), visibility 0s; }
-  .chat-head, .composer { padding-left: 12px; padding-right: 12px; }
-  .messages { padding: 10px 10px 16px; }
-  .chat-line { grid-template-columns: 40px minmax(0, 1fr); padding: 3px 4px; }
-  .notice.system { padding-left: 52px; }
-  .suggestions { left: 12px; right: 12px; }
+  .bubble { max-width: min(88%, 68ch); }
+  .msg.chat:not(.mine) .bubble { max-width: 100%; }
   .suggestions .desc { display: none; }
   .composer .btn-primary { padding: 0 14px; }
 }
@@ -418,6 +494,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
   .msg.enter { animation: fade-in 160ms ease !important; }
   .game-panel, .sidebar { transition-duration: 1ms !important; }
+  .app.has-game .game-panel { animation: fade-in 160ms ease !important; }
   .btn:active:not(:disabled), .icon-btn:active { transform: none; }
 }
 @media (prefers-contrast: more) {

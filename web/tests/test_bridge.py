@@ -5,6 +5,7 @@ Run:  python -m unittest discover -s web/tests -v      (from the project folder)
 """
 import base64
 import itertools
+import posixpath
 import re
 import socket
 import time
@@ -163,6 +164,15 @@ class TestServerStrings(BridgeTestCase):
         self.assertGreater(len(usage_lines), 20, "the /help reply has fewer command lines than expected")
         samples["helpLine"] = usage_lines
 
+        a.line("/users")
+        samples["onlineList"] = [a.wait(is_msg("🟢"), what="the /users reply")["text"]]
+        a.line("/balance")
+        samples["balance"] = [a.wait(is_msg("🪙", "money"), what="the /balance reply")["text"]]
+        samples["balance"] += [m["data"]["text"] for m in a.stream.seen if is_msg("🪙 You have", "money")(m)]
+        a.line(f"/send {b_name} psst")
+        samples["privateMsg"] = [b.wait(is_msg("💌", "private"), what="the private message")["text"]]
+        samples["presence"] = [m["data"]["text"] for m in a.stream.seen if is_msg("👋")(m)]
+
         new_nick = a_name + "x"
         a.line(f"/nick {new_nick}")
         samples["renamed"] = [a.wait(is_msg("✏️"), what="the /nick notice")["text"]]
@@ -197,6 +207,21 @@ class TestSecurity(BridgeTestCase):
         self.assertEqual(headers["referrer-policy"], "no-referrer")
         status, headers, _ = request(stack.web_port, "GET", "/app.js")
         self.assertEqual((status, headers["content-type"].split(";")[0]), (200, "text/javascript"))
+
+    def test_every_script_module_loads(self):
+        """app.js imports the other modules: each one must be served, or the whole page breaks."""
+        todo, done = ["/app.js"], set()
+        while todo:
+            path = todo.pop()
+            if path in done:
+                continue
+            done.add(path)
+            status, headers, body = request(stack.web_port, "GET", path)
+            self.assertEqual((status, headers["content-type"].split(";")[0]), (200, "text/javascript"), path)
+            folder = path.rsplit("/", 1)[0]
+            for target in re.findall(r'from "(\.{1,2}/[^"]+)"', body.decode("utf-8")):
+                todo.append(posixpath.normpath(f"{folder}/{target}"))
+        self.assertIn("/js/online.js", done)
 
     def test_logo_files_load(self):
         _, _, page = request(stack.web_port, "GET", "/")

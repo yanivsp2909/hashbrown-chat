@@ -1,13 +1,12 @@
 // 🧭 Sidebar: where you are, one-click commands and the challenge helper.
+// (Who's online and your balance live in online.js.)
 
 import { $, clear, el } from "./dom.js";
 import { sendLine } from "./api.js";
 import { subscribe } from "./store.js";
 
 const QUICK = [
-  ["🟢", "Online", "/users"],
   ["👥", "Groups", "/groups"],
-  ["🪙", "Balance", "/balance"],
   ["🎁", "Daily", "/daily"],
   ["🎮", "Games", "/games"],
   ["🟩", "Wordle", "/wordle"],
@@ -56,7 +55,8 @@ export function initSidebar({ onError, closeDrawer }) {
   });
 }
 
-/** Focus the challenge form, e.g. from the empty game panel. */
-export function focusChallenge() {
+/** Focus the challenge form, e.g. from the empty game panel, optionally with a name filled in. */
+export function focusChallenge(name) {
+  if (typeof name === "string") $("challenge-name").value = name;
   $("challenge-name").focus();
 }
