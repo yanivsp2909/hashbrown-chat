@@ -213,6 +213,7 @@ AUCTION_EVERY_HOURS = 6         # 🔨 a new auction in the lobby this often (wi
 AUCTION_SECONDS = 120           # 🔨 how long one lasts
 AUCTION_START_PRICE = 100       # 🔨 the lowest first bid...
 AUCTION_MIN_STEP = 10           # 🔨 ...and how much more each next bid must be
+DASHBOARD_RICHEST = 5           # 📊 players on the economy dashboard
 TRADE_FEE_PERCENT = 1           # 🧾 of every buy and sell (at least 1 🪙), into the public fund
 CASINO_TAX_PERCENT = 10         # 🧾 of a casino win...
 CASINO_TAX_FROM = 200           # 🧾 ...of at least this many tokens (small wins aren't taxed)

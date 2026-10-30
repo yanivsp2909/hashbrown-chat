@@ -19,6 +19,7 @@ import * as profile from "./profile.js";
 import * as netmap from "./netmap.js";
 import * as drawing from "./drawing.js";
 import * as market from "./market.js";
+import * as economy from "./economy.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
 import * as bigfiles from "./bigfiles.js";
@@ -253,6 +254,8 @@ export function handleMessage(msg, live, sendLine) {
       return live ? market.onTick(msg) : undefined;
     case "market_info":
       return market.onInfo(msg);
+    case "economy":
+      return economy.onEconomy(msg);
     case "netmap":
       return live ? netmap.onMap(msg) : undefined;
     case "probe":

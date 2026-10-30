@@ -174,7 +174,7 @@ Decision: group commands work on the room you're in, so a button for a group you
 | N10 | 💳 Loans | done: /loan N (LOAN_MAX 500, one at a time, accounts older than 24 h), you owe LOAN_INTEREST_PERCENT 10% more, due in LOAN_DAYS 3; /repay [N|all] into the fund; late: the per-minute income repays it first; loans come from the fund first (new tokens if short) |
 | N11 | 🛒 Player marketplace | done: /sell badge 🔥 300 lists a badge you own (it leaves your badges while listed), /market, /market buy N (MARKETPLACE_FEE_PERCENT 5% to the fund, the rest to the seller), /market cancel N; at most MARKETPLACE_LISTINGS_MAX 5 each; saved. Only badges (they're the only items in the game) |
 | N12 | 🔨 Auctions | done: a rare badge (RARE_BADGES 🦄 🌈 🪐 🐉 🏆, not in the shop) is auctioned in the lobby every AUCTION_EVERY_HOURS 6 with 2+ online (admins: /auction); /bid (AUCTION_START_PRICE 100, +AUCTION_MIN_STEP 10), the bid is held and given back when outbid; after AUCTION_SECONDS 120 the top bid wins and the money goes to the fund; a held bid is given back after a restart |
-| N13 | 📊 Economy dashboard (website) | not started |
+| N13 | 📊 Economy dashboard (website) | done: website 📊 Economy dialog: every token in the game (wallets + savings + group banks + fund + jackpot + Hashbrown's tips), the public fund (today in/out), today's hottest stock, inflation over the week (one total a day, saved), a chart of the total, the DASHBOARD_RICHEST 5 richest; get_economy -> economy |
 
 ### Round 5, group A reviews
 

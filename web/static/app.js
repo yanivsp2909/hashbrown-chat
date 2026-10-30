@@ -21,6 +21,7 @@ import { initGroups, resetGroups } from "./js/groups.js";
 import { initNetmap } from "./js/netmap.js";
 import { initDrawing } from "./js/drawing.js";
 import { initMarket } from "./js/market.js";
+import { initEconomy } from "./js/economy.js";
 import { initProfiles, resetProfile, saveTheme, showProfile } from "./js/profile.js";
 import * as resume from "./js/resume.js";
 
@@ -295,6 +296,7 @@ initProfiles({
 initNetmap();
 initDrawing();
 initMarket();
+initEconomy();
 initGroups({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
 initOnline({
   sendLine: api.sendLine,

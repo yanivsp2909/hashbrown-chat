@@ -871,3 +871,16 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .mk-owned { margin: 0; font-size: 13.5px; color: var(--text-2); }
 .mk-trade { display: flex; gap: 6px; }
 .mk-n { min-height: 40px; max-width: 110px; }
+
+/* ----- 📊 the economy dashboard */
+.economy { width: min(720px, calc(100vw - 32px)); }
+.ec-body { display: grid; gap: 14px; overflow-y: auto; }
+.ec-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.ec-tile { padding: 12px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line-soft); }
+.ec-label { margin: 0; font-size: 12.5px; color: var(--text-2); font-weight: 650; }
+.ec-value { margin: 4px 0 0; font-size: 24px; font-weight: 850; font-variant-numeric: tabular-nums; }
+.ec-note { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.ec-chart { margin: 0; }
+.ec-richest { margin: 0; padding-inline-start: 22px; display: grid; gap: 4px; }
+.ec-richest li::marker { color: var(--muted); }
+.ec-richest li > span:first-child { font-weight: 700; margin-inline-end: 10px; }

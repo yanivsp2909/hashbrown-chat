@@ -4,6 +4,7 @@
 (Older files don't have it: everything starts fresh.) Each account gets "portfolio" and "spent" for stocks.
 """
 from collections import deque
+from datetime import datetime, timedelta
 
 from chatserver import config, group_stocks, market, market_news, savings, state, textutil  # noqa: F401 (news listens to ticks)
 
@@ -72,3 +73,20 @@ def daily_tick():
     if not first_ever:
         for job in list(_daily_jobs):
             job()
+
+
+def dashboard():
+    """{"type": "economy"} for the website's dashboard."""
+    total = total_supply()
+    richest = sorted(state.accounts.values(), key=lambda a: a.get("tokens", 0), reverse=True)[:config.DASHBOARD_RICHEST]
+    change = market.changes()
+    hottest = max(change.items(), key=lambda pair: abs(pair[1]), default=None)
+    week_ago = next((t for day, t in reversed(state.supply_history[:-1] or [])
+                     if day <= (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")), None)
+    if week_ago is None and len(state.supply_history) >= 1 and state.supply_history[0][0] != textutil.today():
+        week_ago = state.supply_history[0][1]   # less than a week of numbers: since the first one
+    return {"type": "economy", "total": total, "fund": state.public_fund, "fund_today": dict(state.fund_today),
+            "richest": [{"name": a["nick"], "tokens": a.get("tokens", 0)} for a in richest],
+            "hottest": {"symbol": hottest[0], "change": hottest[1], "price": state.stocks[hottest[0]]["price"]} if hottest else None,
+            "supply": [list(p) for p in state.supply_history[-14:]],
+            "inflation_week": round((total - week_ago) * 100 / week_ago, 1) if week_ago else None}

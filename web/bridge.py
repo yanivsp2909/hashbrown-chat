@@ -87,7 +87,7 @@ def clean_features(value):
 
 # What a browser may send (everything else is refused before it reaches the chat server)
 BROWSER_PACKETS = ("line", "file", "ping", "typing", "typing_stop", "seen", "get_groups", "get_group", "groups_closed",
-                   "get_profile", "change_password", "get_netmap", "netmap_closed", "probe_back", "stroke", "get_market",
+                   "get_profile", "change_password", "get_netmap", "netmap_closed", "probe_back", "stroke", "get_market", "get_economy",
                    "react", "edit", "delete",
                    "file_start", "file_chunk", "file_cancel")
 
@@ -126,7 +126,7 @@ def validate(msg, logged_in):
             raise BridgeError(400, "Bad stroke.")
         return {"type": "stroke", "points": points, "color": whole_number(msg.get("color"), "colour"),
                 "size": whole_number(msg.get("size"), "size")}
-    if kind in ("get_netmap", "netmap_closed", "get_market"):   # 🗺️ the network map / 📈 the market screen
+    if kind in ("get_netmap", "netmap_closed", "get_market", "get_economy"):   # 🗺️ the network map / 📈 the market screen
         return {"type": kind}
     if kind == "probe_back":   # 🗺️ the answer to the server's ping probe
         return {"type": "probe_back", "id": whole_number(msg.get("id"), "probe id")}

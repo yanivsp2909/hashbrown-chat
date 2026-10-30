@@ -68,6 +68,7 @@
       <button id="groups-open" class="btn btn-ghost btn-wide gs-open-btn" type="button" aria-controls="groups-screen" aria-expanded="false"><span aria-hidden="true">👥</span> Groups</button>
       <button id="profile-open" class="btn btn-ghost btn-wide gs-open-btn" type="button" aria-haspopup="dialog"><span aria-hidden="true">👤</span> My profile</button>
       <button id="market-open" class="btn btn-ghost btn-wide gs-open-btn" type="button" aria-haspopup="dialog"><span aria-hidden="true">📈</span> Market</button>
+      <button id="economy-open" class="btn btn-ghost btn-wide gs-open-btn" type="button" aria-haspopup="dialog"><span aria-hidden="true">📊</span> Economy</button>
       <section id="chats" class="chats" aria-labelledby="chats-title" hidden>
         <h2 id="chats-title" class="side-title"><span aria-hidden="true">💬</span> Chats</h2>
         <ul id="chat-list" class="chat-list"></ul>
@@ -194,6 +195,14 @@
       <p id="mk-wallet" class="xray-hint">Loading the market…</p>
       <ul id="mk-list" class="mk-list"></ul>
       <p id="mk-status" class="xray-hint" role="status"></p>
+    </dialog>
+
+    <dialog id="economy" class="xray economy" aria-labelledby="economy-title">
+      <div class="xray-head">
+        <h2 id="economy-title"><span aria-hidden="true">📊 </span>Economy</h2>
+        <button id="economy-close" class="icon-btn" type="button" aria-label="Close the economy dashboard"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div id="ec-body" class="ec-body"></div>
     </dialog>
 
     <dialog id="netmap" class="xray netmap" aria-labelledby="netmap-title">

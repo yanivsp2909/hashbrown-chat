@@ -12,7 +12,7 @@ from chatserver import (auth, background, chat, config, discovery, group_view, h
                         resume, rooms,
                         session, state, storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
-from chatserver import cmd_profile, drawing, market, netmap, profiles
+from chatserver import cmd_profile, drawing, economy, market, netmap, profiles
 
 
 # ---------------------------------------------------------------- connections
@@ -136,6 +136,10 @@ def handle_message(client, msg):
         if kind == "get_market":   # 📈 the website's market screen
             if rooms.spam_ok(client):
                 client.send(market.info_packet(client.key))
+            return
+        if kind == "get_economy":   # 📊 the website's economy dashboard
+            if rooms.spam_ok(client):
+                client.send(economy.dashboard())
             return
         if kind == "stroke":     # 🎨 a brush stroke: no spam limit (its own limit, in drawing.py)
             drawing.stroke(client, msg)
