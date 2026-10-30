@@ -12,6 +12,7 @@ import { noteTarget } from "./games/panel.js";
 import * as online from "./online.js";
 import * as rooms from "./rooms.js";
 import { startsNewList } from "./roomlogic.js";
+import { showLab } from "./banners.js";
 import * as typing from "./typing.js";
 import { updateReactions } from "./reactions.js";
 import * as bigfiles from "./bigfiles.js";
@@ -187,6 +188,8 @@ export function handleMessage(msg, live, sendLine) {
       return Number.isInteger(msg.id) ? updateReactions(msg) : undefined;
     case "typing":
       return live ? typing.someoneTyping(str(msg.name)) : undefined;
+    case "lab":
+      return showLab(msg);
     case "typing_stop":
       return live ? typing.stoppedTyping(str(msg.name)) : undefined;
     case "stream":

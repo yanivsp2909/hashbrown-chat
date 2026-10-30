@@ -105,7 +105,7 @@ If you're picking this up after a break: read the rules, then continue from the 
 | R3 | Faster "is typing…" | done: new packet `typing_stop` (old clients ignore it); the first "typing" goes out at once, refreshes every TYPING_EVERY (2 s), stop on send or an empty box, the line hides exactly SHOW_FOR (4 s) after the last packet; flood cap TYPING_LIMIT per TYPING_WINDOW, outside the spam limit |
 | R4 | @ autocomplete | done: typing @ (at the start or after a space) lists @hashbrown + the people online in this room (mentions.js, tested in Node), same keys as / (arrows, Tab/Enter, Esc); the listbox label says "People to mention" |
 | R5 | `/answer` for the question of the day | done: /answer text (one per person per day, posted in the lobby as "💡 Nick's answer: ...", no author so it can't be edited), votes = other people's reactions; the next question settles it first: most votes (earliest on a tie, at least 1) wins QOTD_PRIZE 50 and Hashbrown says so (no AI); question + answers saved under "qotd" in chat_data.json; website 💡 Answer button + answer card |
-| R6 | Network lab banner + reliable lab test | not started |
+| R6 | Network lab banner + reliable lab test | done: new packet {"type": "lab", lag_ms, loss_percent} to everyone when lag/loss/lab off change in the server window, and at login while it's on; website banner "🧪 Network lab: 300 ms lag, 20% loss" (banners.js). The flaky test was the side-by-side one (all three late packets in < 0.8 s, tight on a busy computer): now 0.6 s resend and 0.6-1.5 s allowed vs 1.8 s for one-after-another; 10/10 runs pass |
 | R7 | start.sh uses .venv/bin/python | done (by the owner, 7d1fa8f): checked, `.venv/bin/python` if it exists, else `python3` |
 
 ### Part B: admin password

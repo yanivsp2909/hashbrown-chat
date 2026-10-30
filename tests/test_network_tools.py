@@ -97,12 +97,50 @@ def test_loss_makes_tcp_resend_late_but_nothing_is_lost(user, monkeypatch):
 
 
 def test_lost_packets_are_late_side_by_side_not_one_after_another(user, monkeypatch):
+    """Side by side: all three arrive about RESEND after they were sent. One after another would take 3 x RESEND.
+    The resend is long (0.6 s) so the two cases are far apart, and a busy computer can't make the test fail."""
     adi = user("Adi")
     monkeypatch.setattr(background.random, "random", lambda: 0.0)
-    monkeypatch.setattr(config, "LAB_RESEND_MS", 300)
+    monkeypatch.setattr(config, "LAB_RESEND_MS", 600)
     state.lab_loss_percent = 100
     start = time.monotonic()
     for word in ("one", "two", "three"):
         adi.line(word)
-    adi.expect(lambda m: m.get("text") == "three")
-    assert time.monotonic() - start < 0.8          # about 0.3 s, not 3 x 0.3 s
+    adi.expect(lambda m: m.get("text") == "three", timeout=10)
+    took = time.monotonic() - start
+    assert 0.6 <= took < 1.5                       # one after another would be at least 1.8 s
+
+
+# ---------------------------------------------------------------- 🧪 the lab banner
+
+def lab_packets(client):
+    return [m for m in client.messages if m.get("type") == "lab"]
+
+
+def test_everyone_hears_when_the_lab_changes(user):
+    adi = user("Adi")
+    background.console_command("lag 300")
+    assert adi.expect(lambda m: m.get("type") == "lab") == {"type": "lab", "lag_ms": 300, "loss_percent": 0}
+    background.console_command("loss 20")
+    assert adi.expect(lambda m: m.get("type") == "lab")["loss_percent"] == 20
+    background.console_command("lab off")
+    assert adi.expect(lambda m: m.get("type") == "lab", timeout=5) == {"type": "lab", "lag_ms": 0, "loss_percent": 0}
+
+
+def test_logging_in_while_the_lab_is_on_shows_it_and_not_when_off(user):
+    state.lab_lag_ms, state.lab_loss_percent = 0, 15
+    adi = user("Adi")
+    assert adi.expect(lambda m: m.get("type") == "lab")["loss_percent"] == 15
+    state.lab_loss_percent = 0
+    ben = user("Ben")
+    ben.line("/users")
+    ben.expect_text("Online now")
+    assert lab_packets(ben) == []
+
+
+def test_just_looking_at_the_lab_sends_nothing(user):
+    adi = user("Adi")
+    background.console_command("lab")
+    adi.line("/users")
+    adi.expect_text("Online now")
+    assert lab_packets(adi) == []

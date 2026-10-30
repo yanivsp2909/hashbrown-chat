@@ -97,6 +97,7 @@ def network_lab(cmd, value):
     if cmd == "lab":
         if value == "off":
             state.lab_lag_ms, state.lab_loss_percent = 0, 0
+            rooms.tell_everyone_about_the_lab()
         textutil.log(f"[LAB] 🧪 lag {state.lab_lag_ms} ms, loss {state.lab_loss_percent}% "
                      f"(a lost packet arrives {config.LAB_RESEND_MS} ms late, like a TCP resend)")
         return
@@ -108,6 +109,7 @@ def network_lab(cmd, value):
         state.lab_lag_ms = int(value)
     else:
         state.lab_loss_percent = int(value)
+    rooms.tell_everyone_about_the_lab()
     network_lab("lab", "")
 
 

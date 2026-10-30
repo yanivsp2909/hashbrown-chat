@@ -80,6 +80,17 @@ def send_room_list(key):
                             "title": room_title(k)} for k in mine]})
 
 
+def lab_packet():
+    """🧪 {"type": "lab", "lag_ms", "loss_percent"}: the website shows a banner while the network lab is on."""
+    return {"type": "lab", "lag_ms": state.lab_lag_ms, "loss_percent": state.lab_loss_percent}
+
+
+def tell_everyone_about_the_lab():
+    """The host changed the lab in the server window: everyone's banner changes (or goes away)."""
+    for c in list(state.online.values()):
+        c.send(lab_packet())
+
+
 def notify_room(room, text, exclude=None, kind="system", **extra):
     send_room(room, {"type": "msg", "kind": kind, "text": text, **extra}, exclude)
 

@@ -75,5 +75,15 @@ class MentionsTestCase(unittest.TestCase):
             ["Noa", "Nir"])
 
 
+@unittest.skipUnless(shutil.which("node"), "Node isn't installed")
+class LabBannerTestCase(unittest.TestCase):
+    def test_the_banner_says_what_the_lab_does_and_is_empty_when_off(self):
+        banners = json.dumps((WEB / "static" / "js" / "banners.js").as_uri())
+        self.assertEqual(run(f"""import {{ labText }} from {banners};
+            console.log(JSON.stringify([labText({{lag_ms: 300, loss_percent: 20}}), labText({{lag_ms: 300, loss_percent: 0}}),
+                labText({{lag_ms: 0, loss_percent: 0}}), labText({{lag_ms: "9", loss_percent: -1}})]))"""),
+            ["🧪 Network lab: 300 ms lag, 20% loss", "🧪 Network lab: 300 ms lag", "", ""])
+
+
 if __name__ == "__main__":
     unittest.main()

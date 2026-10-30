@@ -121,6 +121,8 @@ def handle_auth(client, msg):
         hint = "🥔 Say @hashbrown + a question to ask the AI. " if state.hashbrown else ""
         client.say(f"✨ {hint}Type /help to see everything you can do.")
         rooms.move_to_room(client, "lobby")
+        if state.lab_lag_ms or state.lab_loss_percent:
+            client.send(rooms.lab_packet())   # 🧪 the network lab is on: show the banner
         rooms.notify_room("lobby", f"👋 {rooms.shown(key)} joined the chat", exclude=client)
         deliver_inbox(key)
         textutil.log(f"[SERVER] {rooms.nick(key)} logged in from {client.address}")
