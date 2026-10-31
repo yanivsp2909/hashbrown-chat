@@ -33,6 +33,7 @@ SESSIONS_PER_IP = 8
 CREATES_PER_MINUTE = 30      # new sessions per IP per minute
 LOGIN_FAILS, LOGIN_WINDOW = 8, 300   # failed logins per IP per 5 minutes
 SENDS, SENDS_WINDOW = 20, 5          # messages per session per 5 seconds
+STROKE_SENDS, STROKE_WINDOW = 60, 5  # 🎨 brush strokes have their own budget: a drawer sends one every 100 ms
 CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 BASE64 = re.compile(r"[A-Za-z0-9+/]*={0,2}")
 
@@ -232,6 +233,7 @@ class Session:
         self.send_lock = threading.Lock()
         self.rate_lock = threading.Lock()
         self.sends = deque()
+        self.stroke_sends = deque()   # 🎨 its own budget (STROKE_SENDS)
         self.xray = False            # 🔬 the tab's Packet X-ray is open: show it the raw TCP traffic too
         self.xray_ids = deque()      # 🔬 ids of the x-ray events still in the replay log
         self.live_only = deque()     # 📦 (id, json text) sent once to the tab, never replayed: big file chunks
@@ -345,7 +347,10 @@ class Session:
         clean_msg = validate(msg, self.logged_in)
         line = to_line(clean_msg)
         with self.rate_lock:
-            if not allow(self.sends, SENDS, SENDS_WINDOW):
+            if clean_msg["type"] == "stroke":   # 🎨 (only strokes: chat still has its 20 per 5 s)
+                if not allow(self.stroke_sends, STROKE_SENDS, STROKE_WINDOW):
+                    raise BridgeError(429, "🐢 Slow down a little!")
+            elif not allow(self.sends, SENDS, SENDS_WINDOW):
                 raise BridgeError(429, "🐢 Slow down a little!")
             if clean_msg["type"] == "auth":
                 if self.auth_pending:

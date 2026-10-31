@@ -1,24 +1,22 @@
-// 🎨 The drawing game's board, above the chat. The drawer paints with the mouse or a finger; every short piece of
-// a line goes to the server as one small {"type": "stroke"} packet (you can watch them in Packet X-ray), and the
-// others see it appear. They guess in the chat; the server checks, so their app never knows the word.
+// 🎨 The drawing game's board, above the chat. The drawer paints with the mouse or a finger; the points go to the
+// server in small {"type": "stroke"} packets, at most one every 100 ms (drawlogic.js; watch them in Packet X-ray),
+// and the others see it appear. They guess in the chat; the server checks, so their app never knows the word.
 
 import { $, clear, el, str } from "./dom.js";
 import { send, sendLine } from "./api.js";
 import { getState } from "./store.js";
+import { makeBatcher } from "./drawlogic.js";
 
 const SIZE = 1000;               // stroke coordinates are 0-1000 on both sides (the server checks)
 const COLORS = ["#2b1d12", "#e2412a", "#4f9a2b", "#e9a21d", "#7a5cff", "#2a8fd6", "#8a5a2b", "#ffffff"];
 const WIDTHS = [0, 3, 7, 14];    // brush size 1-3, in canvas pixels at 1000 wide
-const FLUSH_MS = 70;             // how often the drawer's points go out as one packet
 const SHOW_WORD_MS = 6000;       // the word stays up this long after a round ends
-const MAX_POINTS = 60;           // per packet (the server allows 64)
 let drawer = "";
 let mine = false;
 let color = 0;
 let width = 2;
-let pending = [];                // points not sent yet
+const outbox = makeBatcher(send);   // the drawer's points, batched into packets
 let lastPoint = null;
-let flushTimer = null;
 let tickTimer = null;
 let endsAt = 0;
 let myWord = "";                 // the drawer's word (from the private line; it comes before the round packet)
@@ -59,43 +57,27 @@ function pointFrom(event) {
   return [Math.min(SIZE, Math.max(0, x)), Math.min(SIZE, Math.max(0, y))];
 }
 
-function flush() {
-  flushTimer = null;
-  if (!pending.length) return;
-  const points = pending.slice(0, MAX_POINTS);
-  pending = pending.slice(MAX_POINTS);
-  send({ type: "stroke", points, color, size: width });
-  if (pending.length) flushTimer = setTimeout(flush, FLUSH_MS);
-}
-
-function addPoint(point) {
-  if (lastPoint) line([lastPoint, point], color, width);
-  else line([point], color, width);
-  if (!pending.length && lastPoint) pending.push(lastPoint);   // the next packet starts where the last one ended
-  pending.push(point);
-  lastPoint = point;
-  if (!flushTimer) flushTimer = setTimeout(flush, FLUSH_MS);
-}
-
 function onDown(event) {
   if (!mine) return;
   event.preventDefault();
   canvas().setPointerCapture(event.pointerId);
-  lastPoint = null;
-  if (pending.length) flush();
-  addPoint(pointFrom(event));
+  const point = pointFrom(event);
+  line([point], color, width);
+  outbox.start(point, color, width);
+  lastPoint = point;
 }
 
 function onMove(event) {
   if (!mine || !lastPoint || !(event.buttons & 1)) return;
-  addPoint(pointFrom(event));
+  const point = pointFrom(event);
+  line([lastPoint, point], color, width);
+  outbox.add(point);
+  lastPoint = point;
 }
 
 function onUp() {
   if (!mine) return;
-  clearTimeout(flushTimer);
-  flush();
-  // the next line starts fresh (its first packet repeats nothing from this one)
+  outbox.end();   // the next line starts fresh (its own packet)
   lastPoint = null;
 }
 
@@ -114,7 +96,7 @@ function tools() {
         onclick: () => { color = i; tools(); } }))),
     el("label", { class: "draw-size" }, el("span", { text: "Size" }),
       el("input", { type: "range", min: "1", max: "3", value: String(width), oninput: (e) => { width = Number(e.target.value); } })),
-    el("button", { class: "btn btn-ghost", type: "button", text: "🧽 Clear", onclick: () => { wipe(); send({ type: "stroke", clear: true }); } }),
+    el("button", { class: "btn btn-ghost", type: "button", text: "🧽 Clear", onclick: () => { wipe(); outbox.drop(); send({ type: "stroke", clear: true }); } }),
     el("button", { class: "btn btn-ghost gs-danger", type: "button", text: "Give up", onclick: () => sendLine("/draw stop") }));
 }
 
@@ -135,6 +117,7 @@ export function onRound(msg, live) {
   if (msg.state === "ended") {
     clearInterval(tickTimer);
     mine = false;
+    outbox.drop();
     $("draw-title").textContent = msg.word ? `🎨 The word was ${str(msg.word).toUpperCase()}` : "🎨 Round over";
     tools();
     clear($("draw-tools"));
@@ -160,7 +143,7 @@ export function reset() {
   mine = false;
   drawer = "";
   myWord = "";
-  pending = [];
+  outbox.drop();
   lastPoint = null;
   $("draw-board").hidden = true;
 }

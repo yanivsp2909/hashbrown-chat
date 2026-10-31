@@ -461,3 +461,30 @@ class TestBigFiles(BridgeTestCase):
         a, _ = self.user()
         status, _ = a.send({"type": "file_chunk", "id": "t1", "index": 0, "data": "not base64!"})
         self.assertEqual(status, 400)
+
+
+class TestDrawing(BridgeTestCase):
+    def test_a_fast_ten_second_drawing_arrives_complete(self):
+        """A drawer's canvas sends a stroke packet every 100 ms: none may be lost on the way to the guesser."""
+        drawer, guesser = self.tab(), self.tab()
+        drawer_name, room = next(names), f"Art{next(names)[-4:]}"
+        self.assertTrue(drawer.auth(drawer_name, PASSWORD, "register", ["draw", "rooms"])["ok"])
+        self.assertTrue(guesser.auth(next(names), PASSWORD, "register", ["draw", "rooms"])["ok"])
+        drawer.line(f"/create {room}")
+        drawer.wait(is_msg(type_="history"), what="the new group")
+        guesser.line(f"/join {room}")
+        guesser.wait(lambda e: e["data"].get("type") == "history" and e["data"].get("key") == room.lower(), what="the group")
+        drawer.line("/draw")
+        guesser.wait(lambda e: e["data"].get("type") == "draw_round", what="the round")
+        for i in range(100):   # 10 seconds of drawing, one packet every 100 ms (plus a typing packet now and then)
+            status, body = drawer.send({"type": "stroke", "points": [[i, i], [i + 5, i + 5]], "color": 1, "size": 2})
+            self.assertEqual(status, 202, f"stroke {i}: {body}")
+            if i % 10 == 0:
+                drawer.send({"type": "typing"})
+            time.sleep(0.1)
+        got = []
+        guesser.wait(lambda e: e["data"].get("type") == "stroke" and got.append(e["data"]["points"][0][0]) is None
+                     and len(got) == 100, timeout=5, what="all 100 strokes")
+        self.assertEqual(got, list(range(100)))
+        status, _ = drawer.send({"type": "line", "text": "flood"})   # the chat budget is still its own
+        self.assertEqual(status, 202)

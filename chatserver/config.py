@@ -94,7 +94,7 @@ DRAW_SECONDS = 90               # 🎨 a drawing round
 DRAW_GUESS_PRIZE = 30           # 🎨 for the first right guess...
 DRAW_DRAWER_PRIZE = 15          # 🎨 ...and for the drawer
 DRAW_POINTS_MAX = 64            # 🎨 points in one stroke packet
-DRAW_STROKES_PER_SECOND = 20    # 🎨 stroke packets one drawer may send a second (more are dropped)
+DRAW_STROKES_PER_SECOND = 20    # 🎨 stroke packets one drawer may send a second (more are dropped; the website sends <= 10), outside the spam limit
 DRAW_STROKES_KEPT = 400         # 🎨 strokes kept for people who come in during a round
 DRAW_COOLDOWN = 120             # 🎨 seconds between two rounds started by the same person (no farming)
 DRAW_MIN_SECONDS = 8            # 🎨 a right guess sooner than this after the start wins nothing
