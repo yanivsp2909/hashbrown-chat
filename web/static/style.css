@@ -807,7 +807,8 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .netmap { width: min(760px, calc(100vw - 32px)); }
 .nm-svg { width: 100%; height: auto; max-height: 52vh; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 12px; }
 .nm-server { fill: var(--crust); stroke: var(--crust-line); stroke-width: 2; }
-.nm-server-label { fill: var(--text); font-size: 13px; font-weight: 800; }
+.nm-server-label { fill: var(--text); font-size: 11px; font-weight: 800; }
+.nm-server-icon { font-size: 18px; }
 .nm-link { stroke: var(--line); stroke-width: 2; }
 .nm-player { fill: var(--panel-3); stroke: var(--crisp); stroke-width: 2; }
 .nm-name { fill: var(--text); font-size: 13px; font-weight: 750; }
@@ -876,9 +877,10 @@ a { color: var(--gold); text-underline-offset: 3px; }
 .economy { width: min(720px, calc(100vw - 32px)); }
 .ec-body { display: grid; gap: 14px; overflow-y: auto; }
 .ec-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.ec-tile { padding: 12px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line-soft); }
+.ec-tile { min-width: 0; padding: 12px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line-soft); }
 .ec-label { margin: 0; font-size: 12.5px; color: var(--text-2); font-weight: 650; }
-.ec-value { margin: 4px 0 0; font-size: 24px; font-weight: 850; font-variant-numeric: tabular-nums; }
+.ec-value { margin: 4px 0 0; font-size: 24px; font-weight: 850; font-variant-numeric: tabular-nums;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ec-note { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 .ec-chart { margin: 0; }
 .ec-richest { margin: 0; padding-inline-start: 22px; display: grid; gap: 4px; }

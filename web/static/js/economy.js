@@ -14,20 +14,24 @@ function svg(tag, attrs = {}, ...children) {
   return node;
 }
 
+// A value too long for its tile (a group stock like #CHESSCLUB) ends in "…"; the full text shows on hover (title)
+// and is still the text screen readers get.
 const tile = (label, value, note = "") => el("div", { class: "ec-tile" },
-  el("p", { class: "ec-label", text: label }), el("p", { class: "ec-value", text: value }), note ? el("p", { class: "ec-note", text: note }) : null);
+  el("p", { class: "ec-label", text: label }), el("p", { class: "ec-value", text: value, title: value, dir: "auto" }),
+  note ? el("p", { class: "ec-note", text: note }) : null);
 
 /** {"type": "economy"} */
 export function onEconomy(msg) {
   if (!$("economy").open) return;
   const body = clear($("ec-body"));
   const inflation = Number.isFinite(msg.inflation_week) ? `${msg.inflation_week > 0 ? "+" : ""}${msg.inflation_week}%` : "not yet";
-  const hot = msg.hottest ? `${str(msg.hottest.symbol).toUpperCase()} ${msg.hottest.change > 0 ? "▲" : "▼"} ${Math.abs(msg.hottest.change)}%` : "—";
+  const hot = msg.hottest ? str(msg.hottest.symbol).toUpperCase() : "—";   // (the change goes on the note line, so it's never cut)
+  const hotNote = msg.hottest ? `${msg.hottest.change > 0 ? "▲" : "▼"} ${Math.abs(msg.hottest.change)}% · now ${msg.hottest.price} 🪙` : "";
   body.append(
     el("div", { class: "ec-tiles" },
       tile("🪙 Every token in the game", String(msg.total), "wallets, savings, group banks, the fund"),
       tile("🧾 Public fund", String(msg.fund), `today: +${msg.fund_today?.in || 0} in, −${msg.fund_today?.out || 0} paid out`),
-      tile("📈 Hottest stock today", hot, msg.hottest ? `now ${msg.hottest.price} 🪙` : ""),
+      tile("📈 Hottest stock today", hot, hotNote),
       tile("🎈 Inflation this week", inflation, "how much the total grew")));
   const points = (Array.isArray(msg.supply) ? msg.supply : []).map(([day, total], i) => ({ time: i, balance: total, day }));
   const path = chartPath(points, 520, 90);

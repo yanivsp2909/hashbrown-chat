@@ -34,22 +34,44 @@ function svg(tag, attrs = {}, ...children) {
 
 const total = (counts) => Object.values(counts || {}).reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0);
 
+const SERVER_R = 36;           // the server's circle; its label must fit inside
+const LABEL_MAX = SERVER_R * 2 - 16;
+
+/** "🖥️" over "Server", both inside the circle (on top of the lines). A font that runs wider is squeezed to fit. */
+function serverLabel() {
+  const word = svg("text", { x: CENTER.x, y: CENTER.y + 15, class: "nm-server-label", "text-anchor": "middle" }, "Server");
+  const icon = svg("text", { x: CENTER.x, y: CENTER.y + 1, class: "nm-server-icon", "text-anchor": "middle", "aria-hidden": "true" }, "🖥️");
+  return [icon, word];
+}
+
+function fit(label) {
+  if (label.getComputedTextLength && label.getComputedTextLength() > LABEL_MAX) {
+    label.setAttribute("textLength", String(LABEL_MAX));
+    label.setAttribute("lengthAdjust", "spacingAndGlyphs");
+  }
+}
+
 function draw() {
   const map = clear($("netmap-svg"));
   positions = {};
-  map.append(svg("circle", { cx: CENTER.x, cy: CENTER.y, r: 34, class: "nm-server" }),
-    svg("text", { x: CENTER.x, y: CENTER.y + 5, class: "nm-server-label", "text-anchor": "middle" }, "🖥️ Server"));
   players.forEach((p, i) => {
     const angle = (i / Math.max(players.length, 1)) * Math.PI * 2 - Math.PI / 2;
-    const pos = { x: CENTER.x + Math.cos(angle) * RADIUS, y: CENTER.y + Math.sin(angle) * RADIUS };
-    positions[p.name] = pos;
+    positions[p.name] = { x: CENTER.x + Math.cos(angle) * RADIUS, y: CENTER.y + Math.sin(angle) * RADIUS };
+  });
+  // the lines first, so the server and the players sit on top of them
+  map.append(...players.map((p) => svg("line", { x1: CENTER.x, y1: CENTER.y, x2: positions[p.name].x, y2: positions[p.name].y, class: "nm-link" })));
+  const [icon, word] = serverLabel();
+  map.append(svg("circle", { cx: CENTER.x, cy: CENTER.y, r: SERVER_R, class: "nm-server" }), icon, word);
+  fit(word);
+  fit(icon);
+  for (const p of players) {
+    const pos = positions[p.name];
     const ping = Number.isFinite(p.ping_ms) ? `${Math.round(p.ping_ms)} ms` : "ping ?";
     map.append(
-      svg("line", { x1: CENTER.x, y1: CENTER.y, x2: pos.x, y2: pos.y, class: "nm-link" }),
       svg("circle", { cx: pos.x, cy: pos.y, r: 16, class: "nm-player" }),
       svg("text", { x: pos.x, y: pos.y + 32, class: "nm-name", "text-anchor": "middle" }, str(p.name)),
       svg("text", { x: pos.x, y: pos.y + 48, class: "nm-ping", "text-anchor": "middle" }, ping));
-  });
+  }
 }
 
 /** One packet dot flying along a line (towards the server when `up`). */
@@ -121,8 +143,8 @@ export function initNetmap() {
   $("netmap-legend").append(...KINDS.map(([kind, label]) => el("li", {}, el("span", { class: `nm-key nm-${kind}`, "aria-hidden": "true" }), label)));
   $("netmap-open").addEventListener("click", () => {
     players = [];
-    draw();
     dialog.showModal();
+    draw();   // (after showModal: the label can only be measured on screen)
     send({ type: "get_netmap" });
   });
   $("netmap-close").addEventListener("click", () => dialog.close());
