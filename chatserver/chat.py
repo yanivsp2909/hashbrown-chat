@@ -40,7 +40,7 @@ def post_chat(client, text, action=False):
         client.say(f"🔇 You're muted here for {int((until - time.time()) // 60) + 1} more min.", "error")
         return False
     account = state.accounts[client.key]
-    msg = rooms.chat_message(account["nick"], account["badge"], text, action)
+    msg = {**rooms.chat_message(account["nick"], account["badge"], text, action), **profiles.looks(account)}
     history.add(room, msg, client.key)  # gives msg its "id"
     rooms.send_room(room, msg)  # the sender gets it too, so they see their own line with the time
     client.is_typing, client.last_typing = False, 0.0   # ⌨️ the message ends "typing" (the others hide it)

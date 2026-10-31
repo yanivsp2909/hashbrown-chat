@@ -335,6 +335,7 @@ a { color: var(--gold); text-underline-offset: 3px; }
   background: var(--panel-2); border: 1px solid var(--line); font-weight: 800; font-size: 14px; line-height: 1;
 }
 .avatar-bot { border: 0; border-radius: 9px; background: none; }
+.avatar-emoji { font-size: 18px; }   /* 🎨 a profile avatar emoji instead of the first letter */
 
 /* chat bubbles: avatar on the left, header (name, badge, time) on top of the text */
 .msg.chat { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 10px; align-items: start; }

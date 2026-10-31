@@ -83,6 +83,17 @@ def set_field(key, field, value):
     return True, f"👤 Saved your {field}."
 
 
+def looks(account):
+    """🎨 The avatar and name colour that go on someone's chat bubbles: only the ones they set (new optional
+    fields in "chat" packets; old clients ignore them)."""
+    shown = {}
+    if account.get("avatar"):
+        shown["avatar"] = account["avatar"]
+    if isinstance(account.get("color"), int) and not isinstance(account.get("color"), bool):
+        shown["color"] = account["color"]
+    return shown
+
+
 def last_seen_text(key):
     seen = state.accounts[key].get("last_seen") or 0
     if not seen:

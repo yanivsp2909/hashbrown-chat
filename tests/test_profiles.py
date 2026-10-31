@@ -128,3 +128,23 @@ def test_the_last_seen_time_is_saved_when_you_leave(user):
     adi.close()
     ben.expect_text("Adi left the chat")
     assert state.accounts["adi"]["last_seen"] > 0
+
+
+# ---------------------------------------------------------------- the avatar and name colour on chat bubbles
+
+def test_chat_and_history_carry_the_senders_avatar_and_colour(user):
+    adi, ben = user("Adi"), user("Ben")
+    adi.line("/setprofile avatar 🍟")
+    adi.line("/setprofile color 3")
+    adi.expect_text("Saved your color")
+    adi.line("hello fries")
+    got = ben.expect(lambda m: m.get("type") == "chat" and m.get("text") == "hello fries")
+    assert (got["avatar"], got["color"]) == ("🍟", 3)
+    ben.line("plain me")
+    plain = adi.expect(lambda m: m.get("type") == "chat" and m.get("text") == "plain me")
+    assert "avatar" not in plain and "color" not in plain     # nothing set: nothing extra
+    cat = user("Cat")
+    history = cat.messages[-1] if cat.messages[-1].get("type") == "history" else next(
+        m for m in reversed(cat.messages) if m.get("type") == "history")
+    mine = next(m for m in history["messages"] if m["text"] == "hello fries")
+    assert (mine["avatar"], mine["color"]) == ("🍟", 3)

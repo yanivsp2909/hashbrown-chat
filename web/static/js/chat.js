@@ -134,9 +134,16 @@ function addOther(node, options) {
 
 // ---------------------------------------------------------------- chat bubbles
 
-function avatar(name, bot) {
+/** 🎨 The name colour someone picked in their profile (0-7), or the one their name gives. */
+function colourOf(msg, name) {
+  return Number.isInteger(msg.color) && msg.color >= 0 && msg.color < 8 ? `name-${msg.color}` : nameClass(name);
+}
+
+function avatar(msg, name, bot) {
   if (bot) return el("img", { class: "avatar avatar-bot", src: "/logo.svg", alt: "", width: "32", height: "32" });
-  return el("span", { class: `avatar ${nameClass(name)}`, "aria-hidden": "true", text: initial(name) });
+  const emoji = str(msg.avatar);   // their profile's avatar emoji (the server checked it's one emoji)
+  return el("span", { class: `avatar ${colourOf(msg, name)}${emoji ? " avatar-emoji" : ""}`, "aria-hidden": "true",
+    text: emoji || initial(name) });
 }
 
 function chatNode(msg, { mine = false, old = false } = {}) {
@@ -153,7 +160,7 @@ function chatNode(msg, { mine = false, old = false } = {}) {
   const head = grouped
     ? el("p", { class: "msg-head visually-hidden", text: mine ? "You" : name })
     : el("p", { class: "msg-head" },
-      el("span", { class: `who${bot || mine ? "" : ` ${nameClass(name)}`}`, text: mine ? "You" : name }),
+      el("span", { class: `who${bot || mine ? "" : ` ${colourOf(msg, name)}`}`, text: mine ? "You" : name }),
       badge && !bot ? el("span", { class: "badge", text: badge }) : null,
       bot ? el("span", { class: "tag", text: "AI" }) : null,
       el("span", { class: "time", text: time }));
@@ -167,7 +174,7 @@ function chatNode(msg, { mine = false, old = false } = {}) {
   const answerButton = isQotdQuestion(msg) ? el("div", { class: "actions" },
     el("button", { class: "btn btn-ghost", type: "button", text: "💡 Answer", onclick: () => focusInput("/answer ") })) : null;
   return el("li", { class: classes.filter(Boolean).join(" "), "data-id": stored ? String(msg.id) : null },
-    mine ? null : grouped ? el("span", { class: "avatar-gap" }) : avatar(name, bot),
+    mine ? null : grouped ? el("span", { class: "avatar-gap" }) : avatar(msg, name, bot),
     el("div", { class: "bubble" }, head, text, msg.edited ? el("span", { class: "edited", text: "(edited)" }) : null,
       answerButton, row));
 }

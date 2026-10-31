@@ -137,14 +137,16 @@ def recent(room, count=None):
             return list(_memory.get(room, ()))[-count:]
         try:
             rows = connection.execute(
-                "SELECT id, time, name, badge, text, action, edited FROM messages WHERE room = ? "
+                "SELECT id, time, name, badge, text, action, edited, login FROM messages WHERE room = ? "
                 "ORDER BY id DESC LIMIT ?", (room, count)).fetchall()
         except sqlite3.Error as e:
             textutil.log(f"[SERVER] ⚠️ Couldn't read history.db ({e})")
             return list(_memory.get(room, ()))[-count:]
         counts = reaction_counts([row[0] for row in rows])
+    from chatserver import profiles   # (profiles uses rooms, which uses history: importing it at the top would loop)
     messages = [{"type": "chat", "id": row[0], "time": row[1], "name": row[2], "badge": row[3],
-                 "text": row[4], "action": bool(row[5]), **({"edited": True} if row[6] else {})}
+                 "text": row[4], "action": bool(row[5]), **({"edited": True} if row[6] else {}),
+                 **(profiles.looks(state.accounts[row[7]]) if row[7] in state.accounts else {})}   # 🎨 today's look
                 for row in reversed(rows)]
     return [{**m, "reactions": counts[m["id"]]} if m["id"] in counts else m for m in messages]
 
