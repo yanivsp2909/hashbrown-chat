@@ -102,5 +102,11 @@ class GroupLogicTestCase(unittest.TestCase):
         })()"""), ["09:05", "28/10 09:05"])
 
 
+    def test_a_members_admin_tools_are_one_tab_stop_with_arrow_keys_inside(self):
+        # 5 tools (Kick, minutes, Mute, Ban, Promote): arrows move and wrap, Home/End jump, other keys are left alone
+        self.assertEqual(out("""[["ArrowRight", 0], ["ArrowRight", 4], ["ArrowLeft", 0], ["ArrowLeft", 3],
+            ["Home", 3], ["End", 1], ["ArrowDown", 2], ["Tab", 2], ["Enter", 1]].map(([k, i]) => G.toolbarIndex(k, i, 5))"""),
+            [1, 0, 4, 2, 0, 4, None, None, None])
+
 if __name__ == "__main__":
     unittest.main()

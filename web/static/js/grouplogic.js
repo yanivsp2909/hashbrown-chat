@@ -92,3 +92,13 @@ export function timeLabel(seconds, now = Date.now() / 1000) {
   const clock = `${pad(when.getHours())}:${pad(when.getMinutes())}`;
   return when.toDateString() === today.toDateString() ? clock : `${pad(when.getDate())}/${pad(when.getMonth() + 1)} ${clock}`;
 }
+
+/** ⌨️ An admin's tools for one member are one toolbar: one Tab stop, and the arrow keys move inside it.
+ * Returns the tool to focus after `key` (the tools wrap around), or null when the key isn't the toolbar's. */
+export function toolbarIndex(key, index, count) {
+  if (key === "ArrowRight") return (index + 1) % count;
+  if (key === "ArrowLeft") return (index - 1 + count) % count;
+  if (key === "Home") return 0;
+  if (key === "End") return count - 1;
+  return null;   // (Up and Down stay with the minutes list)
+}

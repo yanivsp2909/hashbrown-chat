@@ -55,7 +55,8 @@ function memberTools(info, member, index) {
   const ask = (action, title, text, yes) => async () => {
     if (await confirmStep({ title, text, yes, danger: true })) act(action, info, { target });
   };
-  return el("div", { class: "gs-tools", role: "group", "aria-label": `Manage ${target}` },
+  const tools = el("div", { class: "gs-tools", role: "toolbar", "aria-label": `Manage ${target}`, onkeydown: moveInToolbar,
+    onfocusin: (event) => rove(tools, event.target) },
     el("button", { class: "mini-btn gs-tool", type: "button", text: "Kick", "aria-label": `Kick ${target}`, "data-act": actKey("kick", info, target),
       onclick: ask("kick", `Kick ${target}?`, `${target} leaves ${str(info.name)} but can join again.`, "Kick") }),
     el("label", { class: "visually-hidden", for: muteId, text: `Mute ${target} for how many minutes` }),
@@ -68,6 +69,24 @@ function memberTools(info, member, index) {
       "aria-label": `${member.role === "admin" ? "Demote" : "Promote"} ${target}`,
       "data-act": actKey(member.role === "admin" ? "demote" : "promote", info, target),
       onclick: () => act(member.role === "admin" ? "demote" : "promote", info, { target }) }) : null);
+  rove(tools, tools.querySelector("button, select"));
+  return tools;
+}
+
+// ⌨️ Roving tab stop: only the tool you were last on is in the Tab order (tabindex 0), the others are -1.
+const toolsIn = (bar) => [...bar.querySelectorAll("button, select")];
+
+function rove(bar, current) {
+  if (!toolsIn(bar).includes(current)) return;
+  for (const tool of toolsIn(bar)) tool.tabIndex = tool === current ? 0 : -1;
+}
+
+function moveInToolbar(event) {
+  const tools = toolsIn(event.currentTarget);
+  const next = G.toolbarIndex(event.key, tools.indexOf(event.target), tools.length);
+  if (next === null || !tools.includes(event.target)) return;
+  event.preventDefault();
+  tools[next].focus();
 }
 
 function members(info) {
