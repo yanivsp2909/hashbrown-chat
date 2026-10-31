@@ -11,7 +11,7 @@ import time
 
 import games
 
-from chatserver import (achievements, config, drawing, hashbrown_ai, matches, offers, quests, registry, rooms, state, storage,
+from chatserver import (achievements, config, drawing, hashbrown_ai, matches, offers, profiles, quests, registry, rooms, state, storage,
                         textutil)
 
 
@@ -49,6 +49,10 @@ def cmd_challenge(client, args):
         return
     if target == client.key:
         client.say("🙃 You can't challenge yourself.", "error")
+        return
+    refusal = profiles.dm_refusal(client.key, target, "challenges")   # 👤 their "who can message me" setting
+    if refusal:
+        client.say(refusal, "error")
         return
     bet = 0
     if len(parts) > 2:

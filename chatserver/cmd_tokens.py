@@ -4,7 +4,7 @@
 import random
 import time
 
-from chatserver import achievements, config, history, registry, rooms, state, storage, textutil
+from chatserver import achievements, config, history, profiles, registry, rooms, state, storage, textutil
 
 
 # ----- 🪙 Tokens
@@ -69,7 +69,8 @@ def cmd_give(client, args):
     state.accounts[client.key]["tokens"] -= amount
     state.accounts[target]["tokens"] += amount
     client.say(f"🎁 You gave {amount} 🪙 to {rooms.shown(target)}.", "money")
-    rooms.tell(target, f"🎁 {rooms.shown(client.key)} gave you {amount} 🪙!", "money")
+    if profiles.dm_refusal(client.key, target) is None:   # 👤 a gift still arrives; the notice only if they take messages
+        rooms.tell(target, f"🎁 {rooms.shown(client.key)} gave you {amount} 🪙!", "money")
     achievements.check_rich(target)
     storage.save_data()
 

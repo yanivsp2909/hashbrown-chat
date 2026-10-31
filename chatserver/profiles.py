@@ -140,13 +140,14 @@ def card_text(key, viewer):
     return "\n".join(lines)
 
 
-def dm_refusal(sender, target):
-    """Why `sender` may not send `target` a private message, or None."""
+def dm_refusal(sender, target, what="private messages"):
+    """Why `sender` may not send `target` a private message (or a file, a challenge...), or None.
+    `what` names the thing in the answer; the default keeps the private-message wording."""
     rule = state.accounts[target]["privacy"]["dms"]
     if rule == "nobody":
-        return f"🔕 {rooms.nick(target)} doesn't take private messages or files."
+        return f"🔕 {rooms.nick(target)} doesn't take {'private messages or files' if what == 'private messages' else what}."
     if rule == "groups" and not any(sender in g["members"] and target in g["members"] for g in state.groups.values()):
-        return f"🔕 {rooms.nick(target)} only takes private messages from people in their groups."
+        return f"🔕 {rooms.nick(target)} only takes {what} from people in their groups."
     return None
 
 

@@ -148,3 +148,28 @@ def test_chat_and_history_carry_the_senders_avatar_and_colour(user):
         m for m in reversed(cat.messages) if m.get("type") == "history")
     mine = next(m for m in history["messages"] if m["text"] == "hello fries")
     assert (mine["avatar"], mine["color"]) == ("🍟", 3)
+
+
+def test_who_can_message_you_covers_challenges(user):
+    adi, ben = user("Adi"), user("Ben")
+    setp(adi, "dms", "nobody")
+    ben.line("/challenge Adi ttt")
+    ben.expect_text("doesn't take challenges", kind="error")
+    setp(adi, "dms", "groups")
+    ben.line("/challenge Adi ttt")
+    ben.expect_text("only takes challenges from people in their groups", kind="error")
+    assert not state.invites.get("adi")
+    assert not [m for m in adi.messages if "challenges you" in str(m.get("text", ""))]
+
+
+def test_who_can_message_you_covers_give_notices(user):
+    adi, ben = user("Adi"), user("Ben")
+    setp(adi, "dms", "nobody")
+    state.accounts["ben"]["created"] = 0   # an old account (new ones can't /give)
+    before = state.accounts["adi"]["tokens"]
+    ben.line("/give Adi 10")
+    ben.expect_text("You gave 10")
+    adi.line("/balance")
+    adi.expect_text("tokens")
+    assert state.accounts["adi"]["tokens"] == before + 10        # the tokens still arrive...
+    assert not [m for m in adi.messages if "gave you" in str(m.get("text", ""))]   # ...without a notice from Ben
