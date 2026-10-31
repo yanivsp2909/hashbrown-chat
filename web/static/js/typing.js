@@ -26,9 +26,22 @@ function draw() {
   if (names.length) hideTimer = setTimeout(draw, Math.min(...Object.values(typers)) - now + 10);
 }
 
-export function someoneTyping(name) {
+function someoneTyping(name) {
   if (!name) return;
   typers = { ...typers, [name]: Date.now() + SHOW_FOR };
+  draw();
+}
+
+/** A {"type": "typing"} packet. It carries the typer's room (for apps with the "rooms" feature): only people
+ * in the room you're looking at count. (No room field: it can only be about this room.) */
+export function onTyping(msg, currentRoom) {
+  if (typeof msg.room === "string" && currentRoom && msg.room !== currentRoom) return;
+  someoneTyping(String(msg.name || ""));
+}
+
+/** You switched rooms: the old room's typers aren't typing here. */
+export function forgetTypers() {
+  typers = {};
   draw();
 }
 

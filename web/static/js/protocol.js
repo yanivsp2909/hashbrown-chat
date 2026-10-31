@@ -241,7 +241,7 @@ export function handleMessage(msg, live, sendLine) {
     case "reactions":
       return Number.isInteger(msg.id) ? updateReactions(msg) : undefined;
     case "typing":
-      return live ? typing.someoneTyping(str(msg.name)) : undefined;
+      return live ? typing.onTyping({ ...msg, name: str(msg.name) }, getState().currentRoom) : undefined;
     case "lab":
       return showLab(msg);
     case "profile":
@@ -293,6 +293,7 @@ export function handleMessage(msg, live, sendLine) {
       if (fresh) {
         chat.clearMessages();
         drawing.reset();   // 🎨 the old room's drawing round isn't this room's
+        typing.forgetTypers();   // ⌨️ nor are its typers
       }
       rooms.notePreview(msg);
       setState({ room: str(msg.room, "🏠 Lobby") });
