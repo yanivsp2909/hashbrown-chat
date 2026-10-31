@@ -5,7 +5,7 @@ import { sendLine } from "./api.js";
 import { getState, setState } from "./store.js";
 import * as chat from "./chat.js";
 import { receive } from "./files.js";
-import { addInvite } from "./rail.js";
+import { addInvite, closeInvite } from "./rail.js";
 import { inviteFrom, isPresence, isWordleOver, matchResult, myBalance, parseHelp, parseOnline, renamed, welcomeNick } from "./patterns.js";
 import { clearPasswords, showLoginError } from "./login.js";
 import { noteTarget } from "./games/panel.js";
@@ -181,7 +181,20 @@ function onServerText(msg, live) {
   const card = chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions: offer.length ? offer : poll.length ? poll : actions, label: result ? "Game over" : "",
     actionsLabel: offer.length ? `Answer: ${offerWhat(msg.offer)}` : "",
     tempId: str(msg.temp_id), receipt: msg.pm && typeof msg.pm === "object" ? msg.pm : null, pmId: msg.pm_id });
+  if (challenger && !live) inviteCards.set(challenger, card);   // 🎟️ its buttons go when the challenge is over
   if (offer.length) card.dataset.waiting = "1";   // 📎 not answered yet: comes along to the next room you open
+}
+
+const inviteCards = new Map();   // challenger -> the replayed challenge card that has Accept / Decline
+const INVITE_ENDS = { accepted: "✅ Accepted", declined: "👎 Declined", gone: "👋 They left: the challenge is off" };
+
+/** {"type": "invite_closed", "from", "why"}: a challenge to you is over, so its ticket and buttons go. */
+function onInviteClosed(msg) {
+  const from = str(msg.from);
+  closeInvite(from);
+  const card = inviteCards.get(from);
+  inviteCards.delete(from);
+  card?.querySelector(".actions")?.replaceWith(el("p", { class: "offer-answer", text: INVITE_ENDS[msg.why] || "The challenge is over" }));
 }
 
 /** "Accept photo.jpg from Dana" (also the name of the button group). */
@@ -264,6 +277,8 @@ export function handleMessage(msg, live, sendLine) {
       return groups.onGroups(msg);
     case "group_info":
       return groups.onGroupInfo(msg);
+    case "invite_closed":
+      return onInviteClosed(msg);
     case "topic":
       return showTopic(msg);
     case "receipt":

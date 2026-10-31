@@ -488,3 +488,14 @@ class TestDrawing(BridgeTestCase):
         self.assertEqual(got, list(range(100)))
         status, _ = drawer.send({"type": "line", "text": "flood"})   # the chat budget is still its own
         self.assertEqual(status, 202)
+
+
+class TestChallengeTicket(BridgeTestCase):
+    def test_accepting_by_typing_closes_the_ticket(self):
+        a, a_name = self.user()
+        b, b_name = self.user()
+        a.line(f"/challenge {b_name} ttt")
+        b.wait(is_msg("⚔️", "event"), what="the challenge")
+        b.line(f"/accept {a_name}")
+        closed = b.wait(lambda e: e["data"].get("type") == "invite_closed", what="the ticket closing")
+        self.assertEqual((closed["from"], closed["why"]), (a_name, "accepted"))

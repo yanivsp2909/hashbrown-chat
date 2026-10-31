@@ -12,7 +12,7 @@ from chatserver import (auth, background, chat, config, discovery, group_view, h
                         resume, rooms,
                         session, state, storage, textutil, transfers, website)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
-from chatserver import cmd_profile, drawing, economy, market, netmap, profiles
+from chatserver import cmd_games, cmd_profile, drawing, economy, market, netmap, profiles
 
 
 # ---------------------------------------------------------------- connections
@@ -39,7 +39,9 @@ def disconnect(client):
                 offers.drop_all_of(key)   # (before the transfers: a waiting big file is cancelled with a reason)
                 transfers.drop_all_of(key)
                 state.solo.pop(key, None)
-                for waiting in state.invites.values():
+                for target, waiting in state.invites.items():
+                    if any(i["from"] == key for i in waiting):
+                        cmd_games.invite_closed(target, key, "gone")   # 🎟️ their ticket for this challenge goes
                     waiting[:] = [i for i in waiting if i["from"] != key]
                 rooms.notify_room(client.room, f"👋 {rooms.shown(key)} left the chat")
                 textutil.log(f"[SERVER] {rooms.nick(key)} disconnected")

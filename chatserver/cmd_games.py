@@ -87,6 +87,13 @@ def pick_invite(client, args):
     return invite
 
 
+def invite_closed(target, challenger, why):
+    """🎟️ Tell the challenged person's app that this challenge is over (accepted, declined, or the challenger is gone),
+    so its ticket can go. A new packet type: old clients ignore it."""
+    if target in state.online:
+        state.online[target].send({"type": "invite_closed", "from": rooms.nick(challenger), "why": why})
+
+
 @registry.command("/accept", "/accept [name]", "accept a challenge or a file 📎", "🎮 Games")
 def cmd_accept(client, args):
     if offers.is_file_answer(client, args):   # 📎 a file offer (the newest of offers and challenges wins)
@@ -96,6 +103,7 @@ def cmd_accept(client, args):
     if invite is None:
         return
     challenger, bet = invite["from"], invite["bet"]
+    invite_closed(client.key, challenger, "accepted")
     if challenger not in state.online:
         client.say("😕 They left already.", "error")
         return
@@ -115,6 +123,7 @@ def cmd_decline(client, args):
         return
     invite = pick_invite(client, args)
     if invite:
+        invite_closed(client.key, invite["from"], "declined")
         client.say("👎 Declined.")
         rooms.tell(invite["from"], f"👎 {rooms.shown(client.key)} declined your challenge.", "error")
 

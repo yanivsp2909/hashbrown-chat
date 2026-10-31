@@ -30,6 +30,11 @@ function removeInvite(from, at) {
   setState({ invites: getState().invites.filter((i) => i.from !== from || (at && i.at !== at)) });
 }
 
+/** The server's {"type": "invite_closed"}: that challenge was answered (maybe by typing /accept), or its sender left. */
+export function closeInvite(from) {
+  removeInvite(from);
+}
+
 function ticket(key, { title, lines = [], actions = [], lit = false, stamp = null, drain = null, onclick = null }) {
   const fresh = !seen.has(key);
   seen.add(key);

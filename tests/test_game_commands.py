@@ -602,3 +602,28 @@ def test_wordle_games_are_separate_per_player(user):
     adi.line("/g apple")
     adi.expect_text("Solved", kind="money")
     assert "ben" in state.solo and "adi" not in state.solo
+
+
+# ---------------------------------------------------------------- the challenge ticket goes away when it's over
+
+def closed(client):
+    return client.expect(lambda m: m.get("type") == "invite_closed")
+
+
+@pytest.mark.parametrize("answer, why", [("/accept Adi", "accepted"), ("/decline Adi", "declined")])
+def test_answering_a_challenge_closes_its_ticket(user, answer, why):
+    adi, ben = user("Adi"), user("Ben")
+    adi.line("/challenge Ben ttt")
+    ben.expect_text("challenges you")
+    ben.line(answer)
+    got = closed(ben)
+    assert (got["from"], got["why"]) == ("Adi", why)
+
+
+def test_a_challenger_who_leaves_closes_the_ticket(user):
+    adi, ben = user("Adi"), user("Ben")
+    adi.line("/challenge Ben ttt")
+    ben.expect_text("challenges you")
+    adi.close()
+    got = closed(ben)
+    assert (got["from"], got["why"]) == ("Adi", "gone")
