@@ -260,7 +260,7 @@ Server admins only (the password comes from the Keychain item `hashbrown-admin` 
 | Command | What it does |
 |---|---|
 | `/games` | What you can play |
-| `/challenge name game [bet]` | Invite someone to a 1v1: `ttt`, `damka`, `math`, `connect4` (or `c4`), `battleship` (or `ships`), with an optional token bet |
+| `/challenge name game [bet]` | Invite someone to a 1v1 (if their "who can message me" setting lets you): `ttt`, `damka`, `math`, `connect4` (or `c4`), `battleship` (or `ships`), with an optional token bet |
 | `/accept [name]` | Accept a challenge, or a file 📎 (`/accept file`) |
 | `/decline [name]` | Say no to a challenge or a file |
 | `/draw` | Start a drawing round: draw your word, the others guess 🎨 (`/draw stop` gives up) |
@@ -365,7 +365,7 @@ Every button sends the same command you'd type (like `/approve Ben Secret` or `/
 
 ### Profiles 👤
 
-Click anyone's name (in the online list or in the chat) for their card, or **👤 My profile** for yours, then **✏️ Edit profile**: an emoji avatar, your display name (same as `/nick`), a bio, a status (🟢 online, 🌙 away, ⛔ busy, plus your own line), a name colour, your favourite game, the theme (it follows you to every device), privacy (show "last seen" or not; who can send you private messages and files: everyone, people in your groups, or nobody) and a new password (the old one first). Your username never changes.
+Your avatar and name colour also show on your chat bubbles. Click anyone's name (in the online list or in the chat) for their card, or **👤 My profile** for yours, then **✏️ Edit profile**: an emoji avatar, your display name (same as `/nick`), a bio, a status (🟢 online, 🌙 away, ⛔ busy, plus your own line), a name colour, your favourite game, the theme (it follows you to every device), privacy (show "last seen" or not; who can send you private messages and files: everyone, people in your groups, or nobody) and a new password (the old one first). Your username never changes.
 
 ### Market and economy 📈
 
@@ -428,7 +428,7 @@ Every packet is **one JSON object on one line**, ending with `\n` (newline-delim
 | server → client | `auth_result` | `ok`, `text`, and `resume_token` (and `resumed`) for reconnecting |
 | client → server | `line` | `text` (a chat message or a `/command`) |
 | server → client | `msg` | `kind`, `text`. `kind` is one of `system`, `error`, `event`, `money`, `game`, `private`, `help` or `board`; board messages also have a `state` object; a file offer has `offer` (`id`, `from`, `filename`, `size`); kick notices have `kicked` |
-| server → client | `chat` | `time`, `name`, `badge`, `text`, `action`, `id`, and `room` (its key) for clients with the `rooms` feature |
+| server → client | `chat` | `time`, `name`, `badge`, `text`, `action`, `id`, the sender's `avatar` and `color` if they set them, and `room` (its key) for clients with the `rooms` feature |
 | server → client | `history` | `room` (its title), `key` (which room), `messages` |
 | server → client | `rooms` | `current`, `rooms` (`key`, `name`, `title`): only for clients with the `rooms` feature |
 | server → client | `stream` | `stream_id`, `append` (a piece of Hashbrown's answer, only for clients with the `stream` feature) |
@@ -437,6 +437,7 @@ Every packet is **one JSON object on one line**, ending with `\n` (newline-delim
 | both ways | `ping` / `pong` | `t` (any number; it comes straight back: now minus `t` is the round trip) |
 | both ways | `probe` / `probe_back` | `id`: the server's ping probe for the network map, only to clients with the `probe` feature |
 | client → server | `typing` / `typing_stop` | (none): passed on with `name` to clients with the `typing` feature |
+| server → client | `invite_closed` | `from`, `why` (`accepted`, `declined` or `gone`): a challenge to you is over, so its ticket goes |
 | client → server | `react` | `id` (a chat message), `emoji`: the room gets `reactions` with `id` and `counts` |
 | client → server | `edit` / `delete` | `id` (your own message, for 10 min), `text`: the room gets `edited` / `deleted` |
 | client → server | `seen` | `id` (a private message's `pm_id`): its sender gets `receipt` |
@@ -462,5 +463,4 @@ Packets the server keeps for a reconnect also carry an optional `seq` number.
 - In PyCharm's Run window, the password is visible while you type it. A real terminal hides it.
 - The terminal client can't show "is typing…": `input()` only gives the program your text after you press Enter.
 - In a real terminal (Mac Terminal, Windows Terminal or CMD), incoming messages appear above the line you're typing, and your text stays put. PyCharm's Run window can't do that unless you turn on **Run > Edit Configurations > Modify options > Emulate terminal in output console**. That setting also hides the password while you type it.
-- Profile colours and avatars show on the profile card, not on chat bubbles yet.
 - Emojis look best in PyCharm, Windows Terminal or the Mac Terminal.

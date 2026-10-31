@@ -96,7 +96,7 @@ function tools() {
         onclick: () => { color = i; tools(); } }))),
     el("label", { class: "draw-size" }, el("span", { text: "Size" }),
       el("input", { type: "range", min: "1", max: "3", value: String(width), oninput: (e) => { width = Number(e.target.value); } })),
-    el("button", { class: "btn btn-ghost", type: "button", text: "🧽 Clear", onclick: () => { wipe(); outbox.drop(); send({ type: "stroke", clear: true }); } }),
+    el("button", { class: "btn btn-ghost", type: "button", text: "🧽 Clear", onclick: () => { wipe(); outbox.drop(); lastPoint = null; send({ type: "stroke", clear: true }); } }),
     el("button", { class: "btn btn-ghost gs-danger", type: "button", text: "Give up", onclick: () => sendLine("/draw stop") }));
 }
 
