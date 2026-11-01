@@ -10,7 +10,7 @@ from chatserver import config, registry, rooms, state, wars
 def cmd_war(client, args):
     parts = args.split()
     if not parts:
-        war = wars.war_of(client.room)
+        war = wars.war_of(rooms.group_context(client))   # (a Groups screen button: that group)
         client.say(wars.score_text(war) if war else "⚔️ This room isn't at war. A group admin can type /war group.")
         return
     key, group = rooms.current_group(client)

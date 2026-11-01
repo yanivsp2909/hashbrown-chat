@@ -42,15 +42,23 @@ export function closeInvite(from) {
 const nowSeconds = () => Date.now() / 1000;
 const MAX_TIMER_MS = 2 ** 31 - 1;   // setTimeout can't wait longer (about 24.8 days)
 
+const inviteTimers = new Map();   // group key -> the timer that takes its ticket down (one per group)
+
 export function addGroupInvite(invite) {
   if (invite.expires <= nowSeconds()) return;
   setState({ groupInvites: GI.withInvite(getState().groupInvites, invite) });
+  clearTimeout(inviteTimers.get(invite.group));   // a new invite to the same group: its old timer goes
   const wait = Math.min(MAX_TIMER_MS, (invite.expires - nowSeconds()) * 1000 + 500);
-  setTimeout(() => setState({ groupInvites: GI.stillOpen(getState().groupInvites, nowSeconds()) }), wait);
+  inviteTimers.set(invite.group, setTimeout(() => {
+    inviteTimers.delete(invite.group);
+    setState({ groupInvites: GI.stillOpen(getState().groupInvites, nowSeconds()) });
+  }, wait));
 }
 
 /** {"type": "invite_closed", "group": key}: answered (here, by typing, or on another device), or over. */
 export function closeGroupInvite(group) {
+  clearTimeout(inviteTimers.get(group));
+  inviteTimers.delete(group);
   setState({ groupInvites: GI.withoutInvite(getState().groupInvites, group) });
 }
 

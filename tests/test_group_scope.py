@@ -7,7 +7,7 @@ the server then runs it for that group (only if you're a member), without moving
 """
 import pytest
 
-from chatserver import state
+from chatserver import state, wars
 from test_groups import GROUP, KEY, enter_room, give_tokens, group_with_members, make_group, saw_chat
 
 pytestmark = pytest.mark.integration
@@ -159,3 +159,19 @@ def test_group_admins_still_manage_from_inside(user):
     adi, ben = group_with_members(user, "Adi", "Ben")
     adi.line("/mute Ben 3")
     adi.expect_text("was muted for 3 min")
+
+
+def test_war_by_button_looks_at_that_groups_war(user):
+    adi = user("Adi")
+    make_group(adi)
+    adi.line("/lobby")
+    enter_room(adi)
+    asked = []
+    real = wars.war_of
+    wars.war_of = lambda key: asked.append(key) or real(key)
+    try:
+        button(adi, "/war")
+        adi.expect_text("isn't at war")
+    finally:
+        wars.war_of = real
+    assert asked == [KEY]
