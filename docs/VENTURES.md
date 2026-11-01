@@ -6,11 +6,11 @@ writes the news and invents events. A season lasts 28 game days (about 4 weeks);
 
 > **Status:** approved 2026-11-01 (decisions in section 16). Phase 1 and 2 in progress. Every number here is a starting value: the Phase 1 balance
 > simulation tunes them and the final values live in `chatserver/config.py`, section "ventures".
-> **Balance simulation** (`python3 -m chatserver.ventures_balance`, 20 seasons x 20 bot companies x 30 days, the real
-> formulas): 25% die, 57% reach Seed or later, 0.9 IPOs a season, the richest company holds $223M. Exits (IPOs only
-> so far) pay ~4,500 🪙 a season on average and ~21,000 at most (after the 20% tax and the 5,000 cap per person); the
-> fund pays first, so new tokens average ~1,100 and peak at ~15,000 a season, under the 20,000 season cap. Acquisitions
-> and season-end payouts (Phase 4) will be added to the simulation then.
+> **Balance simulation** (`python3 -m chatserver.ventures_balance`: 20 seasons of 20 bot companies over 28 game days,
+> with the real formulas, sectors, the formula investor, IPOs, acquisitions and season-end payouts): 24% die, 60% reach
+> Seed or later, about 1.15 IPOs and 2 acquisitions a season, the richest company holds about $250M. Exits pay ~8,000 🪙
+> a season on average (~17,000 at most) after the 20% tax and the 5,000 cap per person; the fund pays first, so new
+> tokens average ~1,600 a season and peak at ~9,000, well under the 20,000 season cap (nothing ever waited).
 
 ## 0. Design pillars
 
@@ -203,14 +203,14 @@ that returns a new company plus report lines:
 
 ### 6.1 The ladder
 
-| From | Raising | Milestones (all needed) + at least 4 game days in the stage | Typical raise | Post-money floor | Equity band |
+| From | Raising | Milestones (all needed) + at least 3 game days in the stage | Typical raise | Post-money floor | Equity band |
 |---|---|---|---|---|---|
 | Idea | Pre-seed | quality 15 | $500K | $3M | 8-20% |
 | Pre-seed | Seed | MRR $10K, quality 30 | $3M | $12M | 12-25% |
 | Seed | Series A | MRR $60K, quality 45, reputation 40 | $15M | $50M | 15-25% |
 | Series A | Series B | MRR $250K, quality 60, reputation 45 | $50M | $200M | 10-20% |
-| Series B | Series C | MRR $800K, quality 72, reputation 55 | $150M | $700M | 8-15% |
-| Series C | IPO | MRR $2.5M, quality 82, reputation 65, valuation ≥ $1B, revenue ≥ 60% of burn | sells 15% new shares | – | 15% |
+| Series B | Series C | MRR $600K, quality 72, reputation 55 | $150M | $700M | 8-15% |
+| Series C | IPO | MRR $1.5M, quality 82, reputation 65, valuation ≥ $500M, revenue ≥ 60% of burn | sells 15% new shares | – | 15% |
 
 The Seed round also creates a 10% option pool (pre-money, so it dilutes the founders, like real life).
 

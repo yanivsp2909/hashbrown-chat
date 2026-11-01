@@ -160,15 +160,34 @@ def new_bot(number, rng):
     return {**co, "cap": cap, "bot_players": players, "bot_strategy": strategy}, angel_tokens
 
 
-def season(seed, companies=20, ticks=30):
-    """One simulated season. Returns its numbers."""
+def maybe_acquire(bots, i, rng):
+    """A rich company at Series A or later sometimes buys a young one (paying a bit over its valuation)."""
+    buyer = bots[i]
+    if buyer["status"] != "alive" or config.STAGES.index(buyer["stage"]) < config.STAGES.index("a") or rng.random() > 0.02:
+        return None
+    targets = [j for j, co in enumerate(bots) if co["status"] == "alive" and co["stage"] in ("idea", "preseed", "seed")
+               and 0 < co["valuation"] * 1.2 < buyer["cash"] / 3]
+    if not targets:
+        return None
+    j = rng.choice(targets)
+    price = bots[j]["valuation"] * 1.2
+    same = bots[j]["sector"] == buyer["sector"]
+    bots[i] = {**buyer, "cash": buyer["cash"] - int(price),
+               "customers": buyer["customers"] + (bots[j]["customers"] * config.ACQUIRE_KEEP_CUSTOMERS if same else 0)}
+    paid = sum(payouts(bots[j], price).values())
+    bots[j] = {**bots[j], "status": "acquired"}
+    return paid
+
+
+def season(seed, companies=20, ticks=config.SEASON_TICKS):
+    """One simulated season (IPOs, acquisitions and the season's end). Returns its numbers."""
     rng = random.Random(seed)
     bots, tokens_in = [], companies * config.FOUND_COST
     for number in range(companies):
         bot, angel = new_bot(number, rng)
         bots.append(bot)
         tokens_in += angel
-    exits, max_cash = [], 0
+    exits, buys, max_cash = [], [], 0
     for tick in range(1, ticks + 1):
         _, bench = ventures_sectors.bench(bots, tick)
         for i, co in enumerate(bots):
@@ -185,19 +204,26 @@ def season(seed, companies=20, ticks=30):
                 co = {**co, "stage": "public"}
             max_cash = max(max_cash, co["cash"])
             bots[i] = co
+            bought = maybe_acquire(bots, i, rng)
+            if bought is not None:
+                buys.append(bought)
+    season_end = sum(sum(payouts(co, co["valuation"] * config.SEASON_END_PAYOUT_PERCENT / 100).values())
+                     for co in bots if co["status"] == "alive" and co["stage"] != "public")
     stages = [b["stage"] for b in bots]
-    paid = sum(exits)
+    paid = sum(exits) + sum(buys) + season_end
     from_fund = min(paid, tokens_in)   # the fund pays first (here: only what this game put in)
     minted = min(paid - from_fund, config.VENTURES_MINT_SEASON_CAP)
     return {"dead": sum(1 for b in bots if b["status"] == "dead"), "companies": companies,
-            "seed_or_more": sum(1 for s in stages if config.STAGES.index(s) >= config.STAGES.index("seed")),
-            "ipos": len(exits), "max_cash": max_cash, "paid": paid, "tokens_in": tokens_in, "from_fund": from_fund,
-            "minted": minted, "waiting": paid - from_fund - minted, "stages": stages,
-            "by_strategy": {s: [b["status"] if b["status"] == "dead" else b["stage"] for b in bots
+            "seed_or_more": sum(1 for b in bots if config.STAGES.index(b["stage"]) >= config.STAGES.index("seed")),
+            "ipos": len(exits), "acquisitions": len(buys), "max_cash": max_cash, "paid": paid,
+            "paid_ipo": sum(exits), "paid_buys": sum(buys), "paid_season_end": season_end,
+            "tokens_in": tokens_in, "from_fund": from_fund, "minted": minted, "waiting": paid - from_fund - minted,
+            "stages": stages,
+            "by_strategy": {s: [b["status"] if b["status"] != "alive" else b["stage"] for b in bots
                                 if b["bot_strategy"] == s] for s in STRATEGIES}}
 
 
-def summary(seeds=20, companies=20, ticks=30):
+def summary(seeds=20, companies=20, ticks=config.SEASON_TICKS):
     runs = [season(seed, companies, ticks) for seed in range(seeds)]
     total = seeds * companies
 
@@ -206,6 +232,8 @@ def summary(seeds=20, companies=20, ticks=30):
     return {"runs": runs, "death_rate": sum(r["dead"] for r in runs) / total,
             "seed_rate": sum(r["seed_or_more"] for r in runs) / total, "ipos_per_season": mean("ipos"),
             "max_cash": max(r["max_cash"] for r in runs), "paid_per_season": mean("paid"),
+            "acquisitions_per_season": mean("acquisitions"), "paid_ipo": mean("paid_ipo"), "paid_buys": mean("paid_buys"),
+            "paid_season_end": mean("paid_season_end"),
             "paid_max": max(r["paid"] for r in runs), "minted_per_season": mean("minted"),
             "minted_max": max(r["minted"] for r in runs), "tokens_in_per_season": mean("tokens_in"),
             "waiting_max": max(r["waiting"] for r in runs)}
@@ -213,9 +241,12 @@ def summary(seeds=20, companies=20, ticks=30):
 
 def report():
     s = summary()
-    lines = [f"⚖️ Ventures balance: {len(s['runs'])} seasons x {s['runs'][0]['companies']} bot companies x 30 days",
+    lines = [f"⚖️ Ventures balance: {len(s['runs'])} seasons x {s['runs'][0]['companies']} bot companies x {config.SEASON_TICKS} days",
              f"  died: {s['death_rate']:.0%}   reached Seed or later: {s['seed_rate']:.0%}   "
-             f"IPOs per season: {s['ipos_per_season']:.2f}   richest cash: ${s['max_cash'] / 1e6:,.0f}M",
+             f"IPOs per season: {s['ipos_per_season']:.2f}   acquisitions: {s['acquisitions_per_season']:.2f}   "
+             f"richest cash: ${s['max_cash'] / 1e6:,.0f}M",
+             f"  🪙 exits pay on average: IPOs {s['paid_ipo']:,.0f} + acquisitions {s['paid_buys']:,.0f} + season end "
+             f"{s['paid_season_end']:,.0f}",
              f"  🪙 into the fund (founding + angels): {s['tokens_in_per_season']:,.0f} a season",
              f"  🪙 exits pay (after tax and the {config.EXIT_MAX_TOKENS} cap): {s['paid_per_season']:,.0f} a season "
              f"on average, {s['paid_max']:,} at most",
@@ -223,7 +254,7 @@ def report():
              f"{s['minted_per_season']:,.0f} on average, {s['minted_max']:,} at most; waiting at most {s['waiting_max']:,}"]
     for strategy in STRATEGIES:
         ends = [x for r in s["runs"] for x in r["by_strategy"][strategy]]
-        counts = {k: ends.count(k) for k in ["dead"] + config.STAGES}
+        counts = {k: ends.count(k) for k in ["dead", "acquired"] + config.STAGES}
         lines.append(f"  {strategy:8} " + "  ".join(f"{k}: {v}" for k, v in counts.items() if v))
     return "\n".join(lines)
 

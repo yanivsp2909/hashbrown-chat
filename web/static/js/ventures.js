@@ -144,6 +144,7 @@ function seasonLine() {
 function homeView() {
   const parts = [header("🏢 Ventures", { label: "Back to the chat", go: close }), seasonLine()];
   if (!home) return [...parts, el("p", { class: "gs-muted", text: "Loading Ventures…" })];
+  if (!howToSeen()) parts.push(howToPlay());
   parts.push(...home.invites.map(inviteTicket));
   parts.push(seasonOver());
   parts.push(home.mine ? myCompanyCard(home.mine) : startCard());
@@ -226,6 +227,33 @@ function investmentsPanel() {
         el("span", { class: "vs-row-sub", text: `⏳ ${str(w.tokens)} 🪙 offered for ${V.percent(w.bp)}, waiting for the CEO` }))))];
   return panel("vs-invest", "😇 My investments", rows.length ? el("ul", { class: "vs-list" }, ...rows)
     : el("p", { class: "gs-empty", text: "Open a young company on the board to invest your tokens in it." }));
+}
+
+// ---------------------------------------------------------------- the first visit
+
+const HOW_TO_KEY = "hashbrown-ventures-how-to";
+
+function howToSeen() {
+  try { return localStorage.getItem(HOW_TO_KEY) === "1"; } catch { return false; }   // (private windows: always show)
+}
+
+function howToPlay() {
+  const done = () => {
+    try { localStorage.setItem(HOW_TO_KEY, "1"); } catch { /* (then it shows again next time: fine) */ }
+    render();
+    $("ventures-title")?.focus();
+  };
+  return el("section", { class: "vs-plate vs-howto", "aria-labelledby": "vs-howto-title" },
+    el("h3", { id: "vs-howto-title", class: "vs-start-title", text: "🏢 How to play Ventures" }),
+    el("ol", { class: "vs-howto-steps" },
+      el("li", {}, el("strong", { text: "Start a company " }), "in one of 5 sectors (200 🪙). Invite friends as co-founders: each friend who shows up adds an action point."),
+      el("li", {}, el("strong", { text: "Spend your ⚡ action points " }), "every day: build, hire, market, sell, and your sector's own moves. They don't pile up."),
+      el("li", {}, el("strong", { text: "At 21:00 a new game day starts: " }), "salaries are paid, customers come and go, and a report lands in your HQ."),
+      el("li", {}, el("strong", { text: "Out of cash = on fumes, " }), "then dead. Watch the runway and raise money in time."),
+      el("li", {}, el("strong", { text: "Pitch investors " }), "when the next round's milestones are met. Accept, decline or counter their term sheet."),
+      el("li", {}, el("strong", { text: "Go all the way: " }), "Seed, Series A, B, C, then 🔔 the IPO. Exits pay real 🪙 to everyone who owns a part (angels too).")),
+    el("p", { class: "gs-muted", text: "A season lasts 28 game days; the best go to the 🏛️ Hall of Fame." }),
+    button("Got it, let's build 🚀", done, { primary: true, key: "howto-done" }));
 }
 
 /** 🏛️ Right after a season ends, its winners on top of the home. */

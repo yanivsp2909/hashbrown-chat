@@ -353,10 +353,10 @@ ROUNDS = {
     "preseed": {"mrr": 10_000, "quality": 30, "reputation": 0, "raise": 3_000_000, "floor": 12_000_000, "equity": (12, 25)},
     "seed":    {"mrr": 60_000, "quality": 45, "reputation": 40, "raise": 15_000_000, "floor": 50_000_000, "equity": (15, 25)},
     "a":       {"mrr": 250_000, "quality": 60, "reputation": 45, "raise": 50_000_000, "floor": 200_000_000, "equity": (10, 20)},
-    "b":       {"mrr": 800_000, "quality": 72, "reputation": 55, "raise": 150_000_000, "floor": 700_000_000, "equity": (8, 15)},
-    "c":       {"mrr": 2_500_000, "quality": 82, "reputation": 65, "raise": 0, "floor": 1_000_000_000, "equity": (15, 15)},
+    "b":       {"mrr": 600_000, "quality": 72, "reputation": 55, "raise": 150_000_000, "floor": 700_000_000, "equity": (8, 15)},
+    "c":       {"mrr": 1_500_000, "quality": 82, "reputation": 65, "raise": 0, "floor": 500_000_000, "equity": (15, 15)},
 }
-ROUND_MIN_TICKS = 4                # a round needs at least this many ticks in the stage
+ROUND_MIN_TICKS = 3                # a round needs at least this many ticks in the stage
 IPO_PROFIT_PERCENT = 60            # 🔔 the IPO also needs revenue of at least this % of the burn
 OPTION_POOL_PERCENT = 10           # 📜 the Seed round makes an option pool this big (it dilutes everyone)
 PASS_BELOW = 0.30                  # an investor always passes when the score is lower (just meeting the
@@ -383,7 +383,7 @@ EXIT_DOLLARS_PER_TOKEN = 50_000    # 🚪 $ of exit value per 🪙
 EXIT_TAX_PERCENT = 20              # 🚪 of every exit (it stays in the public fund)
 EXIT_MAX_TOKENS = 5_000            # 🚪 most 🪙 one person gets from one exit (before the tax)
 VENTURES_MINT_SEASON_CAP = 20_000  # 🚪 new 🪙 exits may create in one season (the fund pays first); more waits.
-                                   # The balance simulation's worst season minted ~15,000 (20 companies)
+                                   # The balance simulation's worst season paid ~17,000 in all and minted ~9,000
 # 📰 News and market events
 NEWS_KEPT = 60                     # 📰 headlines kept in chat_data.json (all of them go to history.db too)
 VENTURES_NEWS_AI_PER_DAY = 8       # 📰 big headlines Hashbrown may rewrite with a funny line, a day

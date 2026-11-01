@@ -343,3 +343,8 @@ button.vs-row:hover { border-color: var(--crust-line); background: var(--panel-3
 .vs-confetti span:nth-child(22) { left: 61%; animation-delay: 237ms; }
 .vs-confetti span:nth-child(23) { left: 2%; animation-delay: 334ms; }
 .vs-confetti span:nth-child(24) { left: 43%; animation-delay: 431ms; }
+
+/* the first visit: how to play */
+.vs-howto { border-color: var(--crisp); }
+.vs-howto-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; color: var(--text-2); max-width: 72ch; }
+.vs-howto-steps strong { color: var(--text); }

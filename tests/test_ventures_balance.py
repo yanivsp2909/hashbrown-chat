@@ -8,7 +8,7 @@ from chatserver import config, ventures_balance
 
 @pytest.fixture(scope="module")
 def result():
-    return ventures_balance.summary(seeds=20, companies=20, ticks=30)
+    return ventures_balance.summary(seeds=20, companies=20)   # (a whole season: SEASON_TICKS game days)
 
 
 def test_some_companies_die(result):
@@ -42,3 +42,9 @@ def test_careful_players_do_better_than_reckless_or_idle_ones(result):
 
 def test_the_report_prints():
     assert "IPOs per season" in ventures_balance.report()
+
+
+def test_every_kind_of_exit_happens_and_stays_under_the_cap(result):
+    assert result["acquisitions_per_season"] > 0
+    assert result["paid_ipo"] > 0 and result["paid_buys"] > 0 and result["paid_season_end"] > 0
+    assert all(r["minted"] <= config.VENTURES_MINT_SEASON_CAP for r in result["runs"])
