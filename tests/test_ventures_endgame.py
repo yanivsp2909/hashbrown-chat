@@ -1,10 +1,8 @@
 """🏁 The endgame: exits under the owner's V2 rule (tax, cap, the fund first, the season's mint cap, the queue), the IPO
 onto the stock market, acquisitions, partnerships, poaching, the boards and the end of a season."""
-import random
-
 import pytest
 
-from chatserver import config, fund, market, state, ventures_deals, ventures_exits, ventures_season, ventures_store
+from chatserver import config, state, ventures_deals, ventures_exits, ventures_season, ventures_store
 from test_ventures_company import found, grown_up, team, tick
 
 pytestmark = pytest.mark.integration
@@ -34,7 +32,7 @@ def test_exit_tokens_are_taxed_and_capped():
 
 
 def test_the_fund_pays_first_then_new_tokens_up_to_the_cap_then_the_queue(user, monkeypatch):
-    adi = user("Adi")
+    user("Adi")
     grown_up("adi", tokens=0)
     monkeypatch.setattr(config, "VENTURES_MINT_SEASON_CAP", 300)
     with state.lock:
