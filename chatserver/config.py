@@ -174,6 +174,7 @@ ACHIEVEMENTS = {  # id: (icon, title, how to get it, reward)
     "ten_wins": ("🏆", "Champion", "win 10 games", 200),
     "founder": ("🏗️", "Founder", "create a group", 50),
     "team_player": ("🤝", "Team Player", f"donate {TEAM_PLAYER_DONATION}+ to a group bank", 50),
+    "ventures_champion": ("🏢", "Season Champion", "top the Hall of Fame of a Ventures season", 0),
     "chatty": ("💬", "Chatterbox", "send 100 messages", 100),
     "rich": ("💰", "Rich", "have 1000 tokens", 100),
     "jackpot": ("🎰", "Jackpot", "hit 3 of a kind in slots", 100),
@@ -387,6 +388,24 @@ VENTURES_MINT_SEASON_CAP = 20_000  # 🚪 new 🪙 exits may create in one seaso
 NEWS_KEPT = 60                     # 📰 headlines kept in chat_data.json (all of them go to history.db too)
 VENTURES_NEWS_AI_PER_DAY = 8       # 📰 big headlines Hashbrown may rewrite with a funny line, a day
 EVENT_HOURS = [12, 16, 20]         # 🌪️ a market event at each of these hours (Israel time), if companies exist
+# 🏁 Competition and the endgame (docs/VENTURES.md, section 9)
+INCUMBENTS = {"ai": 4_000, "cyber": 40, "hardware": 600, "saas": 30_000, "game": 60_000}   # the rest of each market (customers)
+CROWD_EFFECT = 0.15                # 🏁 each strong rival in your sector takes this much of your new customers
+PARTNER_TICKS = 7                  # 🤝 a partnership lasts this many game days...
+PARTNER_BONUS = 0.10               # 🤝 ...and brings both companies this many more new customers
+POACH_AP = 2                       # 🎣 poaching staff costs action points...
+POACH_COST = 50_000                # 🎣 ...and $ (times the stage's reach)
+POACH_PER_DAY = 2                  # 🎣 a company can be poached at most this many times a day
+ACQUIRE_MIN_STAGE = "a"            # 🤝 a company from Series A on can buy another...
+ACQUIRE_MIN_PERCENT = 60           # 🤝 ...paying at least this % of its valuation
+ACQUIRE_OFFER_HOURS = 24           # 🤝 an offer waits this long for the other CEO
+ACQUIRE_KEEP_CUSTOMERS = 0.7       # 🤝 the buyer keeps this part of the customers (same sector)
+SELF_DEAL_PERCENT = 10             # 🤝 nobody may own more than this % of both sides of a deal
+IPO_NEW_SHARES_PERCENT = 15        # 🔔 the IPO sells this much of the company to the public
+IPO_DOLLARS_PER_TOKEN_PRICE = 10_000_000   # 🔔 the stock's price in 🪙 = valuation / this ($1B -> 100 🪙)
+IPO_FOLLOW_PERCENT = 20            # 🔔 each market tick the price moves this far toward its valuation
+SEASON_END_PAYOUT_PERCENT = 20     # 🏛️ private companies pay their holders this % of an exit when a season ends
+EXITS_KEPT = 200                   # 🚪 exit records kept (the boards and the Hall of Fame read them)
 # 🥔 The AI in the game (each call also counts in HASHBROWN_DAILY_CAP)
 VENTURES_AI_PER_DAY = 40           # AI calls a day for the whole game
 VENTURES_AI_MAX_OUTPUT = 600       # tokens per AI answer
