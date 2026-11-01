@@ -19,6 +19,7 @@ import { initTyping } from "./js/typing.js";
 import { initEdits, submitEdit } from "./js/edits.js";
 import { showLab, showTopic } from "./js/banners.js";
 import { initGroups, resetGroups } from "./js/groups.js";
+import { initVentures, resetVentures } from "./js/ventures.js";
 import { initNetmap } from "./js/netmap.js";
 import { initDrawing } from "./js/drawing.js";
 import { initMarket } from "./js/market.js";
@@ -26,7 +27,7 @@ import { initEconomy } from "./js/economy.js";
 import { initProfiles, resetProfile, saveTheme, showProfile } from "./js/profile.js";
 import * as resume from "./js/resume.js";
 
-const FEATURES = ["stream", "rooms", "typing", "chunks", "offers", "profiles", "probe", "draw", "friends"];   // what this website understands (told at login)
+const FEATURES = ["stream", "rooms", "typing", "chunks", "offers", "profiles", "probe", "draw", "friends", "ventures"];   // what this website understands (told at login)
 const RESUME_WAITS = [1, 2, 4, 8, 15, 30, 60];   // 🔁 seconds between tries to reconnect, then we give up
 
 const THEME_KEY = "hashbrown.theme";
@@ -131,6 +132,7 @@ function resetChat() {
   closeDrawer();
   resetOnline();
   resetGroups();
+  resetVentures();
   resetProfile();
   resetCommands();
   setState({ nick: "", room: "🏠 Lobby", commands: [], match: null, wordle: null, invites: [], online: null, balance: null,
@@ -307,6 +309,7 @@ initDrawing();
 initMarket();
 initEconomy();
 initGroups({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
+initVentures({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
 initFriends({   // 🤝 the same quick buttons as the Online list
   onError: showError,
   onProfile: (name) => showProfile(name),

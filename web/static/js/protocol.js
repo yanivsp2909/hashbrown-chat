@@ -17,6 +17,8 @@ import { startsNewList } from "./roomlogic.js";
 import { showLab, showTopic } from "./banners.js";
 import { applyReceipt } from "./receipts.js";
 import * as groups from "./groups.js";
+import * as ventures from "./ventures.js";
+import { hideVenturesHelp, withoutScreenCommands } from "./ventureslogic.js";
 import * as profile from "./profile.js";
 import * as netmap from "./netmap.js";
 import * as drawing from "./drawing.js";
@@ -97,6 +99,7 @@ function onAuthResult(msg, live, sendLine) {
   }
   if (msg.resumed === true && live) chat.addNotice("system", "🔁 Reconnected! You've caught up on what you missed.");
   if (live) groups.resync();   // 👥 an open Groups screen keeps refreshing
+  if (live) ventures.resync();   // 🏢 and so does the Ventures screen
   clearPasswords();
   setState({ screen: "chat" });
   setNick(welcomeNick(text) || pendingUsername);
@@ -121,11 +124,12 @@ function onBoard(msg, text, live) {
 
 function onServerText(msg, live) {
   const kind = str(msg.kind, "system");
-  const text = str(msg.text);
+  // 🏢 the website has a Ventures screen: its commands stay out of /help and the autocomplete (client.py keeps them)
+  const text = kind === "help" ? hideVenturesHelp(str(msg.text)) : str(msg.text);
   if (profile.isQuietSave(text)) return;   // 👤 the Edit profile dialog says so itself
   if (live && kind === "private") drawing.noteWord(text);   // 🎨 your secret word goes on your board too
   if (kind === "help") {
-    setState({ commands: parseHelp(text) });
+    setState({ commands: withoutScreenCommands(parseHelp(text)) });
     if (live && quietHelp > 0) {
       quietHelp -= 1;
       if (Date.now() < quietHelpUntil) return;   // too late means it's the /help you typed: show it
@@ -184,6 +188,7 @@ function onServerText(msg, live) {
     el("button", { class: "btn btn-ghost", type: "button", text: `${i + 1}) ${str(option)}`, onclick: () => sendLine(`/vote ${i + 1}`) }))
     : [];   // 📊 a poll: one button per option
   if (live) groups.noteServerText(kind, text);   // 👥 the Groups screen hides the chat: show the reply there too
+  if (live) ventures.onServerText(kind, text);   // 🏢 the Ventures screen too
   const card = chat.addNotice(kind, text, { live, lit: kind === "private" && live, actions: offer.length ? offer : poll.length ? poll : actions, label: result ? "Game over" : "",
     actionsLabel: offer.length ? `Answer: ${offerWhat(msg.offer)}` : "",
     tempId: str(msg.temp_id), receipt: msg.pm && typeof msg.pm === "object" ? msg.pm : null, pmId: msg.pm_id });
@@ -285,6 +290,14 @@ export function handleMessage(msg, live, sendLine) {
       return live ? netmap.onMap(msg) : undefined;
     case "probe":
       return live ? netmap.onProbe(msg) : undefined;
+    case "ventures":
+      return ventures.onVentures(msg);
+    case "company":
+      return ventures.onCompany(msg);
+    case "company_event":
+    case "pitch":
+    case "term_sheet_closed":
+      return undefined;   // 🏢 the Ventures screen redraws from the next "company" packet; the chat shows the text
     case "groups":
       return groups.onGroups(msg);
     case "group_info":

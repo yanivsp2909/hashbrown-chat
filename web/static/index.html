@@ -11,6 +11,7 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/games.css">
+  <link rel="stylesheet" href="/ventures.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
@@ -66,6 +67,7 @@
         <p class="me-balance"><span aria-hidden="true">🪙</span> <span id="me-balance">…</span></p>
       </section>
       <button id="groups-open" class="btn btn-ghost btn-wide gs-open-btn" type="button" aria-controls="groups-screen" aria-expanded="false"><span aria-hidden="true">👥</span> Groups</button>
+      <button id="ventures-open" class="btn btn-ghost btn-wide gs-open-btn" type="button" aria-controls="ventures-screen" aria-expanded="false"><span aria-hidden="true">🏢</span> Ventures</button>
       <button id="profile-open" class="btn btn-ghost btn-wide gs-open-btn" type="button" aria-haspopup="dialog"><span aria-hidden="true">👤</span> My profile</button>
       <button id="market-open" class="btn btn-ghost btn-wide gs-open-btn" type="button" aria-haspopup="dialog"><span aria-hidden="true">📈</span> Market</button>
       <button id="economy-open" class="btn btn-ghost btn-wide gs-open-btn" type="button" aria-haspopup="dialog"><span aria-hidden="true">📊</span> Economy</button>
@@ -184,6 +186,10 @@
         <span id="suggest-status" class="visually-hidden" role="status"></span>
         <button class="btn btn-primary" type="submit">Send</button>
       </form>
+      <section id="ventures-screen" class="groups-screen ventures-screen" aria-label="Ventures" hidden>
+        <div id="ventures-body" class="gs-body vs-body"></div>
+        <p id="ventures-reply" class="gs-reply visually-hidden" role="status"></p>
+      </section>
       <section id="groups-screen" class="groups-screen" aria-label="Groups" hidden>
         <div id="groups-body" class="gs-body"></div>
         <p id="groups-reply" class="gs-reply visually-hidden" role="status"></p>
