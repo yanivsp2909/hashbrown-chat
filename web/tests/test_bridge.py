@@ -354,6 +354,25 @@ class TestPacketXray(BridgeTestCase):
         self.assertFalse(any("before x-ray" in d["text"] or "after x-ray" in d["text"] for d in seen))
 
 
+    def test_a_tab_can_ask_for_raw_tcp_from_its_very_first_byte(self):
+        # 🔬 the website records from page load: {"xray": true} when the session is made, before any login
+        tab = Browser(stack.web_port, {"xray": True})
+        self.addCleanup(tab.close)
+        result = tab.auth(next(names), PASSWORD, "register")
+        self.assertTrue(result["ok"], result)
+        tab.wait(is_msg(type_="history"), what="the lobby history")
+        chunks = [e["data"] for e in tab.stream.seen if e["data"].get("type") == "xray" and e["data"]["dir"] == "in"]
+        self.assertIn('"auth_result"', chunks[0]["text"])   # the very first bytes the chat server sent
+        seen = [e["data"] for e in tab.stream.seen if e["data"].get("type") == "xray"]
+        self.assertFalse(any(PASSWORD in d["text"] for d in seen))   # the login packet is never shown
+
+    def test_a_session_body_without_xray_records_nothing(self):
+        a, _ = self.user()
+        a.line("quiet please")
+        a.wait(lambda e: e["data"].get("text") == "quiet please", what="the chat line")
+        self.assertFalse(any(e["data"].get("type") == "xray" for e in a.stream.seen))
+
+
 class TestPing(BridgeTestCase):
     def test_a_ping_comes_back_as_a_pong_through_the_bridge(self):
         a, _ = self.user()

@@ -4,20 +4,27 @@
 //   TCP      the raw bytes the bridge got from each recv() on its TCP socket to the chat server, and what it
 //            sent with sendall(). TCP is a stream: a chunk can end in the middle of a packet, or hold several.
 //
-// The bridge only records raw TCP while this window is open ({"type": "xray", "on": true}), and never
-// a login packet (it has your password). Everything is shown with textContent: it's data, never HTML.
+// It's a side panel (a drawer on a phone), not a modal: you can chat and play while it runs. It records from
+// page load, open or not (xraylog.js keeps the newest 500 of each), so opening it shows what already happened.
+// The bridge sends the raw TCP because api.js asks for it when it makes the session ({"xray": true}); it never
+// shows a login packet (it has your password). Everything is shown with textContent: it's data, never HTML.
 
 import { $, clear, el } from "./dom.js";
-import { send, watchPackets } from "./api.js";
+import { watchPackets } from "./api.js";
+import { XRAY_KEEP, chunkTypes, hideSecrets, makeLog, matches } from "./xraylog.js";
 
-const MAX_ROWS = 300;
 const encoder = new TextEncoder();
+const logs = { packets: makeLog(), tcp: makeLog() };
 const lists = { packets: $("xray-packets"), tcp: $("xray-tcp") };
 const tabs = [$("xray-tab-packets"), $("xray-tab-tcp")];
+const rows = new Map();   // entry -> its <li>, while it's on screen (so a dropped entry's row goes too)
 let paused = false;
 let recvCount = 0;
+let filter = "";
+let hooks = { onToggle: () => {}, focusAfterClose: () => $("xray-open").focus() };
 
 const bytesOf = (text) => encoder.encode(text).length;
+const isOpen = () => !$("xray").hidden;
 
 function clock(seconds) {
   const t = new Date(seconds * 1000);
@@ -27,54 +34,127 @@ function clock(seconds) {
 /** Newlines are where packets end: show them as ⏎ so you can see the boundaries inside a chunk. */
 const showNewlines = (text) => text.replace(/\n/gu, "⏎\n");
 
-function addRow(list, row) {
-  const atBottom = list.parentElement.scrollHeight - list.parentElement.scrollTop - list.parentElement.clientHeight < 40;
-  list.append(row);
-  while (list.childElementCount > MAX_ROWS) list.firstElementChild.remove();
-  if (atBottom) list.parentElement.scrollTop = list.parentElement.scrollHeight;
-  $("xray-count").textContent = `${lists.packets.childElementCount} packets · ${lists.tcp.childElementCount} TCP chunks`;
+function announce(text) {
+  const status = $("xray-status");
+  status.textContent = "";   // empty first, so the same words (Clear, Clear) are read again
+  setTimeout(() => { status.textContent = text; }, 60);
 }
+
+// ----- remembering (always, from page load)
+
+function packetEntry(dir, packet, wireText, live) {
+  return { kind: "packets", dir, types: [String(packet.type ?? "?")], bytes: bytesOf(wireText) + 1,
+    time: Date.now() / 1000, text: hideSecrets(packet, wireText), replayed: !live };   // never keep a secret
+}
+
+function tcpEntry(chunk, live) {
+  const text = String(chunk.text ?? "");
+  const dir = chunk.dir === "in" ? "in" : "out";
+  return { kind: "tcp", dir, types: chunkTypes(text), bytes: Number(chunk.bytes) || 0, text,
+    time: Number(chunk.time) || Date.now() / 1000, replayed: !live,
+    label: dir === "in" ? `recv() #${++recvCount}` : "sendall()" };
+}
+
+function watch(dir, packet, wireText, live = true) {
+  if (paused) return;
+  if (packet.type === "xray") {
+    if (dir === "in") remember(tcpEntry(packet, live));   // a raw chunk reported by the bridge
+    return;
+  }
+  remember(packetEntry(dir, packet, wireText, live));
+}
+
+function remember(entry) {
+  const dropped = logs[entry.kind].add(entry);
+  if (dropped) forgetRow(dropped);
+  if (isOpen() && matches(entry, filter)) addRow(entry);
+  if (isOpen()) {
+    updateFilterMenu();
+    updateCount();
+  }
+}
+
+// ----- showing (only while the panel is open)
 
 /** "⬇ in  chat  42 B  19:26" on screen; "received, chat, 42 B, 19:26" for screen readers. */
-function head(dir, ...parts) {
+function head(entry, ...parts) {
+  const words = entry.dir === "in" ? ["⬇ in", "received"] : ["⬆ out", "sent"];
   return el("p", { class: "xray-row-head" },
-    el("span", { class: `xray-dir xray-${dir}` },
-      el("span", { "aria-hidden": "true", text: dir === "in" ? "⬇ in" : "⬆ out" }),
-      el("span", { class: "visually-hidden", text: dir === "in" ? "received" : "sent" })),
-    ...parts.map((text) => el("span", {}, el("span", { class: "visually-hidden", text: ", " }), text)));
+    el("span", { class: `xray-dir xray-${entry.dir}` },
+      el("span", { "aria-hidden": "true", text: words[0] }),
+      el("span", { class: "visually-hidden", text: words[1] })),
+    ...parts.map((text) => el("span", {}, el("span", { class: "visually-hidden", text: ", " }), text)),
+    ...(entry.replayed ? [el("span", { class: "xr-replayed" }, el("span", { class: "visually-hidden", text: ", " }),
+      el("span", { "aria-hidden": "true", text: "↺ " }), "replayed after a reload")] : []));
 }
 
-function announce(text) {
-  $("xray-status").textContent = text;
-}
-
-function packetRow(dir, packet, wireText) {
-  const secret = packet.type === "auth" || packet.type === "change_password";   // never show a password
-  const shown = secret ? JSON.stringify({ ...packet, ...(packet.password ? { password: "•••" } : {}), ...(packet.token ? { token: "•••" } : {}),
-    ...(packet.old ? { old: "•••", new: "•••" } : {}) }) : wireText;
-  return el("li", { class: "xray-row" },
-    head(dir, String(packet.type ?? "?"), `${bytesOf(wireText) + 1} B`, clock(Date.now() / 1000)),
-    el("pre", { class: "xray-body", text: shown }));
-}
-
-function tcpRow(chunk) {
-  const text = String(chunk.text ?? "");
+function tcpSplit(text) {
   const lineEnds = (text.match(/\n/gu) || []).length;
-  const label = chunk.dir === "in" ? `recv() #${++recvCount}` : "sendall()";
-  const split = text.endsWith("\n") ? `${lineEnds} packet${lineEnds === 1 ? "" : "s"}`
-    : `${lineEnds} packet${lineEnds === 1 ? "" : "s"} + the start of one more ✂️`;
-  return el("li", { class: "xray-row" },
-    head(chunk.dir === "in" ? "in" : "out", label, `${chunk.bytes} B`, split, clock(Number(chunk.time) || Date.now() / 1000)),
-    el("pre", { class: "xray-body", text: showNewlines(text) }));
+  const packets = `${lineEnds} packet${lineEnds === 1 ? "" : "s"}`;
+  if (text.endsWith("\n")) return packets;
+  return el("span", {}, `${packets} + the start of one more`, el("span", { "aria-hidden": "true", text: " ✂️" }));
 }
 
-function watch(dir, packet, wireText) {
-  if (paused || !$("xray").open) return;
-  if (packet.type === "xray") {
-    if (dir === "in") addRow(lists.tcp, tcpRow(packet));   // a raw chunk reported by the bridge
-    return;                                                // ("out" xray packets are just our on/off switch)
+function rowFor(entry) {
+  if (entry.kind === "packets") {
+    return el("li", { class: "xray-row" },
+      head(entry, entry.types[0], `${entry.bytes} B`, clock(entry.time)),
+      el("pre", { class: "xray-body", text: entry.text }));
   }
-  addRow(lists.packets, packetRow(dir, packet, wireText));
+  return el("li", { class: "xray-row" },
+    head(entry, entry.label, `${entry.bytes} B`, tcpSplit(entry.text), clock(entry.time)),
+    el("pre", { class: "xray-body", text: showNewlines(entry.text) }));
+}
+
+const scroller = (list) => list.parentElement;
+const nearBottom = (box) => box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+
+function addRow(entry) {
+  const list = lists[entry.kind];
+  // reading older rows (scrolled up, or moving through the list with a keyboard)? then don't jump to the bottom
+  const follow = nearBottom(scroller(list)) && !scroller(list).contains(document.activeElement);
+  const row = rowFor(entry);
+  rows.set(entry, row);
+  list.append(row);
+  if (follow) scroller(list).scrollTop = scroller(list).scrollHeight;
+}
+
+function forgetRow(entry) {
+  rows.get(entry)?.remove();
+  rows.delete(entry);
+}
+
+function renderAll() {
+  rows.clear();
+  for (const [kind, list] of Object.entries(lists)) {
+    clear(list).append(...logs[kind].list(filter).map((entry) => {
+      const row = rowFor(entry);
+      rows.set(entry, row);
+      return row;
+    }));
+    scroller(list).scrollTop = scroller(list).scrollHeight;
+  }
+  updateFilterMenu();
+  updateCount();
+}
+
+/** The filter menu lists every packet type seen so far. New types are slotted in (A to Z) without rebuilding
+ * the menu, so an open menu or a screen reader's place isn't lost. Types that are gone stay until a Clear. */
+function updateFilterMenu() {
+  const menu = $("xray-filter");
+  for (const type of [...logs.packets.types(), ...logs.tcp.types()]) {
+    const options = [...menu.options].slice(1);
+    if (options.some((option) => option.value === type)) continue;
+    const next = options.find((option) => option.value > type);
+    menu.insertBefore(el("option", { value: type, text: type }), next ?? null);
+  }
+}
+
+function updateCount() {
+  const packets = logs.packets.list().length;
+  const tcp = logs.tcp.list().length;
+  const showing = filter ? ` · showing ${logs.packets.list(filter).length} + ${logs.tcp.list(filter).length} with “${filter}”` : "";
+  $("xray-count").textContent = `${packets} packets · ${tcp} TCP chunks (newest ${XRAY_KEEP} kept)${showing}${paused ? " · ⏸ paused" : ""}`;
 }
 
 function selectTab(index) {
@@ -87,38 +167,75 @@ function selectTab(index) {
   tabs[index].focus();
 }
 
-export function initXray() {
-  const dialog = $("xray");
-  watchPackets(watch);
-  $("xray-open").addEventListener("click", () => {
-    dialog.showModal();
-    send({ type: "xray", on: true });
-  });
-  $("xray-close").addEventListener("click", () => dialog.close());
-  dialog.addEventListener("close", () => {
-    send({ type: "xray", on: false });
-    $("xray-open").focus();
-  });
+// ----- opening and closing (the panel never blocks the page: no backdrop, no focus trap)
+
+export function setXrayOpen(open) {
+  if (open === isOpen()) return;
+  $("xray").hidden = !open;
+  $("xray-open").setAttribute("aria-expanded", String(open));
+  hooks.onToggle(open);
+  if (open) {
+    renderAll();
+    $("xray-title").focus();
+  } else {
+    rows.clear();
+    clear(lists.packets);
+    clear(lists.tcp);
+    hooks.focusAfterClose();
+  }
+}
+
+function togglePause(event) {
+  paused = !paused;
+  clear(event.currentTarget).append(el("span", { "aria-hidden": "true", text: paused ? "▶ " : "⏸ " }),
+    paused ? "Resume" : "Pause");
+  updateCount();
+  announce(paused ? "Recording paused" : "Recording again");
+}
+
+function clearAll() {
+  logs.packets.empty();
+  logs.tcp.empty();
+  recvCount = 0;
+  filter = "";
+  clear($("xray-filter")).append(el("option", { value: "", text: "All types" }));
+  renderAll();
+  announce("Cleared");
+}
+
+function wireTabs() {
   tabs.forEach((tab, i) => {
     tab.addEventListener("click", () => selectTab(i));
     tab.addEventListener("keydown", (event) => {   // arrow keys move between tabs (the ARIA tabs pattern)
       if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
         event.preventDefault();
         selectTab((i + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length);
+      } else if (event.key === "Home" || event.key === "End") {
+        event.preventDefault();
+        selectTab(event.key === "Home" ? 0 : tabs.length - 1);
       }
     });
   });
-  $("xray-pause").addEventListener("click", (event) => {
-    paused = !paused;
-    clear(event.currentTarget).append(el("span", { "aria-hidden": "true", text: paused ? "▶ " : "⏸ " }),
-      paused ? "Resume" : "Pause");
-    announce(paused ? "Capture paused" : "Capture resumed");
+}
+
+/** hooks.onToggle(open): the page makes room for the panel; hooks.focusAfterClose(): where focus goes back to. */
+export function initXray(nextHooks = {}) {
+  hooks = { ...hooks, ...nextHooks };
+  watchPackets(watch);
+  $("xray-open").addEventListener("click", () => setXrayOpen(!isOpen()));
+  $("xray-close").addEventListener("click", () => setXrayOpen(false));
+  $("xray").addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !event.defaultPrevented) {
+      event.preventDefault();
+      setXrayOpen(false);
+    }
   });
-  $("xray-clear").addEventListener("click", () => {
-    clear(lists.packets);
-    clear(lists.tcp);
-    recvCount = 0;
-    $("xray-count").textContent = "";
-    announce("Cleared");
+  wireTabs();
+  $("xray-filter").addEventListener("change", (event) => {
+    filter = event.currentTarget.value;
+    renderAll();
+    announce(filter ? `Showing only ${filter} packets` : "Showing every packet type");
   });
+  $("xray-pause").addEventListener("click", togglePause);
+  $("xray-clear").addEventListener("click", clearAll);
 }

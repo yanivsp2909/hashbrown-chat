@@ -215,7 +215,7 @@ def read_lines(sock, on_chunk=None):
 class Session:
     """One browser tab <-> one TCP connection to the chat server."""
 
-    def __init__(self, sock, ip):
+    def __init__(self, sock, ip, xray=False):
         self.sid = secrets.token_urlsafe(32)
         self.ip = ip
         self.sock = sock
@@ -234,7 +234,7 @@ class Session:
         self.rate_lock = threading.Lock()
         self.sends = deque()
         self.stroke_sends = deque()   # 🎨 its own budget (STROKE_SENDS)
-        self.xray = False            # 🔬 the tab's Packet X-ray is open: show it the raw TCP traffic too
+        self.xray = xray             # 🔬 show this tab the raw TCP traffic too (its Packet X-ray records from page load)
         self.xray_ids = deque()      # 🔬 ids of the x-ray events still in the replay log
         self.live_only = deque()     # 📦 (id, json text) sent once to the tab, never replayed: big file chunks
         self.live_only_size = 0
@@ -399,7 +399,7 @@ class Registry:
         self.login_fails = {}   # ip -> deque of times
         threading.Thread(target=self._reap_loop, daemon=True).start()
 
-    def create(self, ip):
+    def create(self, ip, xray=False):
         with self.lock:  # reserve the slot now: connecting takes a moment and others may be racing us
             if len(self.sessions) + sum(self.reserved.values()) >= self.max_sessions:
                 raise BridgeError(503, "😵 The website is full right now. Try again in a minute.")
@@ -413,7 +413,7 @@ class Registry:
             sock = socket.create_connection(self.chat_address, timeout=3)
             sock.settimeout(30)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-            session = Session(sock, ip)
+            session = Session(sock, ip, xray)
             session.on_login_fail = self._login_failed
             with self.lock:
                 self.sessions[session.sid] = session

@@ -149,8 +149,8 @@ flowchart LR
 
 Tools we built to *see* the networking, for learning:
 
-- **Packet X-ray** (website, bottom of the sidebar): every JSON packet your tab sends ⬆ and gets ⬇. Login packets are never recorded. In the terminal: `python3 client.py --packets`.
-- **The TCP tab** (inside X-ray): the raw bytes of each `recv()`, with newlines shown as ⏎, so you can see a chunk end in the middle of a packet.
+- **Packet X-ray** (website, bottom of the sidebar): every JSON packet your tab sends ⬆ and gets ⬇, in a side panel (a drawer under the chat on a phone) that never blocks the chat, so you can chat and play while you watch. It records from the moment the page loads (the newest 500), with Pause, Clear and a filter by packet type. Passwords and reconnect tokens show as •••. In the terminal: `python3 client.py --packets`.
+- **The TCP tab** (inside X-ray): the raw bytes of each `recv()` from the very first one, with newlines shown as ⏎, so you can see a chunk end in the middle of a packet.
 - **The network lab** (typed in the server window): `lag 300` delays every packet by 300 ms, `loss 10` "loses" 10% of them, `lab off` stops it. Everyone on the website sees a 🧪 banner while it's on.
 - **The live network map** (website): the server in the middle, every player around it, dots flying for packets sent and received, and each player's ping. Only packet types and counts, never what's inside.
 - **`/ping` and `/netstats`**: the round-trip time of one packet, and how many packets and bytes went each way on your connection.

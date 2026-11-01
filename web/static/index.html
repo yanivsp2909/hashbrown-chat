@@ -113,7 +113,7 @@
         <datalist id="known-names"></datalist>
       </section>
       <div class="side-foot">
-        <button id="xray-open" class="btn btn-ghost xray-open" type="button" aria-haspopup="dialog"><span aria-hidden="true">🔬 </span>Packet X-ray</button>
+        <button id="xray-open" class="btn btn-ghost xray-open" type="button" aria-expanded="false" aria-controls="xray"><span aria-hidden="true">🔬 </span>Packet X-ray</button>
         <button id="netmap-open" class="btn btn-ghost xray-open" type="button" aria-haspopup="dialog"><span aria-hidden="true">🗺️ </span>Network map</button>
         <button id="theme-toggle" class="btn btn-ghost" type="button">☀️ Light mode</button>
         <button id="logout" class="btn btn-ghost" type="button">🚪 Log out</button>
@@ -185,6 +185,35 @@
       <div id="game-body" class="game-body"></div>
       <p id="game-status" class="visually-hidden" role="status"></p>
     </aside>
+    <!-- 🔬 Packet X-ray: a side panel (a drawer on a phone) that never blocks the chat; it records from page load -->
+    <aside id="xray" class="xr-panel" aria-labelledby="xray-title" hidden>
+      <div class="xray-head">
+        <h2 id="xray-title" tabindex="-1"><span aria-hidden="true">🔬 </span>Packet X-ray</h2>
+        <button id="xray-close" class="icon-btn" type="button" aria-label="Close Packet X-ray"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <p class="xray-hint">Every packet is one line of JSON that ends with <code>\n</code>. The TCP tab shows the raw bytes exactly as <code>recv()</code> got them: one chunk can hold half a packet, or three. Recording since the page loaded (the newest 500 of each).</p>
+      <div class="xr-tools">
+        <div class="segmented xray-tabs" role="tablist" aria-label="What to show">
+          <button type="button" role="tab" id="xray-tab-packets" aria-selected="true" aria-controls="xray-packets-panel">Packets</button>
+          <button type="button" role="tab" id="xray-tab-tcp" aria-selected="false" aria-controls="xray-tcp-panel" tabindex="-1">TCP</button>
+        </div>
+        <label class="xr-filter"><span>Type</span>
+          <select id="xray-filter"><option value="">All types</option></select>
+        </label>
+      </div>
+      <div id="xray-packets-panel" class="xray-panel" role="tabpanel" aria-labelledby="xray-tab-packets" tabindex="0">
+        <ol id="xray-packets" class="xray-list"></ol>
+      </div>
+      <div id="xray-tcp-panel" class="xray-panel" role="tabpanel" aria-labelledby="xray-tab-tcp" tabindex="0" hidden>
+        <ol id="xray-tcp" class="xray-list"></ol>
+      </div>
+      <div class="xray-actions">
+        <span id="xray-count" class="xray-count"></span>
+        <span id="xray-status" class="visually-hidden" role="status"></span>
+        <button id="xray-pause" class="btn btn-ghost" type="button"><span aria-hidden="true">⏸ </span>Pause</button>
+        <button id="xray-clear" class="btn btn-ghost" type="button"><span aria-hidden="true">🧹 </span>Clear</button>
+      </div>
+    </aside>
     <div id="scrim" class="scrim" hidden></div>
 
     <dialog id="market" class="xray market" aria-labelledby="market-title">
@@ -240,29 +269,6 @@
       </form>
     </dialog>
 
-    <dialog id="xray" class="xray" aria-labelledby="xray-title">
-      <div class="xray-head">
-        <h2 id="xray-title"><span aria-hidden="true">🔬 </span>Packet X-ray</h2>
-        <button id="xray-close" class="icon-btn" type="button" aria-label="Close Packet X-ray"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      </div>
-      <p class="xray-hint">Every packet is one line of JSON that ends with <code>\n</code>. The TCP tab shows the raw bytes exactly as <code>recv()</code> got them: one chunk can hold half a packet, or three.</p>
-      <div class="segmented xray-tabs" role="tablist" aria-label="What to show">
-        <button type="button" role="tab" id="xray-tab-packets" aria-selected="true" aria-controls="xray-packets-panel">Packets</button>
-        <button type="button" role="tab" id="xray-tab-tcp" aria-selected="false" aria-controls="xray-tcp-panel" tabindex="-1">TCP</button>
-      </div>
-      <div id="xray-packets-panel" class="xray-panel" role="tabpanel" aria-labelledby="xray-tab-packets" tabindex="0">
-        <ol id="xray-packets" class="xray-list"></ol>
-      </div>
-      <div id="xray-tcp-panel" class="xray-panel" role="tabpanel" aria-labelledby="xray-tab-tcp" tabindex="0" hidden>
-        <ol id="xray-tcp" class="xray-list"></ol>
-      </div>
-      <div class="xray-actions">
-        <span id="xray-count" class="xray-count"></span>
-        <span id="xray-status" class="visually-hidden" role="status"></span>
-        <button id="xray-pause" class="btn btn-ghost" type="button"><span aria-hidden="true">⏸ </span>Pause</button>
-        <button id="xray-clear" class="btn btn-ghost" type="button"><span aria-hidden="true">🧹 </span>Clear</button>
-      </div>
-    </dialog>
   </div>
 
   <!-- Disconnected -->

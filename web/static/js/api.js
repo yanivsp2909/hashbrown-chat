@@ -54,7 +54,7 @@ export const hasSession = () => Boolean(sid);
 
 export async function newSession() {
   sid = null;
-  const result = await post("/api/session", {});
+  const result = await post("/api/session", { xray: true });   // 🔬 the Packet X-ray records the raw TCP from the start
   if (!result.ok) return result;
   sid = result.data.sid;
   sessionStorage.setItem(SID_KEY, sid);
@@ -73,7 +73,7 @@ export function listen() {
       return;
     }
     if (msg && typeof msg === "object" && !Array.isArray(msg)) {
-      for (const watch of packetWatchers) watch("in", msg, event.data);
+      for (const watch of packetWatchers) watch("in", msg, event.data, live);
       handlers.onMessage(msg, live);
     }
   };
@@ -129,7 +129,8 @@ export function sentRecently(pattern, ms) {
   return recentLines.some((line) => Date.now() - line.at < ms && pattern.test(line.text));
 }
 
-/** 🔬 watch(direction, packet, wireText) sees every packet this tab gets ("in") or sends ("out"). */
+/** 🔬 watch(direction, packet, wireText, live) sees every packet this tab gets ("in") or sends ("out").
+ * live is false for packets a reloaded tab gets again from the bridge's replay. */
 let packetWatchers = [];
 export function watchPackets(watch) {
   packetWatchers = [...packetWatchers, watch];

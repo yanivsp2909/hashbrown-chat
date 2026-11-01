@@ -216,8 +216,10 @@ class Handler(BaseHTTPRequestHandler):
             self.fail(e.status, e.text)
 
     def new_session(self):
-        self.read_json(SMALL_BODY)
-        session = self.server.registry.create(self.client_address[0])
+        body = self.read_json(SMALL_BODY)
+        # 🔬 {"xray": true}: record the raw TCP from the first byte, so the Packet X-ray can show it later
+        xray = isinstance(body, dict) and body.get("xray") is True
+        session = self.server.registry.create(self.client_address[0], xray)
         self.reply(200, sid=session.sid)
 
     def send_message(self):

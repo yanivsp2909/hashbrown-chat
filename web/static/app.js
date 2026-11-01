@@ -88,6 +88,7 @@ function setDrawer(name) {
     $(panelId).inert = Boolean(name) && key !== name && getComputedStyle($(panelId)).position === "fixed";
   }
   document.querySelector(".chat-col").inert = Boolean(name);
+  $("xray").inert = Boolean(name);   // 🔬 under the scrim too while a drawer is open
   if (name) $(DRAWERS[name][2]).focus();
   else if (previous) {
     const back = returnFocus && returnFocus.isConnected && returnFocus !== document.body ? returnFocus : $(DRAWERS[previous][1]);
@@ -283,7 +284,14 @@ initComposer({
 initFiles({ onSent: () => {} });
 initSidebar({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
 initRail({ openGame });
-initXray();
+initXray({
+  onToggle: (open) => {
+    app.classList.toggle("xray-on", open);   // 🔬 the grid makes room: the chat stays usable next to it
+    if (open && narrow.matches) closeDrawer();   // (on a phone the button is in the sidebar drawer)
+  },
+  // on a phone the X-ray button is hidden in the closed sidebar: go back to the ☰ button instead
+  focusAfterClose: () => (narrow.matches ? $("open-sidebar") : $("xray-open")).focus(),
+});
 initTyping();
 initEdits();
 initRooms({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });

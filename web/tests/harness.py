@@ -197,9 +197,9 @@ def is_msg(text_start=None, kind=None, type_="msg"):
 class Browser:
     """One browser tab: a bridge session and its event stream."""
 
-    def __init__(self, port):
+    def __init__(self, port, session_body=None):
         self.port = port
-        status, _, body = request(port, "POST", "/api/session", body={})
+        status, _, body = request(port, "POST", "/api/session", body=session_body or {})
         if status != 200:
             raise AssertionError(f"couldn't create a session: {status} {body}")
         self.sid = body["sid"]

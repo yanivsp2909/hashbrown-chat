@@ -210,6 +210,12 @@ Decision: group commands work on the room you're in, so a button for a group you
 | B6b | "Who can message me" for /challenge and /give | only /send and files asked the setting | a challenge is refused with 🔕; a gift still arrives but its notice only goes to people who take messages from the giver (choice: refusing tokens would be odd) |
 | B6c | Admins' tab order on the Groups screen | 4-5 tab stops per member | each member's tools are one ARIA toolbar (roving tabindex; arrows, Home/End inside; Up/Down still pick the minutes) |
 
+## Round 7: X-ray panel, group commands in their group, invites, friends
+
+| # | Item | Status |
+|---|---|---|
+| R7.1 | 🔬 Packet X-ray as a side panel that records from page load | done. Root cause: a modal `<dialog>` (`showModal()` makes the page inert), `watch()` dropped every packet while it was closed, and the bridge recorded raw TCP only while it was open. Now an `<aside>` in the app grid (own column on wide screens; under the chat at <1100 px or 1100-1499 px with a game; a bottom drawer on phones), `xraylog.js` keeps the newest 500 packets and 500 TCP chunks from page load, Pause / Clear / filter by type (TCP: chunks holding that type), the website asks for raw TCP when it makes the session (`/api/session` `{"xray": true}`, web-only). Found on the way: the Packets tab showed `resume_token` (the TCP tab already blanked it): now •••. a11y-architect: panel scrolls at 400 % zoom, the filter menu is never rebuilt under you, Home/End on the tabs, no auto-follow while the list has focus |
+
 ## Docs
 
 | Item | Status |

@@ -514,7 +514,68 @@ a { color: var(--gold); text-underline-offset: 3px; }
 }
 .login-ticket .login-error { background: #fbe1da; color: #b02a17; }
 
-/* ----- 🔬 Packet X-ray: a modal window with two tabs (packets, raw TCP chunks) */
+/* ----- 🔬 Packet X-ray: a side panel with two tabs (packets, raw TCP chunks). It never covers the chat: it gets
+   its own column on wide screens, and docks under the chat (a drawer from the bottom) on smaller ones.
+   (.xray below is the shared look of the other windows: market, economy, network map, profiles.) */
+.sidebar { grid-area: side; }
+.chat-col { grid-area: chat; }
+.game-panel { grid-area: game; }
+.xr-panel { grid-area: xray; }
+.app { grid-template-areas: "side chat"; }
+.app.has-game { grid-template-areas: "side chat game"; }
+.app.xray-on { grid-template-columns: 264px minmax(0, 1fr) 400px; grid-template-areas: "side chat xray"; }
+@media (min-width: 1500px) {
+  .app.xray-on.has-game { grid-template-columns: 264px minmax(0, 1fr) 380px 400px; grid-template-areas: "side chat game xray"; }
+}
+@media (min-width: 1100px) and (max-width: 1499px) {   /* a game and the X-ray: the X-ray goes under the chat */
+  .app.xray-on.has-game {
+    grid-template-columns: 264px minmax(0, 1fr) 380px; grid-template-rows: minmax(0, 1fr) minmax(0, 42%);
+    grid-template-areas: "side chat game" "side xray game";
+  }
+  .app.has-game .xr-panel { border-left: 0; border-top: 1px solid var(--line-soft); animation-name: xr-up-in; padding-top: 12px; gap: 8px; }
+  .app.has-game .xr-panel .xray-hint { display: none; }   /* room for the packets; the hint is in the guide */
+}
+.xr-panel {
+  min-width: 0; min-height: 0; overflow-x: hidden; overflow-y: auto;   /* zoomed in or a short screen: it scrolls */
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 16px 16px max(14px, env(safe-area-inset-bottom));
+  background: var(--panel); border-left: 1px solid var(--line-soft);
+  animation: xr-side-in 220ms var(--ease-out);
+}
+.xr-panel[hidden] { display: none; }
+.xr-panel .xray-head h2 { font-size: 18px; }
+.xr-panel .xray-hint { font-size: 13px; }
+.xr-panel .xray-panel { min-height: 96px; }
+.xr-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.xr-filter { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-2); }
+.xr-filter select { min-height: 32px; max-width: 12em; padding: 0 8px; border-radius: 999px; background: var(--bg-deep); border: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+.xr-replayed { color: var(--muted); font-style: italic; }
+.xr-panel .xray-actions { flex-wrap: wrap; }
+@keyframes xr-side-in { from { opacity: 0; transform: translateX(16px); } }
+@keyframes xr-up-in { from { opacity: 0; transform: translateY(24px); } }
+@media (max-width: 1099px) {   /* docked under the chat, like a drawer from the bottom */
+  .app, .app.has-game { grid-template-areas: "side chat"; }
+  .app.xray-on, .app.xray-on.has-game {
+    grid-template-columns: 248px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 45%);
+    grid-template-areas: "side chat" "side xray";
+  }
+  .xr-panel { border-left: 0; border-top: 1px solid var(--line-soft); box-shadow: var(--shadow-2); border-radius: 18px 18px 0 0;
+    animation-name: xr-up-in; padding-top: 12px; gap: 8px; }
+  .xr-panel .xray-hint { display: none; }   /* room for the packets; the hint is in the guide */
+}
+@media (max-width: 760px) {
+  .app, .app.has-game { grid-template-areas: "chat"; }
+  .app.xray-on, .app.xray-on.has-game { grid-template-columns: minmax(0, 1fr); grid-template-areas: "chat" "xray"; }
+  .xr-panel .xray-actions .btn { min-height: 44px; }
+  .xr-filter select { min-height: 44px; }
+}
+@media (pointer: coarse) { .xr-filter select { min-height: 44px; } }
+@media (max-height: 520px) and (max-width: 1099px) {   /* landscape phone or 400% zoom: the docked X-ray gets more room */
+  .app.xray-on, .app.xray-on.has-game { grid-template-rows: minmax(0, 1fr) minmax(0, 70%); }
+}
+@media (max-height: 520px) and (min-width: 1100px) and (max-width: 1499px) {
+  .app.xray-on.has-game { grid-template-rows: minmax(0, 1fr) minmax(0, 70%); }
+}
 .side-foot .xray-open { grid-column: 1 / -1; }
 .xray {
   width: min(900px, calc(100vw - 32px)); max-height: min(86vh, 900px); padding: 18px 20px 16px;
