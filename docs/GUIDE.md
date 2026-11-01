@@ -133,7 +133,7 @@ All the numbers are in the economy part of `chatserver/config.py` (search for "t
 
 ## Every command
 
-These are all 96 commands, in the same groups as `/help`. `[ ]` means optional. 👥 The group commands (`/leave`, `/members`, `/requests`, `/approve`, `/reject`, the 🛡️ Group admin and 🏦 Group bank commands except `/topgroups`, and `/war`) work only in a group's chat and act on that group; anywhere else they answer "👥 Open the group's chat to use /kick". In the lobby `/help` leaves them out. `/create` and `/join` work from anywhere. Anything that isn't a command is a chat message to the room you're in; start a message with `@hashbrown` to ask the AI (20 🪙).
+These are all 98 commands, in the same groups as `/help`. `[ ]` means optional. 👥 The group commands (`/leave`, `/members`, `/requests`, `/approve`, `/reject`, the 🛡️ Group admin and 🏦 Group bank commands except `/topgroups`, and `/war`) work only in a group's chat and act on that group; anywhere else they answer "👥 Open the group's chat to use /kick". In the lobby `/help` leaves them out. `/create` and `/join` work from anywhere. Anything that isn't a command is a chat message to the room you're in; start a message with `@hashbrown` to ask the AI (20 🪙).
 
 ### 💬 Chat
 
@@ -153,12 +153,19 @@ These are all 96 commands, in the same groups as `/help`. `[ ]` means optional. 
 | `/vote number` | Vote in the room's poll |
 | `/endpoll` | Close your poll and show who won |
 
+### 🤝 Friends
+
+| Command | What it does |
+|---|---|
+| `/friend add name` | Ask someone to be friends 🤝 (if they already asked you, you're friends). Also `/friend accept name`, `/friend decline name` (they can't ask again for 10 minutes) and `/friend remove name` (ends it both ways, or takes back your request). It follows their "who can message me" setting, except that friends-only people can still be asked. At most 100 friends, 30 requests waiting for you and 20 of yours waiting for answers |
+| `/friends` | Your friends, online first, where they are (a private group's name only if you're in it) and who asked you |
+
 ### 👤 Profile
 
 | Command | What it does |
 |---|---|
 | `/profile [name]` | Someone's profile card 👤 (yours without a name) |
-| `/setprofile field value` | Change your profile. Fields: `avatar` (one emoji), `bio`, `status` (online / away / busy), `statustext`, `color` (0-7 or auto), `game`, `theme` (light / dark), `lastseen` (show / hide), `dms` (everyone / groups / nobody). Example: `/setprofile bio I love fries` |
+| `/setprofile field value` | Change your profile. Fields: `avatar` (one emoji), `bio`, `status` (online / away / busy), `statustext`, `color` (0-7 or auto), `game`, `theme` (light / dark), `lastseen` (show / hide), `dms` (everyone / groups / friends / nobody). Example: `/setprofile bio I love fries` |
 | `/password old new` | Change your password (the old one first) 🔑 |
 
 ### 👥 Groups
@@ -349,6 +356,10 @@ Type `/draw` (at least 2 people in the room). You get a secret word and a canvas
 
 Hover (or tab to) a message and press **☺︎+** to react with 👍 ❤️ 😂 😮 😢 or 🥔. Click a reaction under a message to add or take back yours. While someone in your room types, you see *Noa is typing…* above the message box. Type `@` for a list of the people in this chat and @hashbrown. A poll shows a button for each option.
 
+### Friends 👥
+
+The **👥 Friends** list in the sidebar shows your friends, online first: a green dot, and what they're doing (🎮 in a game, 🌙 away, the room they're in). Next to each: 💌 a private message, ⚔️ a challenge (when they're online) and 📨 an invite to your group (one group: straight away; several: pick one, Escape closes the list). Type a name under the list and press **Add** to ask someone. A request to you is a ticket at the top of the chat with **Accept** / **Decline**. When a friend logs in you get a small notice "👥 Your friend Ben is online.".
+
 ### Group invites 📨
 
 An admin invites you with `/invite name` or the Groups screen's **Invite** button. You get a ticket at the top of the chat, "📨 Alice invites you", with the group, the time left and **Accept** / **Decline** (in the terminal: `/join name` or `/invites decline name`). It works for private groups without a join request, and lasts 24 hours. Missed it while offline? It's waiting when you log in, and `/invites` lists them.
@@ -371,7 +382,7 @@ Every button sends the same command you'd type (like `/approve Ben` or `/kick Be
 
 ### Profiles 👤
 
-Your avatar and name colour also show on your chat bubbles. Click anyone's name (in the online list or in the chat) for their card, or **👤 My profile** for yours, then **✏️ Edit profile**: an emoji avatar, your display name (same as `/nick`), a bio, a status (🟢 online, 🌙 away, ⛔ busy, plus your own line), a name colour, your favourite game, the theme (it follows you to every device), privacy (show "last seen" or not; who can send you private messages and files: everyone, people in your groups, or nobody) and a new password (the old one first). Your username never changes.
+Your avatar and name colour also show on your chat bubbles. Click anyone's name (in the online list or in the chat) for their card, or **👤 My profile** for yours, then **✏️ Edit profile**: an emoji avatar, your display name (same as `/nick`), a bio, a status (🟢 online, 🌙 away, ⛔ busy, plus your own line), a name colour, your favourite game, the theme (it follows you to every device), privacy (show "last seen" or not; who can send you private messages and files: everyone, people in your groups, friends only, or nobody) and a new password (the old one first). Your username never changes.
 
 ### Market and economy 📈
 
@@ -454,6 +465,7 @@ Every packet is **one JSON object on one line**, ending with `\n` (newline-delim
 | server → client | `file` | `from`, `filename`, `data` |
 | both ways | `file_start`, `file_chunk`, `file_ack`, `file_end`, `file_cancel` | big files in 1 MB chunks; the next chunk only after its `file_ack` (flow control) |
 | client → server | `get_groups` / `get_group` / `groups_closed` | (none) / `group` (its key) / (none): the website's Groups screen opens, looks at one group, closes |
+| server → client | `friends` | 🤝 only to apps with `friends` in their login `features`, whenever it changes (checked every second): `friends` [{`name`, `online`, `status`, `room`, `playing`}], `requests` (names who asked you), `sent` (names you asked), `groups` [{`key`, `name`}] you're an admin of |
 | server → client | `groups` / `group_info` | one card per group / one group's details, sent when asked and once a second while the screen is open and something changed. A private group you're not in shows only its name, emoji and size; `bank_details` only goes to members, `admin` only to that group's admins |
 | client → server | `get_profile` / `change_password` | `name` / `old`, `new`: the server answers `profile` (`profile`, `mine`) |
 | both ways | `stroke` | `points` (0-1000), `color`, `size`, or `clear`: the drawer's brush, passed to the room's `draw` clients; `draw_round` says when a round starts and ends |

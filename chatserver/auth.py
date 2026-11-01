@@ -5,7 +5,7 @@ import hashlib
 import secrets
 import time
 
-from chatserver import (config, group_view, invites, offers, profiles, reminders, resume, savings, rooms, state, storage,
+from chatserver import (config, friends, group_view, invites, offers, profiles, reminders, resume, savings, rooms, state, storage,
                         textutil, transfers)
 
 
@@ -137,6 +137,7 @@ def handle_auth(client, msg):
         rooms.notify_room("lobby", f"👋 {rooms.shown(key)} joined the chat", exclude=client)
         deliver_inbox(key)
         invites.deliver_at_login(key)   # 📨 group invites that came while you were away
+        friends.announce_online(key)    # 👥 a small notice for your friends
         reminders.deliver_at_login(key)
         savings.collect_late(key)   # 💳 a late loan
         group_view.mark_dirty()   # 👥 one more online

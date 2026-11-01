@@ -21,6 +21,7 @@ class Client:
         self.address = address
         self.key = None          # login name once logged in
         self.room = "lobby"
+        self.friends_sent = None  # 🤝 the last friends packet this app got (friends.push_updates sends changes)
         self.acting_for = None   # 👥 while a Groups screen button runs: the group key it's for (chat.handle_line)
         self.features = frozenset()  # optional things this client understands, like "stream" (set at login)
         self.quitting = False

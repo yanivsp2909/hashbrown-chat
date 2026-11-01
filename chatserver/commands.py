@@ -6,6 +6,7 @@ A new cmd_*.py file does nothing until it's listed here.
 from chatserver import (  # noqa: F401  (importing them is what registers the commands)
     cmd_chat,
     cmd_profile,
+    cmd_friends,
     cmd_poll,
     cmd_groups,
     cmd_invites,

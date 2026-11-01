@@ -81,6 +81,19 @@
         </div>
         <ul id="people" class="people"></ul>
       </section>
+      <section id="friends" class="friends" aria-labelledby="friends-title">
+        <div class="side-title-row">
+          <h2 id="friends-title" class="side-title" tabindex="-1"><span aria-hidden="true">👥</span> Friends <span id="friends-count" class="count" aria-hidden="true"></span><span id="friends-sr" class="visually-hidden"></span></h2>
+        </div>
+        <ul id="friend-list" class="people"></ul>
+        <p id="friends-sent" class="fr-sent"></p>
+        <form id="friend-add" class="fr-add">
+          <label class="visually-hidden" for="friend-name">Add a friend by name</label>
+          <input id="friend-name" class="input" list="known-names" placeholder="Add a friend…" maxlength="16" autocomplete="off" autocapitalize="none" spellcheck="false">
+          <button class="btn btn-ghost" type="submit">Add</button>
+        </form>
+        <p id="friends-status" class="visually-hidden" role="status"></p>
+      </section>
       <section aria-labelledby="quick-title">
         <h2 id="quick-title" class="side-title">Quick buttons</h2>
         <div id="quick-buttons" class="quick-grid"></div>

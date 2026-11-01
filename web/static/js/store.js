@@ -9,6 +9,7 @@ let state = Object.freeze({
   match: null,           // {state, text, result} for ttt / damka / math
   wordle: null,          // {state, text, result}
   invites: [],           // [{from, text, at}] challenges waiting for you
+  friends: null,         // 🤝 {friends, requests, sent, groups} from the server's "friends" packet (friendlogic.js)
   groupInvites: [],      // 📨 [{group, name, from, expires}] group invites waiting for you (groupinvites.js)
   knownNames: [],
   online: null,          // [{name, shown, room, playing}] from a quiet /users, null = not known yet

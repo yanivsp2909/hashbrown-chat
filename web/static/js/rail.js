@@ -4,6 +4,7 @@ import { $, clear, el, str } from "./dom.js";
 import { sendLine } from "./api.js";
 import { getState, setState, subscribe } from "./store.js";
 import * as GI from "./groupinvites.js";
+import { answerRequest } from "./friends.js";
 
 export const INVITE_LIFETIME = 180_000;  // the server forgets a challenge after 3 minutes
 const LOW_TIME = 30_000;
@@ -67,6 +68,19 @@ function groupInviteTicket(invite) {
         "aria-label": `Accept the invite to ${invite.name}` }),
       el("button", { class: "btn btn-ghost", type: "button", onclick: answer("decline"), text: "Decline",
         "aria-label": `Decline the invite to ${invite.name}` }),
+    ],
+  });
+}
+
+/** 🤝 Someone asked to be your friend (from the friends packet, so it's there after a reload too). */
+function friendTicket(name) {
+  return ticket(`friend:${name}`, {
+    title: `🤝 ${name} wants to be friends`,
+    actions: [
+      el("button", { class: "btn btn-primary", type: "button", text: "Accept", "aria-label": `Accept ${name}'s friend request`,
+        onclick: () => answerRequest(name, "accept") }),
+      el("button", { class: "btn btn-ghost", type: "button", text: "Decline", "aria-label": `Decline ${name}'s friend request`,
+        onclick: () => answerRequest(name, "decline") }),
     ],
   });
 }
@@ -149,12 +163,13 @@ function wordleTicket(wordle, openGame) {
 export function initRail({ openGame }) {
   let shown = null;
   subscribe((state) => {
-    const key = [state.invites, state.groupInvites, state.match, state.wordle];
+    const key = [state.invites, state.groupInvites, state.friends?.requests, state.match, state.wordle];
     if (shown && key.every((part, i) => part === shown[i])) return;
     shown = key;
     clear(rail).append(
       ...state.invites.map(inviteTicket),
       ...GI.stillOpen(state.groupInvites, nowSeconds()).map(groupInviteTicket),
+      ...(state.friends ? state.friends.requests.map(friendTicket) : []),
       ...(state.match ? [matchTicket(state.match, openGame)] : []),
       ...(state.wordle ? [wordleTicket(state.wordle, openGame)] : []));
   });

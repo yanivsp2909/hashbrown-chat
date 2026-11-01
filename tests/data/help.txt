@@ -20,6 +20,10 @@
   /setprofile field value          change your profile (avatar, bio, status...)
   /password old new                change your password (the old one first) 🔑
 
+🤝 Friends
+  /friend add name                 ask someone to be friends 🤝 (also: remove, accept, decline)
+  /friends                         your friends, where they are, and who asked 🤝
+
 👥 Groups
   /groups                          list all groups
   /create name [private]           new group (50 🪙)

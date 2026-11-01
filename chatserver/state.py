@@ -54,6 +54,7 @@ polls = {}      # room -> its poll: {by, question, options, votes: {login: optio
 last_match = {}  # login -> (opponent, game class, bet) of their last finished match, for /rematch
 solo = {}       # login -> their Wordle game
 login_fails = {}         # login -> times of recent wrong passwords
+friend_noes = {}         # 🤝 (asker, asked) -> when they said no (friends.py), not saved
 admin_fail_times = []    # times of recent wrong /admin passwords, from anyone
 connections = 0          # open connections right now
 hashing = threading.BoundedSemaphore(config.HASHING_AT_ONCE)
@@ -78,7 +79,7 @@ def reset_state():
     global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers, offer_count, pm_count, reminders, lobby_topic, hashbrown_tokens, hashbrown_usage, groups_dirty
     global public_fund, fund_today, supply_history, economy_day, economy_extra
     with lock:
-        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, drawings, draw_last, stocks, group_activity, bank_snapshots, replays, resume_tokens, resume_fails, away, trivia, war_invites, solo, login_fails,
+        for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, drawings, draw_last, stocks, group_activity, bank_snapshots, replays, resume_tokens, resume_fails, away, trivia, war_invites, solo, login_fails, friend_noes,
                       admin_fail_times, hashbrown_last, hashbrown_today):
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)

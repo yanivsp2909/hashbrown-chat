@@ -7,6 +7,7 @@ import * as chat from "./chat.js";
 import { receive } from "./files.js";
 import { addGroupInvite, addInvite, closeGroupInvite, closeInvite } from "./rail.js";
 import { readInvite } from "./groupinvites.js";
+import { onFriends } from "./friends.js";
 import { inviteFrom, isPresence, isWordleOver, matchResult, myBalance, parseHelp, parseOnline, renamed, welcomeNick } from "./patterns.js";
 import { clearPasswords, showLoginError } from "./login.js";
 import { noteTarget } from "./games/panel.js";
@@ -290,6 +291,8 @@ export function handleMessage(msg, live, sendLine) {
       return groups.onGroupInfo(msg);
     case "invite_closed":
       return onInviteClosed(msg);
+    case "friends":
+      return onFriends(msg);   // 🤝 the sidebar's friends list (and the rail's friend requests)
     case "topic":
       return showTopic(msg);
     case "receipt":

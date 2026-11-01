@@ -5,7 +5,7 @@ import json
 import os
 import time
 
-from chatserver import config, economy, invites, profiles, qotd, reminders, state, textutil
+from chatserver import config, economy, friends, invites, profiles, qotd, reminders, state, textutil
 
 
 # ---------------------------------------------------------------- saving / loading
@@ -34,10 +34,11 @@ def load_data():
     # Files saved by an older version are missing the newer fields: fill them in
     for account in state.accounts.values():
         account.setdefault("created", 0)   # made before we kept the time: certainly older than a day
-        for field, default in {**profiles.defaults(), **economy.account_defaults()}.items():   # 👤 💹 came later too
+        for field, default in {**profiles.defaults(), **economy.account_defaults(), **friends.defaults()}.items():   # 👤 💹 🤝
             account.setdefault(field, default)
         for field, default in new_account("", "", "").items():
             account.setdefault(field, default)
+    friends.clean_saved(state.accounts)   # 🤝 only real accounts, always both ways
     for key, group in state.groups.items():
         for field, default in new_group(key, "", False).items():
             group.setdefault(field, default)
@@ -86,7 +87,8 @@ def new_account(username, salt, digest):
             "created": time.time(),   # 🎁 when it was made: new accounts can't /give yet
             "given": ["", 0],         # 🎁 [day, tokens given with /give that day]
             **profiles.defaults(),    # 👤 avatar, bio, status, colour, favourite game, theme, privacy
-            **economy.account_defaults()}   # 💹 shares, savings, loans
+            **economy.account_defaults(),   # 💹 shares, savings, loans
+            **friends.defaults()}           # 🤝 friends and friend requests
 
 
 def new_group(name, owner, private):

@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, auctions, bank_log, config, drawing, economy, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
+from chatserver import achievements, auctions, bank_log, config, drawing, economy, friends, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
 
 
 # ---------------------------------------------------------------- background threads
@@ -122,6 +122,7 @@ def groups_loop():
         time.sleep(config.GROUPS_PUSH_EVERY)
         with state.lock:
             run_safely(group_view.push_updates)
+            run_safely(friends.push_updates)   # 🤝 the website's friends lists, if something changed
 
 
 def qotd_loop():

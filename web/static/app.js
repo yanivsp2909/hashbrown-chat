@@ -13,6 +13,7 @@ import { initRail } from "./js/rail.js";
 import { focusChallenge, initSidebar } from "./js/sidebar.js";
 import { initPanel } from "./js/games/panel.js";
 import { initXray } from "./js/xray.js";
+import { initFriends } from "./js/friends.js";
 import { initRooms } from "./js/rooms.js";
 import { initTyping } from "./js/typing.js";
 import { initEdits, submitEdit } from "./js/edits.js";
@@ -25,7 +26,7 @@ import { initEconomy } from "./js/economy.js";
 import { initProfiles, resetProfile, saveTheme, showProfile } from "./js/profile.js";
 import * as resume from "./js/resume.js";
 
-const FEATURES = ["stream", "rooms", "typing", "chunks", "offers", "profiles", "probe", "draw"];   // what this website understands (told at login)
+const FEATURES = ["stream", "rooms", "typing", "chunks", "offers", "profiles", "probe", "draw", "friends"];   // what this website understands (told at login)
 const RESUME_WAITS = [1, 2, 4, 8, 15, 30, 60];   // 🔁 seconds between tries to reconnect, then we give up
 
 const THEME_KEY = "hashbrown.theme";
@@ -133,7 +134,7 @@ function resetChat() {
   resetProfile();
   resetCommands();
   setState({ nick: "", room: "🏠 Lobby", commands: [], match: null, wordle: null, invites: [], online: null, balance: null,
-    currentRoom: "", rooms: [], unread: {}, previews: {} });   // 💬 the next login starts with a clean switcher
+    currentRoom: "", rooms: [], unread: {}, previews: {}, friends: null, groupInvites: [] });   // 💬 🤝 📨 a clean start
   showTopic({});
   showLab({});
 }
@@ -306,6 +307,18 @@ initDrawing();
 initMarket();
 initEconomy();
 initGroups({ onError: showError, closeDrawer: () => { if (narrow.matches) closeDrawer(); } });
+initFriends({   // 🤝 the same quick buttons as the Online list
+  onError: showError,
+  onProfile: (name) => showProfile(name),
+  onChallenge: (name) => {
+    if (!narrow.matches) closeDrawer();
+    focusChallenge(name);
+  },
+  onMessage: (name) => {
+    if (narrow.matches) closeDrawer();
+    focusInput(`/send ${name} `);
+  },
+});
 initOnline({
   sendLine: api.sendLine,
   onProfile: (name) => showProfile(name),

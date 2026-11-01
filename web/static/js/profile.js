@@ -111,7 +111,7 @@ export function openEditor() {
     el("fieldset", { class: "pf-fieldset" }, el("legend", { text: "Privacy" }),
       el("label", { class: "gs-check" }, el("input", { id: "pf-lastseen", type: "checkbox", checked: !(p.privacy && p.privacy.last_seen === false) }),
         el("span", { text: "Show when I was last online" })),
-      field("Who can send me private messages", select("pf-dms", { everyone: "Everyone", groups: "People in my groups", nobody: "Nobody" },
+      field("Who can send me private messages", select("pf-dms", { everyone: "Everyone", groups: "People in my groups", friends: "Friends only", nobody: "Nobody" },
         str(p.privacy && p.privacy.dms, "everyone")))),
     el("fieldset", { class: "pf-fieldset" }, el("legend", { text: "🔑 Change password" }),
       field("Old password", el("input", { id: "pf-old", type: "password", autocomplete: "current-password" })),

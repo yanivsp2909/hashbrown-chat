@@ -14,7 +14,7 @@ from chatserver import config, rooms, state, storage
 GAMES = {"ttt": "Tic-Tac-Toe", "damka": "Damka", "math": "Math Duel", "connect4": "Connect 4",
          "battleship": "Battleship", "wordle": "Wordle"}
 STATUSES = ("online", "away", "busy")
-DMS = ("everyone", "groups", "nobody")
+DMS = ("everyone", "groups", "friends", "nobody")   # 🤝 "friends": only your friends
 COLORS = 8   # the website's eight name colours, 0-7
 
 
@@ -148,6 +148,9 @@ def dm_refusal(sender, target, what="private messages"):
         return f"🔕 {rooms.nick(target)} doesn't take {'private messages or files' if what == 'private messages' else what}."
     if rule == "groups" and not any(sender in g["members"] and target in g["members"] for g in state.groups.values()):
         return f"🔕 {rooms.nick(target)} only takes {what} from people in their groups."
+    if rule == "friends" and sender not in state.accounts[target]["friends"]:
+        shown = "private messages or files" if what == "private messages" else what
+        return f"🔕 {rooms.nick(target)} only takes {shown} from friends."
     return None
 
 
