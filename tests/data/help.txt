@@ -106,6 +106,10 @@
   /ping                            how long a packet takes there and back 🏓
   /netstats                        packets and bytes on your connection 📊
 
+🏢 Ventures
+  /company [found name sector | action | info name ...] 🏢 your startup: found it, grow it, raise money
+  /ventures [board | graveyard]    🦄 the startup boards
+
 👥 Open a group's chat to see its commands too (kick, mute, bank, leave...).
 
 Anything that isn't a command is a chat message to the room you're in.

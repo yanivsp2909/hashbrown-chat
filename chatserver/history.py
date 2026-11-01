@@ -55,6 +55,13 @@ def _open():
         connection.execute("CREATE TABLE IF NOT EXISTS bank_log (id INTEGER PRIMARY KEY AUTOINCREMENT, grp TEXT, "
                            "time REAL, kind TEXT, who TEXT, amount INTEGER, note TEXT, balance INTEGER)")
         connection.execute("CREATE INDEX IF NOT EXISTS bank_log_grp ON bank_log (grp, id)")
+        # 🏢 Hashbrown Ventures: one row per company per tick (the HQ charts), and every term sheet (ventures_log.py)
+        connection.execute("CREATE TABLE IF NOT EXISTS venture_days (company TEXT, age INTEGER, time REAL, cash INTEGER, "
+                           "revenue INTEGER, customers REAL, quality REAL, hype REAL, reputation REAL, "
+                           "valuation INTEGER, staff INTEGER, PRIMARY KEY (company, age))")
+        connection.execute("CREATE TABLE IF NOT EXISTS venture_offers (id TEXT PRIMARY KEY, company TEXT, time REAL, "
+                           "investor TEXT, stage TEXT, amount INTEGER, post INTEGER, bp INTEGER, status TEXT, "
+                           "source TEXT, raw TEXT)")
         connection.commit()
     except sqlite3.Error as e:
         _failed_path = path

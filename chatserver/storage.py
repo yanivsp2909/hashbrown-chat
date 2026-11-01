@@ -5,7 +5,7 @@ import json
 import os
 import time
 
-from chatserver import config, economy, friends, invites, profiles, qotd, reminders, state, textutil
+from chatserver import config, economy, friends, invites, profiles, qotd, reminders, state, textutil, ventures_store
 
 
 # ---------------------------------------------------------------- saving / loading
@@ -23,6 +23,7 @@ def load_data():
             qotd.load_saved(data.get("qotd"))   # ❓💡 added later too
             reminders.load_saved(data.get("reminders", []))   # ⏰ and this
             economy.load_saved(data.get("economy"))   # 💹 stocks and the public fund
+            state.ventures = ventures_store.clean_saved(data.get("ventures"))   # 🏢 the startup game
             topic = data.get("lobby_topic", "")   # 📌 and this
             state.lobby_topic = topic[:config.TOPIC_MAX] if isinstance(topic, str) else ""
             tips = data.get("hashbrown_tokens", 0)   # 🥔 and this
@@ -57,7 +58,7 @@ def save_data():
                 json.dump({"accounts": state.accounts, "groups": state.groups, "jackpot": state.jackpot,
                            "qotd": qotd.to_saved(), "reminders": state.reminders,
                            "lobby_topic": state.lobby_topic, "hashbrown_tokens": state.hashbrown_tokens,
-                           "economy": economy.to_saved()},
+                           "economy": economy.to_saved(), "ventures": ventures_store.to_saved()},
                           f, ensure_ascii=False, indent=1)
                 f.flush()
                 os.fsync(f.fileno())  # really on the disk, even if the power goes out right after

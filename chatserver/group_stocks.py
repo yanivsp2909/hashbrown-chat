@@ -47,6 +47,8 @@ def tick():
     """Every market tick: each group's price moves toward its target (and new groups get a stock)."""
     now = int(time.time())
     for key in list(state.groups):
+        if state.groups[key].get("company"):   # 🏢 a company lists only at its IPO
+            continue
         sym = symbol_of(key)
         goal = target(key)
         stock = state.stocks.setdefault(sym, {"price": goal, "open": goal, "history": deque(maxlen=config.STOCK_HISTORY_POINTS)})

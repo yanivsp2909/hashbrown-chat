@@ -40,6 +40,7 @@ fund_today = {}    # 🧾 {"in", "out"} today
 supply_history = []   # 📊 [[day, every token in the game]] one a day, for the dashboard
 economy_day = ""   # 💹 the day the daily jobs last ran
 economy_extra = {}    # 💹 small saved things the economy features add (auctions, market listings...)
+ventures = {}         # 🏢 Hashbrown Ventures: season, companies, graveyard, angel offers (ventures_store.py; saved: "ventures")
 draw_last = {}     # 🎨 login -> when they last started a drawing round (DRAW_COOLDOWN)
 drawings = {}      # 🎨 room -> its drawing round: {drawer, word, until, strokes, stroke_times}
 lobby_topic = ""   # 📌 the lobby's pinned topic (saved in chat_data.json; groups keep theirs in "topic")
@@ -77,7 +78,7 @@ def reset_state():
     """Forget everything in memory (the tests use this to start each test from zero)."""
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
     global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers, offer_count, pm_count, reminders, lobby_topic, hashbrown_tokens, hashbrown_usage, groups_dirty
-    global public_fund, fund_today, supply_history, economy_day, economy_extra
+    global public_fund, fund_today, supply_history, economy_day, economy_extra, ventures
     with lock:
         for table in (accounts, groups, online, mutes, invites, matches, last_rob, last_match, polls, transfers, offers, pms, drawings, draw_last, stocks, group_activity, bank_snapshots, replays, resume_tokens, resume_fails, away, trivia, war_invites, solo, login_fails, friend_noes,
                       admin_fail_times, hashbrown_last, hashbrown_today):
@@ -91,3 +92,4 @@ def reset_state():
         hashbrown_usage = {"day": "", "questions": 0, "in": 0, "out": 0}
         groups_dirty = False
         public_fund, fund_today, supply_history, economy_day, economy_extra = 0, {}, [], "", {}
+        ventures = {}

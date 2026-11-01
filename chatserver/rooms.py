@@ -5,7 +5,7 @@ import re
 import time
 from datetime import datetime
 
-from chatserver import config, history, resume, state
+from chatserver import config, history, resume, state, ventures_store
 
 
 # ---------------------------------------------------------------- small helpers
@@ -219,7 +219,28 @@ def check_group_command(client, command):
     if client.key not in group["members"]:
         client.say(f"❓ You're not in {room_title(key)}.", "error")
         return False
+    why_not = company_refusal(key, group, command)
+    if why_not:
+        client.say(why_not, "error")
+        return False
     return True
+
+
+COMPANY_OFF = {"/donate", "/upgrade", "/war", "/promote", "/demote", "/kick", "/ban", "/groupemoji",
+               "/personality", "/disband"}
+
+
+def company_refusal(key, group, command):
+    """🏢 A company's group has no group bank (company money is game dollars), no wars, and its team changes
+    through /company. A closed company's group can be disbanded like any group."""
+    if not group.get("company") or command not in COMPANY_OFF:
+        return None
+    alive = (ventures_store.of_group(key) or {}).get("status") == "alive"
+    if command == "/disband":
+        return "🏢 A company can't be disbanded: its CEO can /company shutdown name." if alive else None
+    if command in ("/kick", "/ban", "/promote", "/demote"):
+        return "🏢 In a company the CEO uses /company fire name and /company role name role."
+    return f"🏢 {command} doesn't work in a company: company money is game dollars, not 🪙. See /company"
 
 
 def current_group(client):

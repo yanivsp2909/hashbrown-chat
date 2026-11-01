@@ -11,7 +11,7 @@ apps show the text. Accept is /join name, Decline is /invites decline name. When
 import math
 import time
 
-from chatserver import config, profiles, resume, rooms, state
+from chatserver import config, profiles, resume, rooms, state, ventures_store
 
 LIFETIME = config.GROUP_INVITE_HOURS * 3600
 
@@ -47,10 +47,23 @@ def close_card(invitee, key, why):
 def send_card(key, group, invitee):
     invite = group["invites"][invitee]
     name, title = group["name"], rooms.room_title(key)
-    rooms.tell(invitee, f"📨 {rooms.shown(invite['by'])} invited you to {title}! "
+    extra, seat = company_card(key, invitee)
+    rooms.tell(invitee, f"📨 {rooms.shown(invite['by'])} invited you to {title}{seat}! "
                         f"/join {name} to come in, or /invites decline {name}", "event",
                group_invite={"group": key, "name": name, "from": rooms.nick(invite["by"]),
-                             "expires": int(invite["at"] + LIFETIME)})
+                             "expires": int(invite["at"] + LIFETIME)}, **extra)
+
+
+def company_card(key, invitee):
+    """🏢 An invite to a company also says the seat and the equity: ({"company_invite": {...}}, " as 🛠️ CTO ...")."""
+    co = ventures_store.of_group(key)
+    if co is None or co["status"] != "alive":
+        return {}, ""
+    offer = co["offers"].get(invitee, {"role": "engineer", "bp": 0})
+    icon, role_name, _ = config.ROLES[offer["role"]]
+    equity = f" with {offer['bp'] / 100:g}% of the company" if offer["bp"] else ""
+    card = {"company": co["id"], "name": co["name"], "sector": co["sector"], "role": offer["role"], "equity_bp": offer["bp"]}
+    return {"company_invite": card}, f" (the startup) as {icon} {role_name}{equity}"
 
 
 def refusal(client, key, group, target):

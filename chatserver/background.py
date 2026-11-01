@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, auctions, bank_log, config, drawing, economy, friends, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, wars
+from chatserver import achievements, auctions, bank_log, config, drawing, economy, friends, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, ventures_tick, wars
 
 
 # ---------------------------------------------------------------- background threads
@@ -34,6 +34,8 @@ def income_tick():
             state.accounts[key]["tokens"] += savings.take_income(key, config.TOKENS_PER_MINUTE + bonus)
             achievements.check_rich(key)
         for group in state.groups.values():
+            if group.get("company"):   # 🏢 a company's money is game dollars: no group income
+                continue
             if any(member in state.online for member in group["members"]):
                 group["bank"] += config.GROUP_INCOME
         now = time.time()
@@ -52,6 +54,7 @@ def market_loop():
             run_safely(economy.daily_tick)
             run_safely(market.tick)
             run_safely(auctions.tick)
+            run_safely(ventures_tick.maybe_run)   # 🏢 the startup game's daily tick
 
 
 def income_loop():
@@ -189,8 +192,11 @@ def console_command(line):
                 textutil.log("[CONSOLE] Saved.")
         elif cmd in ("lag", "loss", "lab"):
             network_lab(cmd, rest.strip())
+        elif cmd == "ventures" and rest.strip() == "tick":   # 🏢 a game day now (for testing)
+            ventures_tick.run_tick()
+            textutil.log(f"[CONSOLE] Ventures day {state.ventures['tick']} done.")
         elif cmd:
-            textutil.log("[CONSOLE] Commands: say, give, kick, list, save, lag, loss, lab")
+            textutil.log("[CONSOLE] Commands: say, give, kick, list, save, lag, loss, lab, ventures tick")
 
 
 def console_loop():

@@ -226,6 +226,19 @@ Decision: group commands work on the room you're in, so a button for a group you
 - code-reviewer (the whole round, APPROVE, no critical/high): `/war` from a Groups screen button now looks at that group's war; an invite ticket keeps one timer per group. Kept on purpose: group invites follow "who can message me" fully (a friends-only person gets invites only from friends), while friend requests skip the friends-only rule (or nobody could ever add them).
 - Chrome (two logins, 8930/8190): X-ray open while chatting and playing tic-tac-toe (every packet live, the packets from before it was opened, pause / clear / filter, wide / under the chat / phone drawer / short screen); /kick from the lobby gives the one line, the Groups screen's Kick works from the lobby and keeps you there, autocomplete follows the room; invite from the Groups screen with the picker, decline, re-invite, accept into a private group; friend request from the sidebar, accept on the ticket, live "🎮 in a game", invite from the friends list, the online notice after a re-login, "Friends only" in the profile editor.
 
+## Round 8: 🏢 Hashbrown Ventures (startup game)
+
+The full design and the phased plan are in `docs/VENTURES.md`.
+
+| # | Phase | Status |
+|---|---|---|
+| V0 | Design (docs/VENTURES.md), architect review, Responses API structured-output lookup | done: approved with V2 changed (exits mint after the fund, capped per season) |
+| V-P1 | Founding, team, numbers, daily actions, the tick, death | done: /company found (a private group with "company": id, 200 🪙 to the fund, 24 h accounts, one company each), roles + equity invites on the group-invite card (company_invite field), grants with vesting, leave/fire/ceo/shutdown, 7 actions with AP (3 + 1 per other member seen, max 6), the tick at 21:00 Israel time inside market_loop (console: ventures tick), report in the company chat + company_event, on fumes then dead, graveyard, venture_days in history.db; company groups get no group income, bank, wars, stock or admin shuffles |
+| V-P2 | Funding rounds, AI investor, term sheets, cap table, angels (then STOP for a playtest) | not started |
+| V-P3 | Sector mechanics, AI events, news feed | not started |
+| V-P4 | Competition, acquisitions, IPO, exits, leaderboards, seasons | not started |
+| V-P5 | Website screens and polish | not started |
+
 ## Docs
 
 | Item | Status |

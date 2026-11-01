@@ -32,6 +32,9 @@ def declare(client, key, target):
     if target not in state.groups:
         client.say(f"❓ No group called {target}. See /groups", "error")
         return
+    if state.groups[target].get("company"):
+        client.say("🏢 Companies don't fight group wars.", "error")
+        return
     if wars.war_of(key) or wars.war_of(target):
         client.say("⚔️ One of these groups is already at war. Wait for it to end.", "error")
         return

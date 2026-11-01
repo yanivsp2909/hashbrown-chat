@@ -3,7 +3,7 @@
 """
 import time
 
-from chatserver import achievements, config, history, invites, registry, rooms, state, storage
+from chatserver import achievements, config, history, invites, registry, rooms, state, storage, ventures_store, ventures_team
 
 
 @registry.command("/groups", "/groups", "list all groups", "👥 Groups")
@@ -35,7 +35,7 @@ def cmd_create(client, args):
     if key in state.groups:
         client.say("❌ That group already exists.", "error")
         return
-    if sum(1 for g in state.groups.values() if g["owner"] == client.key) >= config.MAX_OWNED_GROUPS:
+    if sum(1 for g in state.groups.values() if g["owner"] == client.key and not g.get("company")) >= config.MAX_OWNED_GROUPS:
         client.say(f"👑 You can own at most {config.MAX_OWNED_GROUPS} groups. /disband one first.", "error")
         return
     account = state.accounts[client.key]
@@ -76,7 +76,12 @@ def cmd_join(client, args):
         else:
             rooms.move_to_room(client, key)
         return
+    why_not = ventures_team.join_refusal(client.key, key)   # 🏢 companies: one at a time, invites only
+    if why_not:
+        client.say(why_not, "error")
+        return
     if invites.take(client, key, group):   # 📨 invited: straight in, private or not
+        ventures_team.joined(client.key, key)
         storage.save_data()
         rooms.move_to_room(client, key)
         rooms.send_room_list(client.key)
@@ -111,6 +116,10 @@ def cmd_lobby(client, args):
 def cmd_leave(client, args):
     key, group = rooms.current_group(client)
     if group is None:
+        return
+    company = ventures_store.of_group(key)
+    if company and company["status"] == "alive":   # 🏢 leaving a company: its shares vest
+        ventures_team.leave(client, company)
         return
     if client.key == group["owner"]:
         client.say("👑 You own this group. Use /disband to delete it.", "error")
