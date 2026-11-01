@@ -56,7 +56,7 @@ def test_cyber_lines_and_security():
     with pytest.raises(ventures_actions.ActionError, match="already launched"):
         act(co, "launch", "agent")
     co, _ = act(co, "audit")
-    assert ventures_sectors.state(co)["security"] == round(config.CYBER_SECURITY_START + 15 * config.SECTOR_ACTION_STRENGTH)
+    assert ventures_sectors.state(co)["security"] == config.CYBER_SECURITY_START + ventures_sectors.gain(15)
 
 
 def test_a_breach_hurts_a_cyber_company_with_weak_security():

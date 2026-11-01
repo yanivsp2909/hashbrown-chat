@@ -364,7 +364,7 @@ ROUNDS = {
 ROUND_MIN_TICKS = 3                # a round needs at least this many ticks in the stage
 IPO_PROFIT_PERCENT = 60            # 🔔 the IPO also needs revenue of at least this % of the burn
 OPTION_POOL_PERCENT = 10           # 📜 the Seed round makes an option pool this big (it dilutes everyone)
-PASS_BELOW = 0.26                  # an investor always passes when the score is lower (just meeting the
+PASS_BELOW = 0.29                  # an investor always passes when the score is lower (just meeting the
                                    # milestones isn't enough: beat them, or pitch well; from the balance simulation)
 PITCHES_PER_STAGE = 3              # 🎤 pitches a company gets per stage...
 PITCH_REFILL_TICKS = 5             # 🎤 ...+1 every this many ticks while all are used

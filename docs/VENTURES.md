@@ -7,11 +7,11 @@ writes the news and invents events. A season lasts 28 game days (about 4 weeks);
 > **Status:** approved 2026-11-01 (decisions in section 16). Phase 1 and 2 in progress. Every number here is a starting value: the Phase 1 balance
 > simulation tunes them and the final values live in `chatserver/config.py`, section "ventures".
 > **Balance simulation** (`python3 -m chatserver.ventures_balance`: 20 seasons of 20 bot companies over 28 game days,
-> with the real formulas, sectors, the formula investor, IPOs, acquisitions and season-end payouts), after the change
-> to 6 action points a day (each action about half as strong): 26% die, 60% reach Seed or later, about 1.15 IPOs and
-> 1.8 acquisitions a season, the richest company holds about $235M. Exits pay ~8,600 🪙 a season on average (~15,500 at
-> most) after the 20% tax and the 5,000 cap per person; the fund pays first, so new tokens average ~1,600 a season and
-> peak at ~7,100, well under the 20,000 season cap (nothing ever waited).
+> with the real formulas, sectors, the formula investor, IPOs, acquisitions and season-end payouts; the bots spend all
+> their action points), after the change to 6 action points a day (each action about half as strong): 23% die, 61%
+> reach Seed or later, about 1 IPO and 2.25 acquisitions a season. Exits pay ~9,000 🪙 a season on average (~21,000 at
+> most) after the 20% tax and the 5,000 cap per person; the fund pays first, so new tokens average ~2,200 a season and
+> peak at ~12,900, under the 20,000 season cap (nothing ever waited).
 
 ## 0. Design pillars
 
@@ -240,8 +240,8 @@ fair post-money = max(floor, valuation) × (0.85 + 0.3 × score) × investor fac
 amount          = typical raise × (0.7 + 0.6 × score), kept in [0.5×, 1.5×] typical
 equity          = amount / post-money, kept in the stage's band (post-money is moved to fit)
 ```
-- score < `PASS_BELOW` 0.26: a pass. The pitch rating adds at most 0.10, so a company whose numbers alone score
-  below 0.16 always gets a pass, whatever the AI says (the no-AI rating goes up to 7 of 10). Just meeting the
+- score < `PASS_BELOW` 0.29: a pass. The pitch rating adds at most 0.10, so a company whose numbers alone score
+  below 0.19 always gets a pass, whatever the AI says (the no-AI rating goes up to 7 of 10). Just meeting the
   milestones isn't enough: `/company` shows the **investor interest** (🥶 low / 🙂 fair / 🔥 hot) so players know.
 - The fallback pitch rating (no AI): 3 + up to 3 for length (40-600 characters), +2 if it names the customer and
   a number, +2 if it answers the questions asked; 0 for an empty pitch.
@@ -334,14 +334,14 @@ events and an HQ panel.
 - **Release** (`release`, 1 AP): the model goes on the **🧠 Spud-Bench** leaderboard (players' labs + 4 NPC labs whose
   scores rise 1-2 a day). Hype += 3 × gain. Rank multiplies new customers: #1 ×1.5, top 3 ×1.2, below the NPC
   median ×0.8. Scandal chance = max(0, (60 − safety)/100) × score/100: reputation −15, customers −10%, news.
-- **Safety** (`safety`, 1 AP): safety +10 (0-100, start 40). Regulation events punish low safety.
+- **Safety** (`safety`, 1 AP): safety +5 (0-100, start 40). Regulation events punish low safety.
 - Panel: compute stock and price, training progress, models (name, score, safety), the leaderboard.
 
 ### 7.2 🛡️ Cybersecurity
 - **Product lines:** agent security, network security, antivirus, bug bounty platform. `launch <line>` (2 AP,
-  $20K × reach), `build <line>` raises that line's level. Each client buys the line it needs; events target lines
+  $20K × reach), `improve <line>` raises that line's level (+5, less near 100). Each client buys the line it needs; events target lines
   ("AI agents hijacked: agent-security demand +60% for 3 days").
-- **Own security** (start 50): `audit` (1 AP, $30K × reach: +15), `bounty` (1 AP, $20K × reach: +8, reputation +3).
+- **Own security** (start 50): `audit` (1 AP, $30K × reach: +8), `bounty` (1 AP, $20K × reach: +4, reputation +1.5).
 - **Breaches:** daily chance (100 − security)/600 of a breach at one of *your* clients: clients −20%, reputation −20,
   news. A breach anywhere else (an event, or another company's) gives every cyber company +2 new clients a day
   for 3 days: a sales chance.
@@ -353,7 +353,7 @@ events and an HQ panel.
 - **Inventory:** `manufacture <units>` (1 AP) pays unit cost × units now ($600 phone / $900 laptop), arrives in 2
   ticks; batch max 500 × reach. Sales a day = min(stock, demand); unmet demand → reputation −1; unsold stock costs
   1% of its value a day.
-- **Supply deal** (`supply`, 1 AP): unit cost −5% (down to 60%). Chip-shortage events: +10..40% for some days.
+- **Supply deal** (`supply`, 1 AP): unit cost −2.5% (down to 60%). Chip-shortage events: +10..40% for some days.
 - **Keynote** (`keynote`, 2 AP, $50K × reach, once per 5 ticks): roll = quality × 0.6 + hype × 0.4 + random(−20, 20).
   ≥ 70 triumph (demand ×2 for 3 ticks, hype +30, news); 40-70 fine (×1.3); < 40 flop (hype −20, reputation −10,
   news).
@@ -363,15 +363,15 @@ events and an HQ panel.
 ### 7.4 💻 SaaS
 - **Pricing:** `price up` / `price down` (1 AP): price ±20% (50-200% of base); churn moves the other way.
 - **Retention** (`retention`, 1 AP, $10K × reach): churn −10% for 5 ticks.
-- **Growth experiment** (`experiment`, 1 AP): 50% users +5..15%, otherwise nothing ("we learned something").
+- **Growth experiment** (`experiment`, 1 AP): 50% users +2.5..7.5%, otherwise nothing ("we learned something").
 - Panel: MRR chart, users, churn %, price.
 
 ### 7.5 🎮 Game studio
-- **One game in development:** `develop` (1 AP: progress +10..20 × (1 + 0.1 × engineers), quality +), `playtest`
+- **One game in development:** `develop` (1 AP: progress +5..10 × (1 + 0.1 × engineers), quality +1.5), `playtest`
   (1 AP: quality +3 and a hint of the reception), `launch` (2 AP, needs progress 100).
 - **Launch roll** = quality × 0.5 + hype × 0.4 + random(−25, 25): ≥ 75 hit (players +5 × base × reach, $20 a new
   player once, news), < 40 flop. A live game loses 12% of players a day.
-- **Live ops** (`liveops`, 1 AP): decay halved for 3 ticks, players +5%. **DLC** (`dlc`, 1 AP, $20K × reach):
+- **Live ops** (`liveops`, 1 AP): decay halved for 3 ticks, players +2.5%. **DLC** (`dlc`, 1 AP, $20K × reach):
   a revenue spike. A sequel after a hit starts with quality +10.
 - Panel: games (name, status, quality, players, review score), the project in progress.
 

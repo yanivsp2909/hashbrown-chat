@@ -92,7 +92,7 @@ def play_day(co, strategy, rng):
     half the days completely, like a real one who forgets to come back."""
     if strategy == "idle" and rng.random() < 0.5:
         return co
-    for _ in range(8):
+    for _ in range(config.AP_MAX * 2):   # (a few tries may fail: the bot still uses its points, like a player)
         if co["ap"] <= 0:
             break
         name, args = wish(co, strategy, rng)

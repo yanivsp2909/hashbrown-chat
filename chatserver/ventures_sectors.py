@@ -59,6 +59,11 @@ def with_state(co, **changes):
     return {**co, "sector_state": {**state(co), **changes}}
 
 
+def gain(points):
+    """A sector action's gain at today's strength, rounded half up (7.5 -> 8, always)."""
+    return int(points * config.SECTOR_ACTION_STRENGTH + 0.5)
+
+
 def reach(co):
     return config.STAGE_NUMBERS[co["stage"]]["reach"]
 
@@ -300,7 +305,7 @@ def do_release(co, args, rng, tick):
 
 
 def do_safety(co, args, rng, tick):
-    safety = min(100, round(state(co)["safety"] + 10 * config.SECTOR_ACTION_STRENGTH))
+    safety = min(100, state(co)["safety"] + gain(10))
     return with_state(co, safety=safety), f"🦺 Safety research: safety score {safety}/100."
 
 
@@ -317,17 +322,17 @@ def do_improve(co, args, rng, tick):
     lines = state(co)["lines"]
     if lines[key] == 0:
         raise SectorError(f"🧩 Launch {config.CYBER_LINES[key]} first.")
-    level = min(100, round(lines[key] + 10 * config.SECTOR_ACTION_STRENGTH * (1 - lines[key] / 110)))
+    level = min(100, int(lines[key] + 10 * config.SECTOR_ACTION_STRENGTH * (1 - lines[key] / 110) + 0.5))
     return with_state(co, lines={**lines, key: level}), f"🔧 {config.CYBER_LINES[key]}: level {level}."
 
 
 def do_audit(co, args, rng, tick):
-    security = min(100, round(state(co)["security"] + 15 * config.SECTOR_ACTION_STRENGTH))
+    security = min(100, state(co)["security"] + gain(15))
     return with_state(co, security=security), f"🔍 Audit done: security {security}/100."
 
 
 def do_bounty(co, args, rng, tick):
-    security = min(100, round(state(co)["security"] + 8 * config.SECTOR_ACTION_STRENGTH))
+    security = min(100, state(co)["security"] + gain(8))
     trust = 3 * config.SECTOR_ACTION_STRENGTH
     return (with_state({**co, "reputation": min(100.0, co["reputation"] + trust)}, security=security),
             f"🐛 Hackers found bugs for you: security {security}/100, reputation +{trust:g}.")
