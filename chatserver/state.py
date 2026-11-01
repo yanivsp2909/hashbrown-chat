@@ -40,6 +40,7 @@ fund_today = {}    # 🧾 {"in", "out"} today
 supply_history = []   # 📊 [[day, every token in the game]] one a day, for the dashboard
 economy_day = ""   # 💹 the day the daily jobs last ran
 economy_extra = {}    # 💹 small saved things the economy features add (auctions, market listings...)
+ventures_dirty = False   # 🏢 something changed: open Ventures screens get fresh data (ventures_view.py)
 ventures = {}         # 🏢 Hashbrown Ventures: season, companies, graveyard, angel offers (ventures_store.py; saved: "ventures")
 draw_last = {}     # 🎨 login -> when they last started a drawing round (DRAW_COOLDOWN)
 drawings = {}      # 🎨 room -> its drawing round: {drawer, word, until, strokes, stroke_times}

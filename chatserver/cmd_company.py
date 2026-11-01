@@ -73,6 +73,11 @@ def found_refusal(login, name, sector):
         return "❌ That name is taken (by a group or a company)."
     if sector not in config.SECTORS:
         return f"Sectors: {', '.join(f'{k} ({sector_title(k)})' for k in config.SECTORS)}"
+    return person_refusal(login)
+
+
+def person_refusal(login):
+    """Why this person can't found a company now, whatever its name (the website's "Start a company" asks too)."""
     other = ventures_store.mine(login)
     if other:
         return f"🏢 You're already in {other['name']}. One company at a time (you can still /invest in others)."

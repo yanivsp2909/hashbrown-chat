@@ -7,6 +7,7 @@ don't count: the next tick is simply the next game day.
 import random
 import time
 import traceback
+from datetime import timedelta
 
 from chatserver import config, invites, rooms, state, storage, textutil, ventures_log, ventures_sim, ventures_store, ventures_team
 from chatserver.hashbrown_text import israel_now
@@ -29,6 +30,17 @@ def maybe_run():
     ventures_store.set_field("day", today)
     run_tick()
     return True
+
+
+def next_tick_at():
+    """When the next daily tick runs, as a Unix time (for the website's countdown)."""
+    now = israel_now()
+    target = now.replace(hour=config.VENTURES_TICK_HOUR, minute=0, second=0, microsecond=0)
+    if ventures_store.ensure()["day"] == now.date().isoformat():
+        target += timedelta(days=1)
+    elif now >= target:
+        return int(time.time()) + 60   # due now: within the minute
+    return int(time.time() + (target - now).total_seconds())
 
 
 def run_tick(rng=None):
@@ -67,7 +79,8 @@ def live_one_day(co, rng, tick):
         new = {**new, "ap": min(config.AP_MAX, config.AP_BASE + bonus), "seen": online}
         lines = lines + [next_round_line(new, players)]
     text = "\n".join(lines)
-    new = ventures_store.put({**new, "report": text})
+    reports = (new["reports"] + [{"age": new["age"], "text": text}])[-config.REPORTS_KEPT:]
+    new = ventures_store.put({**new, "report": text, "reports": reports})
     ventures_log.record_day(new)
     ventures_team.post_to_company(new, text)
     ventures_team.send_event(new, "report", text)

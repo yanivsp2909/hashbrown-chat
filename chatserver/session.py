@@ -42,6 +42,8 @@ class Client:
         self.last_typing = 0.0   # when we last passed on their "is typing" (or "stopped")
         self.groups_sent = {}    # 👥 the last groups / group_info packet sent, so an unchanged one isn't sent again
         self.groups_view = None  # 👥 the website's Groups screen: None = closed, "" = the list, a key = one group
+        self.ventures_view = None   # 🏢 the website's Ventures screen: None = closed, "" = home, a company id = its HQ
+        self.ventures_sent = {}     # 🏢 the last ventures / company packet sent (unchanged ones aren't sent again)
         self.is_typing = False   # between a "typing" we passed on and their stop or message
         self.typing_times = deque()   # when we passed on their last typing / stopped packets
         self.writer = threading.Thread(target=self._write_loop, daemon=True)

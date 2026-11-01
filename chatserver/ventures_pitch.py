@@ -24,8 +24,9 @@ DECISION_FORMAT = ventures_ai.schema("investor_decision", {
 
 # ---------------------------------------------------------------- starting and talking
 
-def refusal(client, co):
-    if not ventures_team.is_c_level(co, client.key):
+def refusal(login, co):
+    """Why this person can't start a pitch now, or None."""
+    if not ventures_team.is_c_level(co, login):
         return "🛡️ Only the CEO and the C-level team (CTO, CFO, CMO, COO) can pitch."
     if co["pitch"]:
         return "🎤 A pitch is already going on: talk in the company chat, then /pitch send (or /pitch stop)."
@@ -46,7 +47,7 @@ def refusal(client, co):
 
 
 def start(client, co):
-    why_not = refusal(client, co)
+    why_not = refusal(client.key, co)
     if why_not:
         return client.say(why_not, "error")
     choices = [i for i in ventures_rounds.eligible(co) if i != co["last_investor"]] or ventures_rounds.eligible(co)
@@ -54,7 +55,7 @@ def start(client, co):
     pitch = {"id": f"p{int(time.time() * 1000) % 10**9}", "investor": investor, "turn": 0, "lines": [], "chars": 0,
              "asked": [], "answers": [], "rating": None, "busy": False, "last": time.time()}
     co = ventures_store.put({**co, "pitch": pitch, "ap": co["ap"] - config.PITCH_AP, "pitches": co["pitches"] + 1,
-                             "acted": True, "last_investor": investor})
+                             "acted": True, "last_investor": investor, "pitch_log": []})
     info = ventures_rounds.INVESTORS[investor]
     speak(co, f"Hi {co['name']}! You have my attention. What do you build, for whom, and why will you win? "
               f"Write it here in the chat, then /pitch send.")
@@ -94,7 +95,8 @@ def send(client, co, extra=""):
         ventures_team.tell_company(co, f"🎤 {rooms.shown(client.key)}: {extra}", kind="system")
     pitch = {**pitch, "lines": [], "chars": 0, "answers": pitch["answers"] + ["\n".join(lines)], "busy": True,
              "last": time.time()}
-    co = ventures_store.put({**co, "pitch": pitch})
+    co = ventures_store.put({**co, "pitch": pitch,
+                             "pitch_log": log_line(co, "founders", co["name"], "\n".join(lines))})
     send_state(co, "thinking")
     if pitch["turn"] < config.PITCH_QUESTIONS:
         ask_question(co)
@@ -214,7 +216,7 @@ def finish(cid, pid, answer):
     message = (answer or {}).get("message") or "I like what I see. Here are my terms."
     sheet = ventures_rounds.new_sheet(co, investor, {**offer, "fair": fair["fair"]}, "ai" if answer else "formula", message)
     speak(co, message)
-    ventures_rounds.offer_sheet(co, sheet, raw=answer)
+    ventures_rounds.offer_sheet(ventures_store.get(cid), sheet, raw=answer)   # (speak saved the conversation)
     send_state(ventures_store.get(cid), "decided")
 
 
@@ -284,6 +286,12 @@ def speak(co, text):
            "investor": {"id": pitch_investor, "name": info["name"], "firm": info["firm"], "emoji": info["emoji"]}}
     history.add(co["group"], msg)
     rooms.send_room(co["group"], msg)
+    ventures_store.put({**co, "pitch_log": log_line(co, "investor", info["name"], text)})
+
+
+def log_line(co, who, name, text):
+    """The pitch room's conversation with one more line (only the last PITCH_LOG_KEPT)."""
+    return (co["pitch_log"] + [{"who": who, "name": name, "text": text[:config.PITCH_CHARS]}])[-config.PITCH_LOG_KEPT:]
 
 
 def send_state(co, step):

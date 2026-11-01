@@ -43,7 +43,9 @@ def new_company(cid, name, group_key, sector, founder, tick):
             "revenue": 0, "burn": 0, "valuation": 0, "last_post": 0, "peak": 0, "raised": 0, "rounds": [],
             "pivoted": "", "cause": "", "report": "",
             "pitches": 0, "pitch": None, "sheet": None, "last_investor": "", "bridged": "", "angel_bp": 0,
-            "angel_in": {}}      # 😇 login -> 🪙 they put in as an angel (accepted)
+            "angel_in": {},      # 😇 login -> 🪙 they put in as an angel (accepted)
+            "reports": [],       # 📊 the last REPORTS_KEPT daily reports: {"age", "text"}
+            "pitch_log": []}     # 🎤 the last pitch's conversation: {"who": "investor"|"founders", "name", "text"}
 
 
 # ---------------------------------------------------------------- finding companies
@@ -94,7 +96,8 @@ def alive():
 # ---------------------------------------------------------------- changing them
 
 def put(co):
-    """Save a new version of a company (the old dict is replaced, not edited)."""
+    """Save a new version of a company (the old dict is replaced, not edited). Open Ventures screens refresh."""
+    state.ventures_dirty = True
     ventures = ensure()
     state.ventures = {**ventures, "companies": {**ventures["companies"], co["id"]: co}}
     return co
@@ -106,6 +109,7 @@ def update(cid, **changes):
 
 def set_field(name, value):
     """A top-level field of state.ventures (tick, day, graveyard...)."""
+    state.ventures_dirty = True
     state.ventures = {**ensure(), name: value}
 
 
@@ -197,6 +201,10 @@ def clean_company(cid, co):
     kept["seen"] = [k for k in kept["seen"] if isinstance(k, str)]
     kept["rounds"] = [r for r in kept["rounds"] if isinstance(r, dict)]
     kept["angel_in"] = {k: v for k, v in kept["angel_in"].items() if isinstance(k, str) and is_count(v)}
+    kept["reports"] = [r for r in kept["reports"] if isinstance(r, dict) and isinstance(r.get("text"), str)
+                       and is_count(r.get("age"))][-config.REPORTS_KEPT:]
+    kept["pitch_log"] = [e for e in kept["pitch_log"] if isinstance(e, dict) and isinstance(e.get("text"), str)
+                         and e.get("who") in ("investor", "founders") and isinstance(e.get("name"), str)][-config.PITCH_LOG_KEPT:]
     for field in ("cash", "revenue", "burn", "valuation", "last_post", "peak", "raised"):   # (whole dollars)
         kept[field] = int(kept[field])
     kept["sheet"] = clean_sheet(co.get("sheet"), cid, kept["stage"])   # 📄 an open term sheet survives a restart (a pitch doesn't)

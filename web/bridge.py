@@ -89,7 +89,7 @@ def clean_features(value):
 # What a browser may send (everything else is refused before it reaches the chat server)
 BROWSER_PACKETS = ("line", "file", "ping", "typing", "typing_stop", "seen", "get_groups", "get_group", "groups_closed",
                    "get_profile", "change_password", "get_netmap", "netmap_closed", "probe_back", "stroke", "get_market", "get_economy",
-                   "react", "edit", "delete",
+                   "react", "edit", "delete", "get_ventures", "ventures_closed", "get_company",
                    "file_start", "file_chunk", "file_cancel")
 
 
@@ -136,6 +136,10 @@ def validate(msg, logged_in):
     if kind == "change_password":   # 👤 the old password first, then the new one (the server checks both)
         return {"type": "change_password", "old": clean(msg.get("old"), 128, "Password"),
                 "new": clean(msg.get("new"), 128, "Password")}
+    if kind in ("get_ventures", "ventures_closed"):   # 🏢 the Ventures screen: no fields
+        return {"type": kind}
+    if kind == "get_company":   # 🏢 one company's HQ, by its id (like "c12")
+        return {"type": "get_company", "company": clean(msg.get("company"), 16, "Company")}
     if kind in ("get_groups", "groups_closed"):   # 👥 the Groups screen: no fields
         return {"type": kind}
     if kind == "get_group":   # 👥 one group, by its key (a group name in lowercase)

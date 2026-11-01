@@ -286,6 +286,18 @@ SECTORS = {
     "game":     {"icon": "🎮", "name": "Game studio", "customers": "players", "price": 2, "base_new": 1_200,
                  "churn": 0.12, "cost_of_revenue": 0.10, "multiple": 16},
 }
+SECTOR_CARDS = {  # 🏢 the website's "Start a company" cards: a one-line pitch, the twist, how hard it is (1-3)
+    "ai": ("Train AI models and climb the Spud-Bench leaderboard.",
+           "Compute is expensive, and a model released with a low safety score can cause a scandal.", 3),
+    "cyber": ("Protect banks and companies from hackers.",
+              "A few big clients: a breach at one is a disaster, a breach anywhere else is a sales chance.", 2),
+    "hardware": ("Design phones or laptops and ship them.",
+                 "Manufacture batches, manage the stock, and bet everything on launch keynotes.", 3),
+    "saas": ("Apps people pay for every month.",
+             "Users, churn and monthly revenue: the steadiest way to grow.", 1),
+    "game": ("Build games and launch them.",
+             "Every launch is a hit or a flop, and players drift away without updates.", 2),
+}
 ROLES = {  # role: (icon, name, is it a C-level seat (one each, can pitch and invite))
     "ceo": ("👑", "CEO", True), "cto": ("🛠️", "CTO", True), "cfo": ("💰", "CFO", True),
     "cmo": ("📣", "CMO", True), "coo": ("⚙️", "COO", True),
@@ -307,6 +319,9 @@ HYPE_KEEP = 0.85                   # 📣 hype keeps this much each tick (a CMO 
 LUCK_CHANCE = 0.10                 # 🎲 each tick: this chance of a setback, and the same of good luck
 RUNWAY_WARNING_TICKS = 5           # ⏳ the report warns when the runway is shorter than this
 GRAVEYARD_KEPT = 100               # ⚰️ graveyard entries kept in chat_data.json
+REPORTS_KEPT = 5                   # 📊 daily reports kept per company (the HQ shows them)
+PITCH_LOG_KEPT = 12                # 🎤 lines of the last pitch kept for the HQ's pitch room
+VENTURES_PUSH_EVERY = 1            # 🏢 seconds between refreshes of open Ventures screens (only if changed)
 VENTURES_CHART_TICKS = 30          # 📈 ticks of numbers the HQ charts get
 # Funding rounds. From each stage: what the NEXT round needs (MRR = revenue a day, quality, reputation), the
 # typical raise $, the lowest post-money $ and the equity band (%) an investor takes

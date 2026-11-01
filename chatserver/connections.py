@@ -10,7 +10,7 @@ import traceback
 
 from chatserver import (auth, background, chat, config, discovery, group_view, hashbrown_ai, matches, offers, receipts,
                         resume, rooms,
-                        session, state, storage, textutil, transfers, website)
+                        session, state, storage, textutil, transfers, website, ventures_view)
 from chatserver import commands  # noqa: F401  (registers the commands, in /help order)
 from chatserver import cmd_games, cmd_profile, drawing, economy, market, netmap, profiles
 
@@ -148,6 +148,10 @@ def handle_message(client, msg):
             return
         if kind in ("get_netmap", "netmap_closed", "probe_back"):   # 🗺️ the live network map: no spam limit
             netmap.handle(client, msg)
+            return
+        if kind in ("get_ventures", "get_company", "ventures_closed"):   # 🏢 the website's Ventures screens
+            if kind == "ventures_closed" or rooms.spam_ok(client):
+                ventures_view.handle(client, msg)
             return
         if kind in ("get_groups", "get_group", "groups_closed"):   # 👥 the website's Groups screen
             if kind == "groups_closed" or rooms.spam_ok(client):

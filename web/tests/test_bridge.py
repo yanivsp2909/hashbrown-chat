@@ -471,6 +471,18 @@ class TestGroupsScreen(BridgeTestCase):
         self.assertEqual(a.send({"type": "groups_closed"})[0], 202)
 
 
+class TestVenturesScreen(BridgeTestCase):
+    def test_the_ventures_packets_go_through_the_bridge(self):
+        a, _ = self.user()
+        self.assertEqual(a.send({"type": "get_ventures", "sneaky": 1})[0], 202)
+        home = a.wait(lambda e: e["data"].get("type") == "ventures", what="the Ventures home")
+        self.assertIsNone(home["mine"])
+        self.assertEqual(a.send({"type": "get_company", "company": ["x"]})[0], 400)
+        self.assertEqual(a.send({"type": "get_company", "company": "c404"})[0], 202)
+        a.wait(is_msg("🏢 No company"), what="the refusal")
+        self.assertEqual(a.send({"type": "ventures_closed"})[0], 202)
+
+
 class TestBigFiles(BridgeTestCase):
     """📦 A big file through the website: chunks with acks, and the chunks never go into the reload replay."""
 
