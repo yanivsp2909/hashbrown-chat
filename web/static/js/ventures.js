@@ -232,14 +232,17 @@ function investmentsPanel() {
 // ---------------------------------------------------------------- the first visit
 
 const HOW_TO_KEY = "hashbrown-ventures-how-to";
+let howToDismissed = false;   // (also works when the browser blocks storage)
 
 function howToSeen() {
-  try { return localStorage.getItem(HOW_TO_KEY) === "1"; } catch { return false; }   // (private windows: always show)
+  if (howToDismissed) return true;
+  try { return localStorage.getItem(HOW_TO_KEY) === "1"; } catch { return false; }
 }
 
 function howToPlay() {
   const done = () => {
-    try { localStorage.setItem(HOW_TO_KEY, "1"); } catch { /* (then it shows again next time: fine) */ }
+    howToDismissed = true;
+    try { localStorage.setItem(HOW_TO_KEY, "1"); } catch { /* (then it shows again on the next visit: fine) */ }
     render();
     $("ventures-title")?.focus();
   };

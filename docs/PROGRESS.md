@@ -271,7 +271,7 @@ The full design and the phased plan are in `docs/VENTURES.md`.
 | D1 | Polish: Fry Station look, light/dark, phone, keyboard, screen readers | done: one Fry Station look across the screens (crust plates, paper tickets with the login ticket's clip, one gold action per panel, sauce colours by meaning), light and dark checked, phone layout at 390 px with no sideways scroll, keyboard and screen readers (live region, focus kept and restored, labels, confirms for money) |
 | D2 | "How to play" card on the first visit | done: a How to play card on the first visit (remembered in the browser) |
 | D3 | Balance simulation for all phases + tuning; tokens a season | done: the simulation plays whole 28-day seasons with IPOs, acquisitions and season-end payouts; tuned (3 days per stage, IPO at $1.5M a day and $500M): 24% die, 60% reach Seed, 1.15 IPOs and 2 acquisitions a season, ~8,000 🪙 paid a season (17,000 at most), new tokens ~1,600 (9,000 at most) of the 20,000 cap |
-| D4 | Step D checks + push + final report | not started |
+| D4 | Step D checks + push + final report | done: 1229 server + 87 website tests, the balance simulation, Chrome with two logins by clicks only (How to play card, wizard x2, acquisition offer → ticket → Sell with confirm → exit tokens, IPO bell → celebration, season end → Hall of Fame banner, phone 390 px, light and dark, no console errors), code-reviewer (How to play card works without browser storage, honest balance tests, later-stage acquisitions simulated, stale doc lines); pushed |
 
 ## Docs
 

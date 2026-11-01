@@ -165,7 +165,7 @@ def maybe_acquire(bots, i, rng):
     buyer = bots[i]
     if buyer["status"] != "alive" or config.STAGES.index(buyer["stage"]) < config.STAGES.index("a") or rng.random() > 0.02:
         return None
-    targets = [j for j, co in enumerate(bots) if co["status"] == "alive" and co["stage"] in ("idea", "preseed", "seed")
+    targets = [j for j, co in enumerate(bots) if j != i and co["status"] == "alive" and co["stage"] != "public"
                and 0 < co["valuation"] * 1.2 < buyer["cash"] / 3]
     if not targets:
         return None
@@ -174,7 +174,7 @@ def maybe_acquire(bots, i, rng):
     same = bots[j]["sector"] == buyer["sector"]
     bots[i] = {**buyer, "cash": buyer["cash"] - int(price),
                "customers": buyer["customers"] + (bots[j]["customers"] * config.ACQUIRE_KEEP_CUSTOMERS if same else 0)}
-    paid = sum(payouts(bots[j], price).values())
+    paid = sum(payouts(bots[j], min(price, bots[j]["valuation"] * 1.5)).values())   # (the real cap on an exit's value)
     bots[j] = {**bots[j], "status": "acquired"}
     return paid
 
@@ -218,6 +218,7 @@ def season(seed, companies=20, ticks=config.SEASON_TICKS):
             "ipos": len(exits), "acquisitions": len(buys), "max_cash": max_cash, "paid": paid,
             "paid_ipo": sum(exits), "paid_buys": sum(buys), "paid_season_end": season_end,
             "tokens_in": tokens_in, "from_fund": from_fund, "minted": minted, "waiting": paid - from_fund - minted,
+            "mint_need": paid - from_fund,   # (what new tokens WOULD be needed, before the season's cap)
             "stages": stages,
             "by_strategy": {s: [b["status"] if b["status"] != "alive" else b["stage"] for b in bots
                                 if b["bot_strategy"] == s] for s in STRATEGIES}}
@@ -232,7 +233,7 @@ def summary(seeds=20, companies=20, ticks=config.SEASON_TICKS):
     return {"runs": runs, "death_rate": sum(r["dead"] for r in runs) / total,
             "seed_rate": sum(r["seed_or_more"] for r in runs) / total, "ipos_per_season": mean("ipos"),
             "max_cash": max(r["max_cash"] for r in runs), "paid_per_season": mean("paid"),
-            "acquisitions_per_season": mean("acquisitions"), "paid_ipo": mean("paid_ipo"), "paid_buys": mean("paid_buys"),
+            "acquisitions_per_season": mean("acquisitions"), "mint_need_max": max(r["mint_need"] for r in runs), "paid_ipo": mean("paid_ipo"), "paid_buys": mean("paid_buys"),
             "paid_season_end": mean("paid_season_end"),
             "paid_max": max(r["paid"] for r in runs), "minted_per_season": mean("minted"),
             "minted_max": max(r["minted"] for r in runs), "tokens_in_per_season": mean("tokens_in"),

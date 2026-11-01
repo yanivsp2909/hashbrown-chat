@@ -391,7 +391,7 @@ comes instead. Everything lands in 📰 **Ventures News** (big headlines in the 
 - **Out of cash** after a tick = 🚨 on fumes: raise money or cut costs before the next tick, or the company dies and
   goes to the ⚰️ graveyard (`/ventures graveyard`).
 - **Funding rounds:** Idea → Pre-seed → Seed → Series A → B → C → IPO. Each needs milestones (MRR, quality,
-  reputation, 4 days in the stage). `/pitch` an investor: six characters, from a friendly angel to a tough partner.
+  reputation, 3 days in the stage). `/pitch` an investor: six characters, from a friendly angel to a tough partner.
   With Hashbrown awake they react to your words; the numbers always come from the server (just meeting the
   milestones isn't enough: beat them, and pitch well). The Seed round adds a 10% option pool.
 - **Angels:** friends can `/invest` tokens for shares in early companies; the CEO says yes or no.

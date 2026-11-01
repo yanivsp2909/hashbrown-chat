@@ -1,5 +1,5 @@
 """⚖️ The balance simulation (chatserver/ventures_balance.py): 20 seasons of 20 bot companies (4 kinds of players,
-all 5 sectors) for 30 days, with the real formulas and the formula investor. Is the game fair, and does the token
+all 5 sectors) for a whole season (SEASON_TICKS game days), with the real formulas and the formula investor. Is the game fair, and does the token
 economy stay sane? Run `python3 -m chatserver.ventures_balance` to see the numbers."""
 import pytest
 
@@ -28,8 +28,9 @@ def test_nobody_gets_infinite_money(result):
 
 
 def test_exits_stay_under_the_season_cap(result):
-    assert result["minted_max"] <= config.VENTURES_MINT_SEASON_CAP
-    assert result["waiting_max"] == 0   # the cap is above what a whole busy season pays
+    # what the busiest season would need in NEW tokens (before the cap clamps it) fits under the cap
+    assert result["mint_need_max"] <= config.VENTURES_MINT_SEASON_CAP
+    assert result["waiting_max"] == 0
 
 
 def test_careful_players_do_better_than_reckless_or_idle_ones(result):
@@ -44,7 +45,6 @@ def test_the_report_prints():
     assert "IPOs per season" in ventures_balance.report()
 
 
-def test_every_kind_of_exit_happens_and_stays_under_the_cap(result):
+def test_every_kind_of_exit_happens(result):
     assert result["acquisitions_per_season"] > 0
     assert result["paid_ipo"] > 0 and result["paid_buys"] > 0 and result["paid_season_end"] > 0
-    assert all(r["minted"] <= config.VENTURES_MINT_SEASON_CAP for r in result["runs"])
