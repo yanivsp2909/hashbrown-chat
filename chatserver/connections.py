@@ -183,7 +183,7 @@ def handle_message(client, msg):
         if text.startswith("/"):
             group_view.mark_dirty()   # 👥 a command may have changed a group: open Groups screens refresh
         if msg.get("type") == "line":
-            chat.handle_line(client, text)
+            chat.handle_line(client, text, msg.get("group"))   # 👥 "group": optional, from the Groups screen
         elif msg.get("type") == "file":
             chat.handle_file(client, msg)
     except Exception:  # a bug in one command must not kick the person out

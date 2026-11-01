@@ -71,6 +71,8 @@ export function resetCommands() {
   replayHelpHidden = true;
 }
 
+const inGroup = (room) => Boolean(room) && room !== "lobby";
+
 export function needsCommands() {
   return getState().screen === "chat" && !getState().commands.length && quietHelp === 0;
 }
@@ -238,8 +240,13 @@ export function handleMessage(msg, live, sendLine) {
   if (msg.replaces) chat.removeTemp(str(msg.replaces));   // the answer takes the place of "thinking..."
   if (msg.stream_id && (msg.failed || (msg.done && msg.type !== "chat"))) chat.removeStream(str(msg.stream_id));
   switch (msg.type) {
-    case "rooms":
-      return rooms.setRooms(msg);
+    case "rooms": {
+      const wasGroup = inGroup(getState().currentRoom);
+      rooms.setRooms(msg);
+      // 👥 /help lists the group commands only in a group's chat: refresh the autocomplete when that changes
+      if (live && getState().screen === "chat" && wasGroup !== inGroup(getState().currentRoom)) requestCommands(sendLine);
+      return undefined;
+    }
     case "file_start":   // 📦 big files: only live (a reload can't bring back the pieces)
     case "file_chunk":
     case "file_end":

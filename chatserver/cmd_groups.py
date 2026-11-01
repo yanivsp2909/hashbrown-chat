@@ -89,8 +89,7 @@ def cmd_join(client, args):
     client.say(f"📨 Request sent! An admin of {rooms.room_title(key)} has to approve you.")
     for admin in [group["owner"]] + group["admins"]:
         rooms.tell(admin, f"📨 {rooms.shown(client.key)} wants to join {rooms.room_title(key)}.  "
-                          f"/approve {rooms.nick(client.key)} {group['name']}  or  "
-                          f"/reject {rooms.nick(client.key)} {group['name']}",
+                          f"In its chat: /approve {rooms.nick(client.key)}  or  /reject {rooms.nick(client.key)}",
                    "event")
 
 
@@ -102,7 +101,7 @@ def cmd_lobby(client, args):
         rooms.move_to_room(client, "lobby")
 
 
-@registry.command("/leave", "/leave", "quit the group you're in", "👥 Groups")
+@registry.command("/leave", "/leave", "quit the group you're in", "👥 Groups", group_only=True)
 def cmd_leave(client, args):
     key, group = rooms.current_group(client)
     if group is None:
@@ -114,11 +113,14 @@ def cmd_leave(client, args):
     if client.key in group["admins"]:
         group["admins"].remove(client.key)
     storage.save_data()
-    rooms.move_to_room(client, "lobby")
+    if client.room == key:   # (a Groups screen button from another room: you stay where you are)
+        rooms.move_to_room(client, "lobby")
+    else:
+        rooms.send_room_list(client.key)
     client.say(f"👋 You left {rooms.room_title(key)}.")
 
 
-@registry.command("/members", "/members", "who's in this group", "👥 Groups")
+@registry.command("/members", "/members", "who's in this group", "👥 Groups", group_only=True)
 def cmd_members(client, args):
     key, group = rooms.current_group(client)
     if group is None:
@@ -132,7 +134,7 @@ def cmd_members(client, args):
     client.say("\n".join(lines))
 
 
-@registry.command("/requests", "/requests", "join requests (admins)", "👥 Groups")
+@registry.command("/requests", "/requests", "join requests (admins)", "👥 Groups", group_only=True)
 def cmd_requests(client, args):
     key, group = rooms.current_group(client)
     if group is None:
@@ -147,16 +149,17 @@ def cmd_requests(client, args):
     client.say(f"📨 Waiting: {names}\nUse /approve name or /reject name")
 
 
-def request_target(client, args):
-    """For /approve and /reject: returns (group key, group, user) or None."""
+def request_target(client, args, command):
+    """For /approve and /reject (in the group's chat): returns (group key, group, user) or None."""
     parts = args.split()
     if not parts:
-        client.say("Usage: /approve name [group]", "error")
+        client.say(f"Usage: {command} name", "error")
         return None
-    key = parts[1].lower() if len(parts) > 1 else client.room
-    group = state.groups.get(key)
+    key, group = rooms.current_group(client)
     if group is None:
-        client.say("❓ Which group? Use /approve name group", "error")
+        return None
+    if len(parts) > 1 and parts[1].lower() != key:   # the old "/approve name group", for another group
+        client.say(f"👥 Open the group's chat to use {command}", "error")
         return None
     if not rooms.is_admin(group, client.key):
         client.say("🛡️ Only group admins can do that.", "error")
@@ -168,9 +171,9 @@ def request_target(client, args):
     return key, group, target
 
 
-@registry.command("/approve", "/approve name [group]", "let someone in (admins)", "👥 Groups")
+@registry.command("/approve", "/approve name", "let someone in (admins)", "👥 Groups", group_only=True)
 def cmd_approve(client, args):
-    found = request_target(client, args)
+    found = request_target(client, args, "/approve")
     if found is None:
         return
     key, group, target = found
@@ -183,9 +186,9 @@ def cmd_approve(client, args):
     rooms.notify_room(key, f"🎉 {rooms.shown(target)} is now a member of {rooms.room_title(key)}", exclude=client)
 
 
-@registry.command("/reject", "/reject name [group]", "turn down a request (admins)", "👥 Groups")
+@registry.command("/reject", "/reject name", "turn down a request (admins)", "👥 Groups", group_only=True)
 def cmd_reject(client, args):
-    found = request_target(client, args)
+    found = request_target(client, args, "/reject")
     if found is None:
         return
     key, group, target = found

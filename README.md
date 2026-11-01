@@ -29,7 +29,7 @@ A school networking project by **Yaniv, Daniel Cohen Vitos and Sagi Shavit**. On
 | | |
 |---|---|
 | 💬 **Chat** | A lobby and group rooms, private messages with ✓ delivered / ✓✓ seen, reactions, "is typing…", `@` mentions, polls, a pinned topic per room, `/search`, `/remind`, edit and delete, Hebrew right-to-left text. |
-| 👥 **Groups** | Public or 🔒 private groups (an admin approves you), admins who kick, mute and ban, a group bank that earns tokens and buys upgrades, ⚔️ group wars, and a website screen with members, bank history and a chart. |
+| 👥 **Groups** | Public or 🔒 private groups (an admin approves you), admins who kick, mute and ban, a group bank that earns tokens and buys upgrades, ⚔️ group wars, and a website screen with members, bank history and a chart. Group commands work inside the group's chat (and act on it); the Groups screen's buttons work from anywhere. |
 | 🎮 **Games** | Tic-Tac-Toe, Damka (checkers), Math Duel, Connect 4, Battleship, solo Wordle and a 🎨 drawing game. Token bets, ELO ratings, `/watch` someone's match, daily quests. |
 | 📈 **Economy** | Tokens for being online and winning, a `/daily` streak, a badge shop and a casino. A stock market (four companies plus every group), a public fund fed by taxes and fees, savings, loans, a player marketplace, auctions of rare badges and a live dashboard. |
 | 🥔 **Hashbrown the AI** | Type `@hashbrown` in the chat or `/ask` privately. It sums up the chat, settles arguments, translates Hebrew ↔ English, comments on your games, asks a question of the day and writes market news. Answers stream in word by word. |

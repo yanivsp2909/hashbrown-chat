@@ -230,7 +230,7 @@ def test_private_group_non_member_stays_in_the_lobby(user):
     adi.sync()
     assert not saw_chat(adi, "secret words")
     ben.line("/members")
-    ben.expect_text("You're in the lobby", kind="error")
+    ben.expect_text("Open the group's chat to use", kind="error")
 
 
 def test_lobby_command_brings_you_back_to_the_lobby(user):
@@ -272,7 +272,7 @@ def test_the_owner_cannot_leave_and_must_disband(user):
 def test_leaving_from_the_lobby_asks_you_to_join_a_group(user):
     adi = user("Adi")
     adi.line("/leave")
-    adi.expect_text("You're in the lobby", kind="error")
+    adi.expect_text("Open the group's chat to use", kind="error")
 
 
 # ---------------------------------------------------------------- kick and ban
@@ -283,7 +283,7 @@ def test_admin_kicks_a_member_into_the_lobby(user):
     ben.expect_text("kicked", kind="error")
     assert "ben" not in state.groups[KEY]["members"]
     ben.line("/members")
-    ben.expect_text("You're in the lobby", kind="error")
+    ben.expect_text("Open the group's chat to use", kind="error")
 
 
 def test_a_kicked_player_can_join_a_public_group_again(user):
@@ -360,7 +360,7 @@ def test_kicking_someone_who_is_not_in_the_group(user):
 def test_admin_commands_do_not_work_from_the_lobby(user):
     adi, ben = user("Adi"), user("Ben")
     adi.line("/kick Ben")
-    adi.expect_text("You're in the lobby", kind="error")
+    adi.expect_text("Open the group's chat to use", kind="error")
 
 
 # ---------------------------------------------------------------- mute
@@ -450,7 +450,7 @@ def test_disband_removes_the_group_and_moves_members_to_the_lobby(user):
     enter_room(ben)
     assert KEY not in state.groups
     ben.line("/members")
-    ben.expect_text("You're in the lobby", kind="error")
+    ben.expect_text("Open the group's chat to use", kind="error")
     ben.line("/groups")
     ben.expect_text("No groups yet")
 
@@ -508,7 +508,7 @@ def test_bank_commands_need_a_group(user):
     adi = user("Adi")
     for command in ("/bank", "/donate 5", "/upgrade emoji", "/groupemoji 🔥"):
         adi.line(command)
-        adi.expect_text("You're in the lobby", kind="error")
+        adi.expect_text("Open the group's chat to use", kind="error")
 
 
 def test_bank_shows_balance_and_upgrade_prices(user):

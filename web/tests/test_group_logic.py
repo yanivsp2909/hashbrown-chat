@@ -30,30 +30,36 @@ class GroupLogicTestCase(unittest.TestCase):
     def test_buttons_send_the_existing_commands(self):
         group = '{key: "potatoes", name: "Potatoes"}'
         self.assertEqual(out(f"""[
-            G.commandsFor("join", {group}, {{currentRoom: "lobby"}}),
-            G.commandsFor("approve", {group}, {{currentRoom: "lobby", target: "Ben"}}),
-            G.commandsFor("reject", {group}, {{currentRoom: "lobby", target: "Ben"}}),
-            G.commandsFor("create", {{name: "Fries"}}, {{private: true}}),
-            G.commandsFor("create", {{name: "Fries"}}, {{}}),
-        ]"""), [["/join Potatoes"], ["/approve Ben Potatoes"], ["/reject Ben Potatoes"],
-                ["/create Fries private"], ["/create Fries"]])
+            G.packetsFor("join", {group}, {{}}),
+            G.packetsFor("open", {group}, {{}}),
+            G.packetsFor("create", {{name: "Fries"}}, {{private: true}}),
+            G.packetsFor("create", {{name: "Fries"}}, {{}}),
+        ]"""), [[{"type": "line", "text": "/join Potatoes"}], [{"type": "line", "text": "/join Potatoes"}],
+                [{"type": "line", "text": "/create Fries private"}], [{"type": "line", "text": "/create Fries"}]])
 
-    def test_commands_for_the_room_youre_in_join_it_first_only_when_needed(self):
+    def test_group_buttons_say_which_group_and_never_join_it_first(self):
+        # 👥 the server runs a group command for the "group" field's group: you stay in the chat you're in
         group = '{key: "potatoes", name: "Potatoes"}'
-        self.assertEqual(out(f"""[
-            G.commandsFor("kick", {group}, {{currentRoom: "lobby", target: "Ben"}}),
-            G.commandsFor("kick", {group}, {{currentRoom: "potatoes", target: "Ben"}}),
-            G.commandsFor("mute", {group}, {{currentRoom: "potatoes", target: "Ben", value: 15}}),
-            G.commandsFor("donate", {group}, {{currentRoom: "potatoes", value: 40}}),
-            G.commandsFor("upgrade", {group}, {{currentRoom: "potatoes", value: "income"}}),
-            G.commandsFor("topic", {group}, {{currentRoom: "potatoes", value: ""}}),
-            G.commandsFor("topic", {group}, {{currentRoom: "potatoes", value: "Movie night"}}),
-            G.commandsFor("persona", {group}, {{currentRoom: "potatoes", value: ""}}),
-            G.commandsFor("leave", {group}, {{currentRoom: "lobby"}}),
-            G.commandsFor("disband", {group}, {{currentRoom: "potatoes"}}),
-        ]"""), [["/join Potatoes", "/kick Ben"], ["/kick Ben"], ["/mute Ben 15"], ["/donate 40"],
-                ["/upgrade income"], ["/pin clear"], ["/pin Movie night"], ["/personality"],
-                ["/join Potatoes", "/leave"], ["/disband"]])
+        got = out(f"""[
+            G.packetsFor("kick", {group}, {{target: "Ben"}}),
+            G.packetsFor("approve", {group}, {{target: "Ben"}}),
+            G.packetsFor("reject", {group}, {{target: "Ben"}}),
+            G.packetsFor("mute", {group}, {{target: "Ben", value: 15}}),
+            G.packetsFor("donate", {group}, {{value: 40}}),
+            G.packetsFor("upgrade", {group}, {{value: "income"}}),
+            G.packetsFor("topic", {group}, {{value: ""}}),
+            G.packetsFor("topic", {group}, {{value: "Movie night"}}),
+            G.packetsFor("persona", {group}, {{value: ""}}),
+            G.packetsFor("leave", {group}, {{}}),
+            G.packetsFor("disband", {group}, {{}}),
+        ]""")
+        self.assertEqual([p[0]["text"] for p in got],
+                         ["/kick Ben", "/approve Ben", "/reject Ben", "/mute Ben 15", "/donate 40", "/upgrade income",
+                          "/pin clear", "/pin Movie night", "/personality", "/leave", "/disband"])
+        self.assertTrue(all(len(p) == 1 and p[0]["group"] == "potatoes" for p in got))
+
+    def test_an_unknown_action_sends_nothing(self):
+        self.assertEqual(out('G.packetsFor("explode", {key: "potatoes", name: "Potatoes"}, {})'), [])
 
     def test_mine_first_then_the_rest_and_search(self):
         cards = ('[{key: "chess", name: "Chess", your_role: "none", topic: "knights"},'

@@ -63,7 +63,8 @@ def check_quiz(client, text):
         storage.save_data()
 
 
-def handle_line(client, text):
+def handle_line(client, text, group=None):
+    """One line someone typed. group: a Groups screen button's group key (only group commands use it)."""
     text = text.strip()
     if not text:
         return
@@ -77,7 +78,7 @@ def handle_line(client, text):
         if entry is None:
             client.say(f"❓ Unknown command {name}. Type /help", "error")
             return
-        entry[0](client, args.strip())
+        run_command(client, name.lower(), entry[0], args.strip(), group)
         return
     if drawing.check_guess(client, text):   # 🎨 the drawing's word: checked here, never posted
         return
@@ -87,6 +88,18 @@ def handle_line(client, text):
         hashbrown_ai.ask_hashbrown(client, text[len("@hashbrown"):].lstrip(" ,:"))
     check_quiz(client, text)
     hashbrown_extras.check_trivia(client, text)
+
+
+def run_command(client, name, function, args, group):
+    """👥 Group commands run only for a group: the one whose chat you're in, or a Groups screen button's group."""
+    if isinstance(group, str) and group and name in registry.GROUP_FIELD_OK:
+        client.acting_for = group.lower()
+    try:
+        if (name in registry.GROUP_ONLY or client.acting_for) and not rooms.check_group_command(client, name):
+            return
+        function(client, args)
+    finally:
+        client.acting_for = None
 
 
 def react(client, msg):

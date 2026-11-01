@@ -133,7 +133,7 @@ All the numbers are in the economy part of `chatserver/config.py` (search for "t
 
 ## Every command
 
-These are all 94 commands, in the same groups as `/help`. `[ ]` means optional. Anything that isn't a command is a chat message to the room you're in; start a message with `@hashbrown` to ask the AI (20 🪙).
+These are all 94 commands, in the same groups as `/help`. `[ ]` means optional. 👥 The group commands (`/leave`, `/members`, `/requests`, `/approve`, `/reject`, the 🛡️ Group admin and 🏦 Group bank commands except `/topgroups`, and `/war`) work only in a group's chat and act on that group; anywhere else they answer "👥 Open the group's chat to use /kick". In the lobby `/help` leaves them out. `/create` and `/join` work from anywhere. Anything that isn't a command is a chat message to the room you're in; start a message with `@hashbrown` to ask the AI (20 🪙).
 
 ### 💬 Chat
 
@@ -172,8 +172,8 @@ These are all 94 commands, in the same groups as `/help`. `[ ]` means optional. 
 | `/leave` | Quit the group you're in |
 | `/members` | Who's in this group |
 | `/requests` | Join requests (admins) |
-| `/approve name [group]` | Let someone in (admins) |
-| `/reject name [group]` | Turn down a request (admins) |
+| `/approve name` | Let someone in (admins, in the group's chat) |
+| `/reject name` | Turn down a request (admins, in the group's chat) |
 
 ### 🛡️ Group admin
 
@@ -361,7 +361,7 @@ Press **👥 Groups** in the sidebar. You see your groups first, then every othe
 - **⬆️ Upgrades:** every upgrade with its price and state: ✅ owned, 🟢 the bank can buy it, or 🔒 how much is missing. Admins get a **Buy** button with a confirm step; everyone else sees who the admins are.
 - **🛡️ Admin tools** (only that group's admins see them): join requests with **Approve** / **Reject**, and for each member **Kick**, **Mute** (5, 15 or 60 min), **Ban**, **Promote** / **Demote** (owner). Set the topic, emoji and persona. **Disband** asks you to type the group's name first.
 
-Every button sends the same command you'd type (like `/approve Ben Secret` or `/kick Ben`), so the server's rules decide. Most group commands work in the group's room, so a button for another group opens that group first.
+Every button sends the same command you'd type (like `/approve Ben` or `/kick Ben`), so the server's rules decide. A button also says which group it's for (the `group` field of the `line` packet), so it acts on that group and you stay in the chat you're in.
 
 ### Profiles 👤
 
@@ -426,7 +426,7 @@ Every packet is **one JSON object on one line**, ending with `\n` (newline-delim
 |---|---|---|
 | client → server | `auth` | `action` (`login`, `register` or `resume`), `username`, `password` (or `token` and `seq` for `resume`), optional `features` (e.g. `["stream", "rooms"]`) |
 | server → client | `auth_result` | `ok`, `text`, and `resume_token` (and `resumed`) for reconnecting |
-| client → server | `line` | `text` (a chat message or a `/command`) |
+| client → server | `line` | `text` (a chat message or a `/command`); optional `group`: the group key a group command is for (the Groups screen's buttons; you must be a member, other lines ignore it) |
 | server → client | `msg` | `kind`, `text`. `kind` is one of `system`, `error`, `event`, `money`, `game`, `private`, `help` or `board`; board messages also have a `state` object; a file offer has `offer` (`id`, `from`, `filename`, `size`); kick notices have `kicked` |
 | server → client | `chat` | `time`, `name`, `badge`, `text`, `action`, `id`, the sender's `avatar` and `color` if they set them, and `room` (its key) for clients with the `rooms` feature |
 | server → client | `history` | `room` (its title), `key` (which room), `messages` |

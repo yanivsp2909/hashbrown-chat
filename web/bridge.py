@@ -156,7 +156,10 @@ def validate(msg, logged_in):
         t = msg.get("t")
         return {"type": "ping", **({"t": t} if isinstance(t, (int, float)) and not isinstance(t, bool) else {})}
     if kind == "line":
-        return {"type": "line", "text": clean(msg.get("text"), MAX_TEXT, "Message")}
+        line = {"type": "line", "text": clean(msg.get("text"), MAX_TEXT, "Message")}
+        if "group" in msg:   # 👥 optional: a Groups screen button says which group it's for
+            line["group"] = clean(msg["group"], 16, "Group")
+        return line
     if kind in ("file_start", "file_chunk", "file_cancel"):
         return big_file_packet(kind, msg)
     data = msg.get("data")

@@ -373,6 +373,22 @@ class TestPacketXray(BridgeTestCase):
         self.assertFalse(any(e["data"].get("type") == "xray" for e in a.stream.seen))
 
 
+class TestGroupButtons(BridgeTestCase):
+    def test_a_line_can_say_which_group_its_for(self):
+        # 👥 the Groups screen's buttons: {"type": "line", "text": "/bank", "group": "key"} from any room
+        a, a_name = self.user()
+        group = f"g{a_name[-6:]}"
+        a.line(f"/create {group}")
+        a.wait(is_msg("🎉 Created"), what="the new group")
+        a.line("/lobby")
+        a.wait(is_msg(type_="history"), what="back in the lobby")
+        status, _ = a.send({"type": "line", "text": "/bank", "group": group.lower()})
+        self.assertEqual(status, 202)
+        a.wait(is_msg("🏦 #", "money"), what="the group's bank")
+        status, _ = a.send({"type": "line", "text": "/bank", "group": ["not", "a", "name"]})
+        self.assertEqual(status, 400)
+
+
 class TestPing(BridgeTestCase):
     def test_a_ping_comes_back_as_a_pong_through_the_bridge(self):
         a, _ = self.user()

@@ -8,7 +8,7 @@ from chatserver import achievements, bank_log, config, registry, rooms, state, s
 
 # ----- 🏦 Group bank
 
-@registry.command("/bank", "/bank", "the group's bank and upgrades", "🏦 Group bank")
+@registry.command("/bank", "/bank", "the group's bank and upgrades", "🏦 Group bank", group_only=True)
 def cmd_bank(client, args):
     key, group = rooms.current_group(client)
     if group is None:
@@ -24,7 +24,7 @@ def cmd_bank(client, args):
     client.say("\n".join(lines), "money")
 
 
-@registry.command("/donate", "/donate amount", "put your tokens in the group bank", "🏦 Group bank")
+@registry.command("/donate", "/donate amount", "put your tokens in the group bank", "🏦 Group bank", group_only=True)
 def cmd_donate(client, args):
     key, group = rooms.current_group(client)
     if group is None:
@@ -42,7 +42,7 @@ def cmd_donate(client, args):
     storage.save_data()
 
 
-@registry.command("/upgrade", "/upgrade name", "buy an upgrade with the bank (admins)", "🏦 Group bank")
+@registry.command("/upgrade", "/upgrade name", "buy an upgrade with the bank (admins)", "🏦 Group bank", group_only=True)
 def cmd_upgrade(client, args):
     key, group = rooms.current_group(client)
     if group is None:
@@ -70,7 +70,7 @@ def cmd_upgrade(client, args):
         client.say("🎨 Now pick it: /groupemoji 🔥")
 
 
-@registry.command("/groupemoji", "/groupemoji emoji", "set the group emoji (needs 🎨)", "🏦 Group bank")
+@registry.command("/groupemoji", "/groupemoji emoji", "set the group emoji (needs 🎨)", "🏦 Group bank", group_only=True)
 def cmd_groupemoji(client, args):
     key, group = rooms.current_group(client)
     if group is None:
@@ -95,7 +95,7 @@ def cmd_groupemoji(client, args):
 
 
 @registry.command("/personality", "/personality text", "how Hashbrown acts in this group (🎭 upgrade)",
-                  "🏦 Group bank")
+                  "🏦 Group bank", group_only=True)
 def cmd_personality(client, args):
     key, group = rooms.current_group(client)
     if group is None:

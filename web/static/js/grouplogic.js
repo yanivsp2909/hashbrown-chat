@@ -1,20 +1,22 @@
 // 👥 The Groups screen's rules, with no page in them (web/tests/test_group_logic.py runs them in Node).
 //
-// Every button sends an existing /command: the server's own checks decide what's allowed. Most group
-// commands act on the room you're in, so for those we /join the group first when you're somewhere else.
+// Every button sends an existing /command: the server's own checks decide what's allowed. Group commands
+// (/kick, /donate...) work only for a group: a button says which one in the line's "group" field, so the server
+// runs it for that group and you stay in the chat you're in (no /join first).
 
-const IN_THE_ROOM = new Set(["leave", "donate", "upgrade", "emoji", "persona", "topic", "kick", "mute", "ban",
-  "unban", "unmute", "promote", "demote", "disband"]);
+const FOR_THE_GROUP = new Set(["leave", "donate", "upgrade", "emoji", "persona", "topic", "kick", "mute", "ban",
+  "unban", "unmute", "promote", "demote", "disband", "approve", "reject", "invite"]);
 
-/** The lines one button sends. group = {key, name}; ctx = {currentRoom, target, value, private}. */
-export function commandsFor(action, group, ctx = {}) {
+/** The packets one button sends. group = {key, name}; ctx = {target, value, private}. */
+export function packetsFor(action, group, ctx = {}) {
   const { target = "", value = "" } = ctx;
   const one = {
     join: `/join ${group.name}`,
     open: `/join ${group.name}`,
     create: `/create ${group.name}${ctx.private ? " private" : ""}`,
-    approve: `/approve ${target} ${group.name}`,
-    reject: `/reject ${target} ${group.name}`,
+    approve: `/approve ${target}`,
+    reject: `/reject ${target}`,
+    invite: `/invite ${target}`,
     leave: "/leave",
     donate: `/donate ${value}`,
     upgrade: `/upgrade ${value}`,
@@ -31,8 +33,8 @@ export function commandsFor(action, group, ctx = {}) {
     disband: "/disband",
   }[action];
   if (!one) return [];
-  const needsRoom = IN_THE_ROOM.has(action) && ctx.currentRoom !== group.key;
-  return needsRoom ? [`/join ${group.name}`, one.trim()] : [one.trim()];
+  const packet = { type: "line", text: one.trim() };
+  return [FOR_THE_GROUP.has(action) ? { ...packet, group: group.key } : packet];
 }
 
 export const isMember = (role) => role === "owner" || role === "admin" || role === "member";

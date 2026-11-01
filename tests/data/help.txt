@@ -25,28 +25,8 @@
   /create name [private]           new group (50 🪙)
   /join name                       enter a group (or ask to)
   /lobby                           go back to the lobby
-  /leave                           quit the group you're in
-  /members                         who's in this group
-  /requests                        join requests (admins)
-  /approve name [group]            let someone in (admins)
-  /reject name [group]             turn down a request (admins)
-
-🛡️ Group admin
-  /kick name                       remove from group
-  /ban name                        kick + can't come back
-  /unban name                      allow back in
-  /mute name [minutes]             silence someone (default 5)
-  /unmute name                     let them talk again
-  /promote name                    make admin (owner)
-  /demote name                     remove admin (owner)
-  /disband                         delete your group (owner)
 
 🏦 Group bank
-  /bank                            the group's bank and upgrades
-  /donate amount                   put your tokens in the group bank
-  /upgrade name                    buy an upgrade with the bank (admins)
-  /groupemoji emoji                set the group emoji (needs 🎨)
-  /personality text                how Hashbrown acts in this group (🎭 upgrade)
   /topgroups                       richest groups
 
 🪙 Tokens
@@ -121,8 +101,7 @@
   /ping                            how long a packet takes there and back 🏓
   /netstats                        packets and bytes on your connection 📊
 
-⚔️ Group wars
-  /war [group | accept group]      your group vs another group ⚔️
+👥 Open a group's chat to see its commands too (kick, mute, bank, leave...).
 
 Anything that isn't a command is a chat message to the room you're in.
 🥔 Start a message with @hashbrown to ask the AI (20 🪙).

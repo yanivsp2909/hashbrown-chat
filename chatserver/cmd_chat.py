@@ -10,13 +10,17 @@ from chatserver import chat, config, history, profiles, quests, receipts, regist
 
 @registry.command("/help", "/help", "show this list", "💬 Chat")
 def cmd_help(client, args):
+    in_group = client.room in state.groups   # 👥 group commands only show in a group's chat, where they work
     by_category = {}
-    for function, usage, description, category in registry.COMMANDS.values():
-        by_category.setdefault(category, []).append(f"  {usage:<32} {description}")
+    for name, (function, usage, description, category) in registry.COMMANDS.items():
+        if in_group or name not in registry.GROUP_ONLY:
+            by_category.setdefault(category, []).append(f"  {usage:<32} {description}")
     lines = ["📖 COMMANDS"]
     for category, items in by_category.items():
         lines.append(f"\n{category}")
         lines += items
+    if not in_group:
+        lines.append("\n👥 Open a group's chat to see its commands too (kick, mute, bank, leave...).")
     lines.append("\nAnything that isn't a command is a chat message to the room you're in.")
     lines.append(f"🥔 Start a message with @hashbrown to ask the AI ({config.HASHBROWN_COST} 🪙).")
     client.say("\n".join(lines), "help")
@@ -83,7 +87,7 @@ def cmd_remind(client, args):
 
 @registry.command("/pin", "/pin text", "pin this room's topic 📌 (/pin alone: see it, /pin clear)", "💬 Chat")
 def cmd_pin(client, args):
-    room, text = client.room, args.strip()
+    room, text = rooms.group_context(client), args.strip()   # (a Groups screen button: that group)
     if not text:
         topic = rooms.topic_of(room)
         client.say(f"📌 Topic: {topic}" if topic else "📌 No topic pinned here. Admins can /pin one.")

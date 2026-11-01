@@ -6,7 +6,7 @@ import time
 from chatserver import config, registry, rooms, state, wars
 
 
-@registry.command("/war", "/war [group | accept group]", "your group vs another group ⚔️", "⚔️ Group wars")
+@registry.command("/war", "/war [group | accept group]", "your group vs another group ⚔️", "⚔️ Group wars", group_only=True)
 def cmd_war(client, args):
     parts = args.split()
     if not parts:

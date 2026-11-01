@@ -218,7 +218,7 @@ function adminBlock(info) {
   const person = (who, ...buttons) => el("li", { class: "gs-person" }, el("span", { dir: "auto", text: who }),
     el("div", { class: "gs-tools", role: "group", "aria-label": who }, buttons));
   return block("gs-admin-title", "🛡️ Admin tools",
-    el("p", { class: "gs-muted", text: `These act in the group's room, so they open ${name} first if you're somewhere else.` }),
+    el("p", { class: "gs-muted", text: `These act on ${name} from wherever you are: you stay in the chat you're in.` }),
     muted.length ? el("div", { class: "gs-sub" }, el("h4", { class: "gs-h4", text: "🔇 Muted" }),
       el("ul", { class: "gs-people" }, muted.map((m) => person(`${str(m.name)} · ${m.minutes} min left`,
         el("button", { class: "btn btn-ghost gs-small", type: "button", text: "Unmute", "aria-label": `Unmute ${str(m.name)}`,

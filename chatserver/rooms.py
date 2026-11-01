@@ -102,6 +102,9 @@ def tell_everyone_about_the_lab():
 
 def notify_room(room, text, exclude=None, kind="system", **extra):
     send_room(room, {"type": "msg", "kind": kind, "text": text, **extra}, exclude)
+    for c in list(state.online.values()):   # 👥 a Groups screen button pressed from another room sees it too
+        if c.acting_for == room and c.room != room and c is not exclude:
+            c.say(text, kind, **extra)
 
 
 def announce(text, kind="event", exclude=()):
@@ -201,11 +204,31 @@ def spam_ok(client):
 
 # ----- 👥 Group helpers and chat lines
 
+def group_context(client):
+    """The room a group command acts on: a Groups screen button's group, else the room you're in."""
+    return client.acting_for or client.room
+
+
+def check_group_command(client, command):
+    """👥 May this group command run here? Only in a group's chat (or a button for a group you're in)."""
+    key = group_context(client)
+    group = state.groups.get(key) if key != "lobby" else None
+    if group is None:
+        client.say(f"👥 Open the group's chat to use {command}", "error")
+        return False
+    if client.key not in group["members"]:
+        client.say(f"❓ You're not in {room_title(key)}.", "error")
+        return False
+    return True
+
+
 def current_group(client):
-    if client.room == "lobby":
-        client.say("🏠 You're in the lobby. /join a group first.", "error")
+    """(key, group) for a group command: chat.handle_line already checked that there is one."""
+    key = group_context(client)
+    if key not in state.groups:   # (only if a command forgot group_only=True)
+        client.say("👥 Open the group's chat to use that.", "error")
         return None, None
-    return client.room, state.groups[client.room]
+    return key, state.groups[key]
 
 
 def is_admin(group, key):

@@ -4,8 +4,7 @@
 // decide what's allowed. Server replies (errors too) show in a line at the bottom, since the chat is hidden.
 
 import { $, clear, el, str } from "./dom.js";
-import { send, sendLine } from "./api.js";
-import { getState } from "./store.js";
+import { send } from "./api.js";
 import * as G from "./grouplogic.js";
 import { backIcon, renderDetails } from "./groupdetails.js";
 
@@ -35,7 +34,7 @@ export function badge(card) {
     text: emoji || (Array.from(str(card.name))[0] || "?").toUpperCase() });
 }
 
-/** Send the lines one button means, one after another (stop at the first that doesn't get through). */
+/** Send the packets one button means, one after another (stop at the first that doesn't get through). */
 export async function act(action, group, extra = {}) {
   const id = `${action}:${group.key ?? group.name}:${extra.target || ""}`;
   if (inFlight.has(id)) return false;   // still sending the last click
@@ -44,8 +43,8 @@ export async function act(action, group, extra = {}) {
   hideReply();
   markBusy();
   try {
-    for (const line of G.commandsFor(action, group, { currentRoom: getState().currentRoom, ...extra })) {
-      const error = await sendLine(line);
+    for (const packet of G.packetsFor(action, group, extra)) {
+      const error = await send(packet);
       if (error) {
         noteServerText("error", `⚠️ ${error}`, true);
         hooks.onError(error);
