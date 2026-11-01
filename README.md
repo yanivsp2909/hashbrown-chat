@@ -159,7 +159,8 @@ Tools we built to *see* the networking, for learning:
 
 ## 🧪 Quality
 
-- **948 server tests** (pytest) start the real server on a free port and connect fake clients; **49 website tests** run the website against a server copy in a temporary folder (some run the website's JavaScript rules in Node).
+- **1,229 server tests** (pytest) start the real server on a free port and connect fake clients; **87 website tests** run the website against a server copy in a temporary folder (some run the website's JavaScript rules in Node).
+- **A balance simulation** (`python3 -m chatserver.ventures_balance`) plays 20 seasons of 20 bot companies through Hashbrown Ventures with the real formulas, and a test checks the game stays fair and the token economy doesn't inflate.
 - **The tests never call the real AI**: a fake Hashbrown server runs on your own computer.
 - **The bug hunt:** every round ended with a code review and a security review. They closed farming tokens with new accounts, look-alike names, files arriving without being asked, short passwords, and three ways to print or move tokens unfairly in the economy. Two flaky tests were tracked down to timing races and fixed.
 - **Old clients keep working:** the protocol only grows (new optional fields and new packet types), and every app ignores what it doesn't know.
@@ -168,7 +169,7 @@ Run them:
 
 ```bash
 pip install pytest
-python3 -m pytest -q                          # server tests (about a minute)
+python3 -m pytest -q                          # server tests (about 3 minutes)
 python3 -m unittest discover -s web/tests     # website tests (no install)
 ```
 
