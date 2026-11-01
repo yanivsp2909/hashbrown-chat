@@ -58,7 +58,7 @@ def valuation(co, mood=1.0):
     never much below the last round (investors don't forget so fast)."""
     mark = (revenue(co) * 12 * sector(co)["multiple"] * (0.5 + co["quality"] / 100)
             * (0.7 + co["hype"] / 200) * (0.7 + co["reputation"] / 170) * mood)
-    return max(mark, co["last_post"] * 0.6)
+    return max(mark, co["last_post"] * 0.8)
 
 
 # ---------------------------------------------------------------- milestones
@@ -77,7 +77,7 @@ def milestones(co, players=1):
     rows.append(row("ticks", config.ROUND_MIN_TICKS, co["stage_ticks"]))
     if co["stage"] == "c":   # 🔔 the IPO also needs a big valuation and nearly no losses
         rows.append(row("valuation", need["floor"], valuation(co)))
-        rows.append(row("profit", 80, revenue(co) / max(1.0, burn(co, players)) * 100))
+        rows.append(row("profit", config.IPO_PROFIT_PERCENT, revenue(co) / max(1.0, burn(co, players)) * 100))
     return rows
 
 
@@ -99,7 +99,7 @@ def next_day(co, rng, players, mood=1.0):
     luck_lines, customers, hype, reputation = luck(co, rng, co["customers"], hype, reputation)
     moved = {**co, "quality": quality, "hype": hype, "reputation": reputation, "customers": customers}
     new = customers_arrive(moved, rng)
-    lost = customers * sector(co)["churn"] * (1.4 - quality / 100)
+    lost = customers * sector(co)["churn"] * (1.4 - quality / 100) * (2 if idle >= config.IDLE_TICKS else 1)
     moved = {**moved, "customers": max(0.0, customers + new - lost)}
     earned, spent = revenue(moved), burn(moved, players)
     cash = int(round(co["cash"] + earned - spent))
@@ -108,16 +108,21 @@ def next_day(co, rng, players, mood=1.0):
               "peak": int(max(co["peak"], value)), "age": co["age"] + 1, "stage_ticks": co["stage_ticks"] + 1,
               "idle": idle, "acted": False}
     result, death_lines = check_cash(result, players)
+    days_left = runway(result, players)
     numbers = {"tick": co["age"] + 1, "revenue": earned, "old_revenue": revenue(co), "burn": spent,
-               "runway": runway(result, players), "new": new, "lost": lost}
-    return result, ventures_text.report_lines(co, result, numbers) + luck_lines + death_lines
+               "runway": days_left, "new": new, "lost": lost}
+    warning = []
+    if result["status"] == "alive" and not result["fumes"] and days_left is not None \
+            and days_left < config.RUNWAY_WARNING_TICKS:
+        warning = [f"⏳ Only {days_left} days of cash left at this speed: raise money or cut costs."]
+    return result, ventures_text.report_lines(co, result, numbers) + luck_lines + warning + death_lines
 
 
 def product_and_buzz(co, idle):
     """Engineers polish the product; hype fades (marketers and a CMO keep it up); idle companies fade fast."""
     staff = co["staff"]
-    quality = grow(co["quality"], 0.4 * staff["engineer"] ** 0.7)
-    keep = config.CMO_HYPE_KEEP if has_role(co, "cmo") else 0.85
+    quality = grow(co["quality"], config.ENGINEER_POLISH * staff["engineer"] ** 0.7)
+    keep = config.CMO_HYPE_KEEP if has_role(co, "cmo") else config.HYPE_KEEP
     hype = co["hype"] * keep + staff["marketer"] ** 0.6 * (1 - co["hype"] / 120)
     reputation = co["reputation"]
     if idle >= config.IDLE_TICKS:   # 💤 investors smell a zombie

@@ -41,7 +41,7 @@ def cost(co, name, args=""):
     if name == "marketing":
         return ventures_sim.stage(co)["marketing"]
     if name == "pr":
-        return int(5_000 * reach)
+        return int(config.PR_COST * reach)
     return 0
 
 
@@ -49,19 +49,21 @@ def layoff_args(co, args, check=True):
     """"engineer 2" -> ("engineer", 2)."""
     parts = args.split()
     kind = parts[0].lower() if parts else ""
-    count = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 1
+    number = parts[1] if len(parts) > 1 else "1"
+    count = int(number) if number.isdecimal() and len(number) < 7 else 0
+    have = co["staff"].get(kind, 0)
     if check and kind not in STAFF_KINDS:
         raise ActionError("Usage: /company layoff engineer|sales|marketer [n]")
-    if check and not 1 <= count <= co["staff"].get(kind, 0):
-        raise ActionError(f"You have {co['staff'].get(kind, 0)} {kind} staff.")
-    return kind, count
+    if check and not 1 <= count <= have:
+        raise ActionError(f"You have {have} {kind} staff: lay off 1 to {have}." if have else f"You have no {kind} staff.")
+    return kind, max(0, min(count, have))
 
 
 # ---------------------------------------------------------------- the actions themselves
 
 def do_build(co, args):
     bonus = 1 + config.CTO_BUILD_BONUS if ventures_sim.has_role(co, "cto") else 1
-    amount = 5 * (1 + 0.15 * co["staff"]["engineer"] ** 0.5) * bonus
+    amount = config.BUILD_POINTS * (1 + 0.15 * co["staff"]["engineer"] ** 0.5) * bonus
     quality = ventures_sim.grow(co["quality"], amount)
     return {"quality": quality}, f"⭐ The team shipped improvements: quality {co['quality']:.0f} → {quality:.0f}."
 
@@ -87,7 +89,7 @@ def do_layoff(co, args):
 
 def do_marketing(co, args):
     bonus = 1 + config.CMO_MARKETING_BONUS if ventures_sim.has_role(co, "cmo") else 1
-    hype = min(100.0, co["hype"] + 15 * (1 - co["hype"] / 120) * bonus)
+    hype = min(100.0, co["hype"] + config.MARKETING_POINTS * (1 - co["hype"] / 120) * bonus)
     return {"hype": hype}, f"📣 The campaign is out: hype {co['hype']:.0f} → {hype:.0f}."
 
 
@@ -95,12 +97,12 @@ def do_sales(co, args):
     bonus = 1 + config.COO_SALES_BONUS if ventures_sim.has_role(co, "coo") else 1
     sector = ventures_sim.sector(co)
     signed = sector["base_new"] * ventures_sim.stage(co)["reach"] * 0.5 * (1 + 0.1 * co["staff"]["sales"] ** 0.5) * bonus
-    return ({"customers": co["customers"] + signed},
-            f"🤝 The sales push signed about {max(1, round(signed)):,} new {sector['customers']}.")
+    amount = f"{signed:.1f}" if signed < 10 else f"about {round(signed):,}"
+    return ({"customers": co["customers"] + signed}, f"🤝 The sales push signed {amount} new {sector['customers']}.")
 
 
 def do_pr(co, args):
-    reputation = ventures_sim.grow(co["reputation"], 4)
+    reputation = ventures_sim.grow(co["reputation"], config.PR_POINTS)
     return {"reputation": reputation}, f"📰 Good press: reputation {co['reputation']:.0f} → {reputation:.0f}."
 
 
@@ -129,9 +131,10 @@ def refusal(co, name, args=""):
         return "⚰️ This company isn't alive any more."
     points = ACTIONS[name][0]
     if co["ap"] < points:
-        return f"⚡ That needs {points} action points, you have {co['ap']} left today. They refill at the daily tick."
+        return (f"⚡ That needs {points} action point{'s' if points > 1 else ''}, you have {co['ap']} left today. "
+                f"They refill at the daily tick.")
     price = cost(co, name, args)
-    if price > co["cash"]:
+    if price and price > co["cash"] and name != "layoff":   # (on fumes you can still cut costs)
         return f"💸 That costs {money(price)} and the company has {money(co['cash'])} cash."
     return None
 
@@ -143,7 +146,7 @@ def apply(co, name, args=""):
     price = cost(co, name, args)
     changes, text = HANDLERS[name](co, args)
     new = {**co, **changes, "ap": co["ap"] - ACTIONS[name][0], "cash": co["cash"] - price, "acted": True}
-    return new, text + (f" (−{money(price)})" if price else "")
+    return new, text + (f" Cost: {money(price)}." if price else "")
 
 
 def menu(co):

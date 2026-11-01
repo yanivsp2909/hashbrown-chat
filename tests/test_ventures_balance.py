@@ -1,0 +1,44 @@
+"""⚖️ The balance simulation (chatserver/ventures_balance.py): 20 seasons of 20 bot companies (4 kinds of players,
+all 5 sectors) for 30 days, with the real formulas and the formula investor. Is the game fair, and does the token
+economy stay sane? Run `python3 -m chatserver.ventures_balance` to see the numbers."""
+import pytest
+
+from chatserver import config, ventures_balance
+
+
+@pytest.fixture(scope="module")
+def result():
+    return ventures_balance.summary(seeds=20, companies=20, ticks=30)
+
+
+def test_some_companies_die(result):
+    assert 0.20 <= result["death_rate"] <= 0.50
+
+
+def test_at_least_half_raise_a_seed_round(result):
+    assert result["seed_rate"] >= 0.50
+
+
+def test_about_one_ipo_a_season(result):
+    assert 0.5 <= result["ipos_per_season"] <= 1.5
+
+
+def test_nobody_gets_infinite_money(result):
+    assert result["max_cash"] < 5_000_000_000
+
+
+def test_exits_stay_under_the_season_cap(result):
+    assert result["minted_max"] <= config.VENTURES_MINT_SEASON_CAP
+    assert result["waiting_max"] == 0   # the cap is above what a whole busy season pays
+
+
+def test_careful_players_do_better_than_reckless_or_idle_ones(result):
+    def ended(strategy, outcome):
+        return sum(r["by_strategy"][strategy].count(outcome) for r in result["runs"])
+    assert ended("careful", "dead") < ended("hirer", "dead")
+    assert ended("careful", "public") >= ended("idle", "public")
+    assert ended("idle", "dead") > ended("careful", "dead")
+
+
+def test_the_report_prints():
+    assert "IPOs per season" in ventures_balance.report()

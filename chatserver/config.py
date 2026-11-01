@@ -239,16 +239,19 @@ SLOT_SYMBOLS = ["🍒", "🍋", "🍇", "🔔", "⭐", "💎"]
 VENTURES_TICK_HOUR = 21            # the daily tick runs once a day after this hour (Israel time)
 SEASON_TICKS = 28                  # a season lasts this many ticks (game days)
 FOUND_COST = 200                   # 🪙 to found a company (into the public fund)
-FOUND_MIN_AGE_HOURS = 24           # your account must be this old (no throwaway founders)
+# Founding a company and angel investing need an account this old (no throwaway accounts). A test server can
+# switch it off without editing this file: HASHBROWN_VENTURES_MIN_AGE_HOURS=0 python3 server.py
+_age = os.environ.get("HASHBROWN_VENTURES_MIN_AGE_HOURS", "24").strip()
+VENTURES_MIN_AGE_HOURS = int(_age) if _age.isdigit() else 24
 FOUND_COOLDOWN_TICKS = 2           # after your company died or shut down, wait this many ticks to found again
-START_CASH = 100_000               # $ the founders put in at the start
+START_CASH = 50_000                # $ the founders put in at the start (about a week of runway)
 START_QUALITY = 5
 START_HYPE = 10
 START_REPUTATION = 50
 TEAM_MAX_PLAYERS = 6               # players in one company
 AP_BASE = 3                        # ⚡ action points a day...
 AP_MAX = 6                         # ⚡ ...+1 for each other player member seen that day, up to this
-SALARY = 12_000                    # $ a day per hired (NPC) employee
+SALARY = 14_000                    # $ a day per hired (NPC) employee
 FOUNDER_PAY = 5_000                # $ a day per player in the company
 HIRE_COST = 10_000                 # $ once per hire (recruiting)
 SEVERANCE = 12_000                 # $ once per layoff
@@ -272,15 +275,15 @@ STAGE_NUMBERS = {
 # and attraction), churn a day, cost of revenue (part of revenue), valuation multiple of yearly revenue
 # (a game day is about a month: yearly revenue = 12 x the revenue of a day)
 SECTORS = {
-    "ai":       {"icon": "🤖", "name": "AI Lab", "customers": "API customers", "price": 40, "base_new": 80,
+    "ai":       {"icon": "🤖", "name": "AI Lab", "customers": "API customers", "price": 40, "base_new": 64,
                  "churn": 0.05, "cost_of_revenue": 0.35, "multiple": 50},
-    "cyber":    {"icon": "🛡️", "name": "Cybersecurity", "customers": "clients", "price": 4_000, "base_new": 0.8,
+    "cyber":    {"icon": "🛡️", "name": "Cybersecurity", "customers": "clients", "price": 4_000, "base_new": 0.64,
                  "churn": 0.02, "cost_of_revenue": 0.10, "multiple": 30},
-    "hardware": {"icon": "📱", "name": "Hardware", "customers": "units a day", "price": 250, "base_new": 12,
+    "hardware": {"icon": "📱", "name": "Hardware", "customers": "units a day", "price": 250, "base_new": 9.6,
                  "churn": 0.20, "cost_of_revenue": 0.0, "multiple": 10},
-    "saas":     {"icon": "💻", "name": "Software / SaaS", "customers": "users", "price": 10, "base_new": 300,
+    "saas":     {"icon": "💻", "name": "Software / SaaS", "customers": "users", "price": 10, "base_new": 240,
                  "churn": 0.06, "cost_of_revenue": 0.10, "multiple": 25},
-    "game":     {"icon": "🎮", "name": "Game studio", "customers": "players", "price": 2, "base_new": 1_500,
+    "game":     {"icon": "🎮", "name": "Game studio", "customers": "players", "price": 2, "base_new": 1_200,
                  "churn": 0.12, "cost_of_revenue": 0.10, "multiple": 16},
 }
 ROLES = {  # role: (icon, name, is it a C-level seat (one each, can pitch and invite))
@@ -295,6 +298,12 @@ CMO_MARKETING_BONUS = 0.20         # 📣 marketing +20% with a CMO...
 CMO_HYPE_KEEP = 0.865              # 📣 ...and hype keeps this much a tick (0.85 without)
 COO_HIRE_DISCOUNT = 0.30           # ⚙️ hires cost 30% less with a COO...
 COO_SALES_BONUS = 0.10             # ⚙️ ...and sales +10%
+BUILD_POINTS = 5                   # ⭐ quality one build adds (less near 100, more with engineers)
+MARKETING_POINTS = 15              # 📣 hype one campaign adds (less near 100)
+PR_POINTS = 4                      # 📰 reputation one pr adds
+PR_COST = 5_000                    # 📰 $ for pr, times the stage's reach
+ENGINEER_POLISH = 0.4              # ⭐ quality engineers add by themselves every tick
+HYPE_KEEP = 0.85                   # 📣 hype keeps this much each tick (a CMO keeps CMO_HYPE_KEEP)
 LUCK_CHANCE = 0.10                 # 🎲 each tick: this chance of a setback, and the same of good luck
 RUNWAY_WARNING_TICKS = 5           # ⏳ the report warns when the runway is shorter than this
 GRAVEYARD_KEPT = 100               # ⚰️ graveyard entries kept in chat_data.json
@@ -309,9 +318,11 @@ ROUNDS = {
     "b":       {"mrr": 800_000, "quality": 72, "reputation": 55, "raise": 150_000_000, "floor": 700_000_000, "equity": (8, 15)},
     "c":       {"mrr": 2_500_000, "quality": 82, "reputation": 65, "raise": 0, "floor": 1_000_000_000, "equity": (15, 15)},
 }
-ROUND_MIN_TICKS = 3                # a round needs at least this many ticks in the stage
+ROUND_MIN_TICKS = 4                # a round needs at least this many ticks in the stage
+IPO_PROFIT_PERCENT = 60            # 🔔 the IPO also needs revenue of at least this % of the burn
 OPTION_POOL_PERCENT = 10           # 📜 the Seed round makes an option pool this big (it dilutes everyone)
-PASS_BELOW = 0.10                  # an investor always passes when the score is lower
+PASS_BELOW = 0.38                  # an investor always passes when the score is lower (just meeting the
+                                   # milestones isn't enough: beat them, or pitch well; from the balance simulation)
 PITCHES_PER_STAGE = 3              # 🎤 pitches a company gets per stage...
 PITCH_REFILL_TICKS = 5             # 🎤 ...+1 every this many ticks while all are used
 PITCH_AP = 2                       # ⚡ a pitch costs this many action points
@@ -320,7 +331,7 @@ PITCH_CHARS = 1_500                # 🎤 characters of founders' words handed t
 PITCH_IDLE_MINUTES = 30            # 🎤 a pitch nobody sends to the investor for this long ends
 TERM_SHEET_HOURS = 24              # 📄 a term sheet waits this long (real hours) for the CEO
 COUNTER_HALFWAY = 1.2              # 📄 a counter up to 1.2x the investor's ceiling: they meet halfway
-BRIDGE_RAISE = 0.3                 # 🌉 a bridge round gives this part of the stage's typical raise...
+BRIDGE_RAISE = 0.15                # 🌉 a bridge round gives this part of the stage's typical raise...
 BRIDGE_VALUATION = 0.7             # 🌉 ...at this part of the stage's lowest valuation
 ANGEL_DOLLARS_PER_TOKEN = 1_000    # 😇 each angel 🪙 becomes this many company $
 ANGEL_MIN = 50                     # 😇 smallest angel offer (🪙)
@@ -333,7 +344,8 @@ ANGEL_OFFER_HOURS = 24             # 😇 an angel offer the CEO doesn't answer 
 EXIT_DOLLARS_PER_TOKEN = 50_000    # 🚪 $ of exit value per 🪙
 EXIT_TAX_PERCENT = 20              # 🚪 of every exit (it stays in the public fund)
 EXIT_MAX_TOKENS = 5_000            # 🚪 most 🪙 one person gets from one exit (before the tax)
-VENTURES_MINT_SEASON_CAP = 30_000  # 🚪 new 🪙 exits may create in one season (the fund pays first); more waits
+VENTURES_MINT_SEASON_CAP = 20_000  # 🚪 new 🪙 exits may create in one season (the fund pays first); more waits.
+                                   # The balance simulation's worst season minted ~15,000 (20 companies)
 # 🥔 The AI in the game (each call also counts in HASHBROWN_DAILY_CAP)
 VENTURES_AI_PER_DAY = 40           # AI calls a day for the whole game
 VENTURES_AI_MAX_OUTPUT = 600       # tokens per AI answer

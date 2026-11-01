@@ -5,7 +5,7 @@ import os
 import time
 
 from chatserver import (achievements, config, drawing, group_stocks, hashbrown_ai, hashbrown_extras, history,
-                        matches, offers, profiles, quests, registry, rooms, state, storage, textutil)
+                        matches, offers, profiles, quests, registry, rooms, state, storage, textutil, ventures_pitch)
 
 
 def handle_file(client, msg):
@@ -88,6 +88,7 @@ def handle_line(client, text, group=None):
         hashbrown_ai.ask_hashbrown(client, text[len("@hashbrown"):].lstrip(" ,:"))
     check_quiz(client, text)
     hashbrown_extras.check_trivia(client, text)
+    ventures_pitch.collect(client, text)   # 🎤 in a company chat during a pitch: part of the founders' answer
 
 
 def run_command(client, name, function, args, group):

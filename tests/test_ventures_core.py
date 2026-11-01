@@ -84,7 +84,7 @@ def test_runway_is_none_when_profitable():
 
 
 def test_milestones_for_the_next_round():
-    co = company(stage="preseed", quality=31.0, customers=500.0, stage_ticks=3)
+    co = company(stage="preseed", quality=31.0, customers=500.0, stage_ticks=config.ROUND_MIN_TICKS)
     rows = ventures_sim.milestones(co)
     assert [r["what"] for r in rows] == ["MRR", "quality", "ticks"]
     assert [r["ok"] for r in rows] == [False, True, True]   # MRR $5K of $10K
@@ -94,7 +94,7 @@ def test_milestones_for_the_next_round():
 
 def test_valuation_never_drops_below_most_of_the_last_round():
     co = company(last_post=10_000_000)
-    assert ventures_sim.valuation(co) == pytest.approx(6_000_000)
+    assert ventures_sim.valuation(co) == pytest.approx(8_000_000)
     rich = company(customers=300_000.0, quality=80.0, hype=60.0, reputation=70.0)
     assert ventures_sim.valuation(rich) > 1_000_000_000
 
@@ -163,7 +163,7 @@ def test_a_cto_builds_faster():
 
 
 def test_no_action_points_left():
-    with pytest.raises(ventures_actions.ActionError, match="action points"):
+    with pytest.raises(ventures_actions.ActionError, match="action point"):
         ventures_actions.apply(company(ap=0), "build", "")
 
 
@@ -217,3 +217,20 @@ def test_the_action_list_says_what_is_possible():
     by_name = {r["name"]: r for r in rows}
     assert by_name["build"]["ok"] and not by_name["pivot"]["ok"]
     assert "action points" in by_name["pivot"]["why"]
+
+
+def test_an_idle_company_loses_customers_faster():
+    busy = company(customers=1000.0, quality=50.0, acted=True)
+    lazy = company(customers=1000.0, quality=50.0, idle=config.IDLE_TICKS)
+    assert ventures_sim.next_day(lazy, random.Random(8), 1)[0]["customers"] < ventures_sim.next_day(busy, random.Random(8), 1)[0]["customers"]
+
+
+def test_money_rounds_up_to_the_next_unit():
+    from chatserver.ventures_text import money
+    assert money(999_960) == "$1M" and money(12_340) == "$12.3K" and money(-5_000) == "-$5K" and money(950) == "$950"
+
+
+def test_the_report_warns_about_a_short_runway():
+    co = company(cash=20_000)
+    _, lines = ventures_sim.next_day(co, random.Random(9), players=1)
+    assert any("days of cash left" in line for line in lines)

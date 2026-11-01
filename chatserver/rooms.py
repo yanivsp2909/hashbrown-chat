@@ -226,8 +226,8 @@ def check_group_command(client, command):
     return True
 
 
-COMPANY_OFF = {"/donate", "/upgrade", "/war", "/promote", "/demote", "/kick", "/ban", "/groupemoji",
-               "/personality", "/disband"}
+COMPANY_OFF = {"/bank", "/donate", "/upgrade", "/war", "/promote", "/demote", "/kick", "/ban", "/groupemoji",
+               "/personality", "/disband", "/approve", "/reject"}
 
 
 def company_refusal(key, group, command):
@@ -236,8 +236,12 @@ def company_refusal(key, group, command):
     if not group.get("company") or command not in COMPANY_OFF:
         return None
     alive = (ventures_store.of_group(key) or {}).get("status") == "alive"
+    if command in ("/disband", "/kick", "/ban", "/approve", "/reject") and not alive:
+        return None   # 🪦 a closed company's chat is a normal group now (still no bank or wars)
     if command == "/disband":
-        return "🏢 A company can't be disbanded: its CEO can /company shutdown name." if alive else None
+        return "🏢 A company can't be disbanded: its CEO can /company shutdown name."
+    if command in ("/approve", "/reject"):
+        return "🏢 A company takes people only by invite: /company invite name role."
     if command in ("/kick", "/ban", "/promote", "/demote"):
         return "🏢 In a company the CEO uses /company fire name and /company role name role."
     return f"🏢 {command} doesn't work in a company: company money is game dollars, not 🪙. See /company"

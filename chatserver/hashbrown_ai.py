@@ -179,9 +179,16 @@ def read_stream(client, request, on_text):
     return "".join(pieces)
 
 
-def call_hashbrown(messages, on_text=None):
+# Optional request settings some deployments refuse with a 400: (key, the state flag that remembers it, its name)
+OPTIONAL_SETTINGS = (("text", "hashbrown_no_json_format", "a JSON answer format"),
+                     ("reasoning", "hashbrown_no_reasoning", "reasoning effort"))
+
+
+def call_hashbrown(messages, on_text=None, clean=True, json_format=None, max_output=None, reasoning=None):
     """Send the conversation to Foundry (Responses API, like client.responses.create(..., stream=True))
     and return the cleaned answer text. on_text(piece) is called for every piece as it arrives.
+    🏢 The startup game asks for JSON: json_format (a {"type": "json_schema", ...} format) and clean=False give
+    the raw text back (cleaning would break the JSON); the game checks every field itself anyway.
     Slow: never call this while holding the lock."""
     if state.hashbrown is None:  # no key: never contact Foundry
         raise RuntimeError("Hashbrown is off (no API key)")
@@ -193,33 +200,45 @@ def call_hashbrown(messages, on_text=None):
         "model": state.hashbrown["deployment"],
         "instructions": messages[0]["content"],  # the system prompt
         "input": messages[1:],                  # the facts + question
-        "max_output_tokens": config.HASHBROWN_MAX_OUTPUT,
+        "max_output_tokens": max_output or config.HASHBROWN_MAX_OUTPUT,
     }
-    if config.HASHBROWN_REASONING and not state.hashbrown_no_reasoning:
-        request["reasoning"] = {"effort": config.HASHBROWN_REASONING}
+    effort = reasoning or config.HASHBROWN_REASONING
+    if effort and not state.hashbrown_no_reasoning:
+        request["reasoning"] = {"effort": effort}
+    if json_format and not state.hashbrown_no_json_format:
+        request["text"] = {"format": json_format}
     # max_retries=0: a failed question is refunded, and we don't want hidden waits
     client = openai.OpenAI(base_url=state.hashbrown["base_url"], api_key=state.hashbrown["api_key"],
                            timeout=REQUEST_TIMEOUT, max_retries=0)
     try:
-        try:
-            raw = read_stream(client, request, on_text)
-        except openai.BadRequestError:
-            if "reasoning" not in request:
-                raise
-            # Some deployments don't know the reasoning setting: ask again without it. Only if that
-            # works do we remember it (a 400 can also be a content filter, which has nothing to do with it).
-            del request["reasoning"]
-            raw = read_stream(client, request, on_text)
-            if not state.hashbrown_no_reasoning:
-                textutil.log("[HASHBROWN] 🥔 This deployment doesn't support reasoning effort. "
-                             "Not sending it from now on.")
-            state.hashbrown_no_reasoning = True
+        raw = read_with_retries(openai, client, request, on_text)
     finally:
         client.close()
-    answer = clean_answer(raw)
+    answer = clean_answer(raw) if clean else raw.strip()
     if not answer:
         raise RuntimeError("no answer text")
     return answer
+
+
+def read_with_retries(openai, client, request, on_text):
+    """Some deployments don't know an optional setting (reasoning effort, a JSON format) and answer 400: ask again
+    without it, one at a time. Only the setting whose removal made it work is remembered (a 400 can also be a
+    content filter, which has nothing to do with any setting)."""
+    dropped = None
+    while True:
+        try:
+            raw = read_stream(client, request, on_text)
+            break
+        except openai.BadRequestError:
+            dropped = next((key for key, _, _ in OPTIONAL_SETTINGS if key in request), None)
+            if dropped is None:
+                raise
+            request = {k: v for k, v in request.items() if k != dropped}
+    for key, flag, name in OPTIONAL_SETTINGS:
+        if key == dropped and not getattr(state, flag):
+            textutil.log(f"[HASHBROWN] 🥔 This deployment doesn't support {name}. Not sending it from now on.")
+            setattr(state, flag, True)
+    return raw
 
 
 def ask_hashbrown(client, question, private=False, lines=None, forbidden=None):

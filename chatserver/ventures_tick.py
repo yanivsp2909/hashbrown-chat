@@ -5,8 +5,10 @@ die. Called every minute from background.market_loop (holding the lock). If the 
 don't count: the next tick is simply the next game day.
 """
 import random
+import time
+import traceback
 
-from chatserver import config, rooms, state, storage, ventures_log, ventures_sim, ventures_store, ventures_team
+from chatserver import config, invites, rooms, state, storage, textutil, ventures_log, ventures_sim, ventures_store, ventures_team
 from chatserver.hashbrown_text import israel_now
 from chatserver.ventures_text import money
 
@@ -35,10 +37,25 @@ def run_tick(rng=None):
     tick = ventures_store.ensure()["tick"] + 1
     ventures_store.set_field("tick", tick)
     for co in sorted(ventures_store.alive(), key=lambda c: c["id"]):
-        live_one_day(co, rng, tick)
+        try:
+            live_one_day(co, rng, tick)
+        except Exception:   # one broken record must not stop every other company's day
+            textutil.log(f"[VENTURES] ⚠️ The tick failed for {co.get('name')!r}:\n{traceback.format_exc()}")
     for job in list(_after_tick):
-        job(tick)
+        try:
+            job(tick)
+        except Exception:
+            textutil.log(f"[VENTURES] ⚠️ A daily job failed:\n{traceback.format_exc()}")
+    drop_old_offers()
     storage.save_data()
+
+
+def drop_old_offers():
+    """Team offers whose invite ran out are forgotten."""
+    for co in ventures_store.alive():
+        kept = {k: o for k, o in co["offers"].items() if time.time() - o.get("at", 0) < invites.LIFETIME}
+        if kept != co["offers"]:
+            ventures_store.put({**co, "offers": kept})
 
 
 def live_one_day(co, rng, tick):
@@ -61,14 +78,15 @@ def live_one_day(co, rng, tick):
         ventures_team.bury(new, "died")
 
 
-def next_round_line(co, players):
+def next_round_line(co, players, when="today."):
     """"⚡ 4 action points today. Next round (Seed) needs: MRR $10K (now $4.2K) ❌ ..."."""
+    points = "1 action point" if co["ap"] == 1 else f"{co['ap']} action points"
     rows = ventures_sim.milestones(co, players)
     if not rows:
-        return f"⚡ {co['ap']} action points today."
+        return f"⚡ {points} {when}"
     goal = "the IPO" if co["stage"] == "c" else config.STAGE_NAMES[config.STAGES[config.STAGES.index(co["stage"]) + 1]]
     parts = [milestone_text(r) for r in rows]
-    return f"⚡ {co['ap']} action points today. Next round ({goal}) needs: " + " · ".join(parts)
+    return f"⚡ {points} {when} Next round ({goal}) needs: " + " · ".join(parts)
 
 
 def milestone_text(r):

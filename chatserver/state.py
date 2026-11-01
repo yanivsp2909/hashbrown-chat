@@ -66,6 +66,8 @@ hashbrown_last = {}     # login -> time of their last question
 hashbrown_today = {}    # login -> (date, questions asked that day)
 hashbrown_all_today = ("", 0)  # (date, questions asked by everyone that day)
 hashbrown_no_reasoning = False  # True once the AI said no to the "reasoning" setting: stop sending it
+hashbrown_no_json_format = False  # 🏢 True once the AI said no to a JSON format ("text"): stop sending it
+ventures_ai_today = ("", 0)      # 🏢 (date, AI calls the startup game made that day)
 hashbrown_questions = 0        # counts questions: gives each "thinking" notice its temp_id
 
 
@@ -77,6 +79,7 @@ lab_loss_percent = 0    # this % of packets arrive LAB_RESEND_MS late, like a TC
 def reset_state():
     """Forget everything in memory (the tests use this to start each test from zero)."""
     global quiz, hashbrown, hashbrown_busy, hashbrown_all_today, hashbrown_questions, hashbrown_no_reasoning
+    global hashbrown_no_json_format, ventures_ai_today
     global lab_lag_ms, lab_loss_percent, qotd, commentator_today, jackpot, wars, qotd_answers, offer_count, pm_count, reminders, lobby_topic, hashbrown_tokens, hashbrown_usage, groups_dirty
     global public_fund, fund_today, supply_history, economy_day, economy_extra, ventures
     with lock:
@@ -85,6 +88,7 @@ def reset_state():
             table.clear()
         quiz, hashbrown, hashbrown_busy, hashbrown_all_today = None, None, 0, ("", 0)
         hashbrown_questions, hashbrown_no_reasoning = 0, False
+        hashbrown_no_json_format, ventures_ai_today = False, ("", 0)
         lab_lag_ms, lab_loss_percent = 0, 0
         qotd, commentator_today, jackpot, wars = None, ("", 0), 0, []
         qotd_answers = {"day": "", "answers": []}

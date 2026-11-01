@@ -54,12 +54,18 @@ def send_card(key, group, invitee):
                              "expires": int(invite["at"] + LIFETIME)}, **extra)
 
 
+def group_invite_at(key, invitee):
+    return state.groups[key]["invites"].get(invitee, {}).get("at", 0)
+
+
 def company_card(key, invitee):
     """🏢 An invite to a company also says the seat and the equity: ({"company_invite": {...}}, " as 🛠️ CTO ...")."""
     co = ventures_store.of_group(key)
     if co is None or co["status"] != "alive":
         return {}, ""
-    offer = co["offers"].get(invitee, {"role": "engineer", "bp": 0})
+    offer = co["offers"].get(invitee)
+    if offer is None or offer.get("at", 0) < group_invite_at(key, invitee) - 5:   # (an older offer doesn't count)
+        offer = {"role": "engineer", "bp": 0}
     icon, role_name, _ = config.ROLES[offer["role"]]
     equity = f" with {offer['bp'] / 100:g}% of the company" if offer["bp"] else ""
     card = {"company": co["id"], "name": co["name"], "sector": co["sector"], "role": offer["role"], "equity_bp": offer["bp"]}

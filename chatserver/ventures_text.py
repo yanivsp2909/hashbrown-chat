@@ -9,7 +9,7 @@ def money(dollars):
     """$950, $12.3K, $4.5M, $1.2B (negative: -$12.3K)."""
     sign, value = ("-" if dollars < 0 else ""), abs(dollars)
     for size, letter in ((1e9, "B"), (1e6, "M"), (1e3, "K")):
-        if value >= size:
+        if round(value / size, 1) >= 1:   # (rounded first, so $999,960 is $1M and not $1000K)
             text = f"{value / size:.1f}".rstrip("0").rstrip(".")
             return f"{sign}${text}{letter}"
     return f"{sign}${int(round(value))}"

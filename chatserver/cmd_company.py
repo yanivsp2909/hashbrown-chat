@@ -4,7 +4,7 @@ You can be in one company at a time, so /company works from any room.
 """
 import time
 
-from chatserver import (cap_table, config, fund, registry, rooms, state, storage, ventures_actions, ventures_rounds,
+from chatserver import (cap_table, config, fund, registry, rooms, state, storage, ventures_actions, ventures_angels, ventures_rounds,
                         ventures_sim, ventures_store, ventures_team, ventures_tick)
 from chatserver.ventures_text import money, runway_text, sector_title, stage_name, whole
 
@@ -77,8 +77,8 @@ def found_refusal(login, name, sector):
     if other:
         return f"🏢 You're already in {other['name']}. One company at a time (you can still /invest in others)."
     account = state.accounts[login]
-    if time.time() - account.get("created", 0) < config.FOUND_MIN_AGE_HOURS * 3600:
-        return f"🏢 Your account must be {config.FOUND_MIN_AGE_HOURS} hours old to found a company."
+    if time.time() - account.get("created", 0) < config.VENTURES_MIN_AGE_HOURS * 3600:
+        return f"🏢 Your account must be {config.VENTURES_MIN_AGE_HOURS} hours old to found a company."
     wait = ventures_store.ensure()["cooldowns"].get(login, 0) - ventures_store.ensure()["tick"]
     if wait > 0:
         return f"⏳ Your last company just closed: wait {wait} more day{'s' if wait > 1 else ''} before you found another."
@@ -96,14 +96,15 @@ def status_text(co):
              f"of this stage",
              f"💵 Cash {money(co['cash'])} · 🔥 burn {money(ventures_sim.burn(co, players))}/day · "
              f"📈 MRR {money(ventures_sim.revenue(co))} · ⏳ runway {runway_text(ventures_sim.runway(co, players))} · "
-             f"💎 valuation {money(ventures_sim.valuation(co))}",
+             f"💎 valuation {money(co['valuation'])}",
              f"👥 {whole(co['customers'])} {config.SECTORS[co['sector']]['customers']} · ⭐ quality {co['quality']:.0f} · "
              f"📣 hype {co['hype']:.0f} · 🤝 reputation {co['reputation']:.0f} · 🧑‍💼 staff {ventures_sim.staff_total(co)} "
-             f"({staff['engineer']} engineers, {staff['sales']} sales, {staff['marketer']} marketers)",
+             f"({staff['engineer']} engineer{'s' if staff['engineer'] != 1 else ''}, {staff['sales']} sales, "
+             f"{staff['marketer']} marketer{'s' if staff['marketer'] != 1 else ''})",
              team_line(co)]
     if co["fumes"]:
         lines.append("🚨 ON FUMES: out of cash. Raise money (/pitch, /company bridge) or cut costs before the next tick!")
-    lines.append(ventures_tick.next_round_line(co, players).replace("today.", "left today: /company actions."))
+    lines.append(ventures_tick.next_round_line(co, players, "left today: /company actions."))
     lines.extend(ventures_rounds.status_lines(co))
     return "\n".join(lines)
 
@@ -120,7 +121,7 @@ def team_line(co):
 def info(client, args):
     co = ventures_store.find(args) if args else ventures_store.mine(client.key)
     if co is None:
-        return client.say(f"❓ No company called {args or '...'}. See /ventures", "error")
+        return client.say(f"❓ No company called {args}. See /ventures" if args else "Usage: /company info name", "error")
     rounds = ", ".join(f"{stage_name(r['stage'])} {money(r['amount'])}" for r in co["rounds"]) or "none yet"
     state_word = {"alive": "", "dead": " · ⚰️ dead", "shutdown": " · 🪦 shut down"}[co["status"]]
     client.say(f"🏢 {co['name']} · {sector_title(co['sector'])} · {stage_name(co['stage'])}{state_word}\n"
@@ -171,7 +172,8 @@ def act(client, co, name, args):
     except ventures_actions.ActionError as e:
         return client.say(str(e), "error")
     ventures_store.put(new)
-    line = f"⚡ {rooms.shown(client.key)}: {text} ({new['ap']} action points left)"
+    left = "1 action point" if new["ap"] == 1 else f"{new['ap']} action points"
+    line = f"⚡ {rooms.shown(client.key)}: {text} ({left} left today)"
     ventures_team.tell_company(new, line)
     if client.room != co["group"]:
         client.say(line)
@@ -182,4 +184,4 @@ TEAM = {"actions": actions, "report": report, "captable": captable, "team": team
         "invite": ventures_team.invite, "role": ventures_team.set_role, "grant": ventures_team.grant,
         "ceo": ventures_team.hand_over, "fire": ventures_team.fire,
         "leave": lambda client, co, args: ventures_team.leave(client, co), "shutdown": ventures_team.shutdown}
-FUNDING = {"bridge": ventures_rounds.bridge, "angels": ventures_rounds.list_angels, "angel": ventures_rounds.answer_angel}
+FUNDING = {"bridge": ventures_rounds.bridge, "angels": ventures_angels.list_angels, "angel": ventures_angels.answer}

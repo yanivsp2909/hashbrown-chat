@@ -80,8 +80,9 @@ def cmd_join(client, args):
     if why_not:
         client.say(why_not, "error")
         return
+    invite_at = group["invites"].get(client.key, {}).get("at")
     if invites.take(client, key, group):   # 📨 invited: straight in, private or not
-        ventures_team.joined(client.key, key)
+        ventures_team.joined(client.key, key, invite_at)
         storage.save_data()
         rooms.move_to_room(client, key)
         rooms.send_room_list(client.key)

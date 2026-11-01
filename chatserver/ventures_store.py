@@ -9,6 +9,8 @@ the accounts, so tokens that move into or out of the game are saved in the same 
 A company IS a private group (its chat, members, invites); the group has an extra field "company": "c1".
 Company cash is game dollars and never the group's bank. Records are replaced, never changed in place.
 """
+import math
+
 from chatserver import cap_table, config, state, textutil
 
 STATUSES = ("alive", "dead", "shutdown")
@@ -17,7 +19,7 @@ STAFF_KINDS = ("engineer", "sales", "marketer")
 
 def empty():
     return {"season": 1, "tick": 0, "day": "", "next_id": 1, "companies": {}, "graveyard": [],
-            "angels": {}, "cooldowns": {}}
+            "angels": {}, "cooldowns": {}, "angel_days": {}}
 
 
 def ensure():
@@ -39,7 +41,9 @@ def new_company(cid, name, group_key, sector, founder, tick):
             "offers": {},        # 📨 invited login -> {"role", "bp"}: what they get when they /join
             "ap": config.AP_BASE, "seen": [founder], "acted": False, "idle": 0, "fumes": False,
             "revenue": 0, "burn": 0, "valuation": 0, "last_post": 0, "peak": 0, "raised": 0, "rounds": [],
-            "pivoted": "", "cause": "", "report": ""}
+            "pivoted": "", "cause": "", "report": "",
+            "pitches": 0, "pitch": None, "sheet": None, "last_investor": "", "bridged": "", "angel_bp": 0,
+            "angel_in": {}}      # 😇 login -> 🪙 they put in as an angel (accepted)
 
 
 # ---------------------------------------------------------------- finding companies
@@ -131,19 +135,31 @@ def clean_saved(saved):
     for field in ("graveyard",):
         if isinstance(saved.get(field), list):
             result[field] = [e for e in saved[field] if isinstance(e, dict)][-config.GRAVEYARD_KEPT:]
-    for field in ("angels", "cooldowns"):
-        if isinstance(saved.get(field), dict):
-            result[field] = saved[field]
+    if isinstance(saved.get("cooldowns"), dict):
+        result["cooldowns"] = {k: v for k, v in saved["cooldowns"].items() if isinstance(k, str) and is_count(v)}
+    if isinstance(saved.get("angel_days"), dict):
+        result["angel_days"] = {k: v for k, v in saved["angel_days"].items() if isinstance(k, str) and isinstance(v, list)
+                                and len(v) == 2 and isinstance(v[0], str) and is_count(v[1])}
+    if isinstance(saved.get("angels"), dict):   # 😇 held tokens: keep every well-formed offer (they're paid back later)
+        result["angels"] = {k: o for k, o in saved["angels"].items() if is_angel_offer(k, o)}
     raw = saved.get("companies")
     for cid, co in (raw.items() if isinstance(raw, dict) else []):
         try:
             cleaned = clean_company(cid, co)
-        except (KeyError, TypeError, ValueError, AttributeError) as e:
+        except (KeyError, TypeError, ValueError, AttributeError, OverflowError) as e:
             textutil.log(f"[VENTURES] ⚠️ Skipped a damaged company record {cid!r} ({type(e).__name__}).")
             cleaned = None
         if cleaned:
             result["companies"][cid] = cleaned
+    used = [int(k[1:]) for k in list(result["companies"]) + list(result["angels"]) if k[1:].isdecimal()]
+    result["next_id"] = max([result["next_id"]] + [n + 1 for n in used])   # new ids never reuse an old one
     return result
+
+
+def is_angel_offer(key, o):
+    return (isinstance(o, dict) and o.get("id") == key and isinstance(o.get("company"), str)
+            and isinstance(o.get("login"), str) and is_count(o.get("tokens")) and o["tokens"] > 0
+            and is_number(o.get("at")) and is_count(o.get("dollars", 0)) and is_count(o.get("bp", 0)))
 
 
 def is_count(value):
@@ -151,7 +167,7 @@ def is_count(value):
 
 
 def is_number(value):
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
 def clean_company(cid, co):
@@ -171,12 +187,29 @@ def clean_company(cid, co):
                      for kind in STAFF_KINDS}
     kept["roles"] = {k: v for k, v in kept["roles"].items() if isinstance(k, str) and v in config.ROLES}
     kept["cap"] = cap_table.normalize({h: v for h, v in kept["cap"].items() if isinstance(h, str) and is_count(v)})
+    if not kept["cap"] or sum(kept["cap"].values()) != cap_table.TOTAL:   # a broken table: the founder owns it all
+        kept["cap"] = {cap_table.player(co["founder"]): cap_table.TOTAL}
     kept["grants"] = {k: g for k, g in kept["grants"].items()
                       if isinstance(g, dict) and is_count(g.get("bp")) and is_count(g.get("tick"))}
     kept["offers"] = {k: o for k, o in kept["offers"].items()
-                      if isinstance(o, dict) and o.get("role") in config.ROLES and is_count(o.get("bp"))}
+                      if isinstance(o, dict) and o.get("role") in config.ROLES and is_count(o.get("bp"))
+                      and is_number(o.get("at", 0))}
     kept["seen"] = [k for k in kept["seen"] if isinstance(k, str)]
     kept["rounds"] = [r for r in kept["rounds"] if isinstance(r, dict)]
-    for field in ("cash", "revenue", "burn", "valuation", "last_post", "peak", "raised"):
+    kept["angel_in"] = {k: v for k, v in kept["angel_in"].items() if isinstance(k, str) and is_count(v)}
+    for field in ("cash", "revenue", "burn", "valuation", "last_post", "peak", "raised"):   # (whole dollars)
         kept[field] = int(kept[field])
+    kept["sheet"] = clean_sheet(co.get("sheet"), cid, kept["stage"])   # 📄 an open term sheet survives a restart (a pitch doesn't)
     return kept
+
+
+SHEET_NUMBERS = ("amount", "post", "bp", "fair", "expires")
+
+
+def clean_sheet(sheet, cid, stage):
+    if not (isinstance(sheet, dict) and isinstance(sheet.get("id"), str) and isinstance(sheet.get("investor"), str)
+            and sheet.get("company") == cid and sheet.get("stage") == stage and stage in config.ROUNDS
+            and all(is_number(sheet.get(k)) and sheet[k] >= 0 for k in SHEET_NUMBERS) and sheet["post"] > 0):
+        return None
+    return {**sheet, "amount": int(sheet["amount"]), "post": int(sheet["post"]), "bp": int(sheet["bp"]),
+            "countered": sheet.get("countered") is True}

@@ -108,6 +108,9 @@
 
 🏢 Ventures
   /company [found name sector | action | info name ...] 🏢 your startup: found it, grow it, raise money
+  /pitch [send | stop | your words] 🎤 pitch an investor for your next round
+  /offer [accept | decline | counter valuation] 📄 answer a term sheet (the CEO)
+  /invest company tokens | cancel company 😇 angel-invest your 🪙 in an early startup
   /ventures [board | graveyard]    🦄 the startup boards
 
 👥 Open a group's chat to see its commands too (kick, mute, bank, leave...).

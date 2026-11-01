@@ -319,7 +319,49 @@ Server admins only (the password comes from the Keychain item `hashbrown-admin` 
 |---|---|
 | `/war [group \| accept group]` | Your group against another ⚔️: an admin declares `/war group`, their admin answers `/war accept group` within 10 minutes, `/war` alone shows the score |
 
+### 🏢 Ventures (the startup game)
+
+| Command | What it does |
+|---|---|
+| `/company found name sector` | Found a startup (200 🪙, into the public fund; sectors `ai`, `cyber`, `hardware`, `saas`, `game`). It's a private group with $50K of founders' savings. One company at a time |
+| `/company` | Your company: cash, burn, MRR, runway, customers, quality, hype, reputation, team, today's action points, what the next round needs |
+| `/company actions` | Today's actions with their cost in action points (⚡) and dollars, and why one isn't possible |
+| `/company build` · `hire engineer\|sales\|marketer` · `layoff kind [n]` · `marketing` · `sales` · `pr` · `pivot [sector]` | Spend action points: quality, staff, hype, customers, reputation; a pivot (3 ⚡, once per stage) starts over on a new idea |
+| `/company invite name role [equity%]` | Invite a co-founder (`cto`, `cfo`, `cmo`, `coo`) or an `engineer` / `designer` / `sales`; C-level seats and equity only from the CEO. They accept with `/join name` |
+| `/company role name role` · `grant name percent` · `ceo name` · `fire name` · `leave` | The team: change a role, give shares from your own, hand over the CEO seat, let someone go. Grants vest 25% at once, then day by day for 28 days; leaving keeps the vested part |
+| `/company shutdown name` | Close it for good (it goes to the graveyard) |
+| `/company report` · `captable` · `team` · `info name` | The last daily report, who owns what, the team, anyone's public profile |
+| `/pitch` | Pitch an investor (2 ⚡, needs the next round's milestones, 3 per stage). Talk in the company chat, then `/pitch send`; the investor asks 2 questions, then makes an offer or passes. `/pitch your words` adds and sends in one go, `/pitch stop` ends it |
+| `/offer` · `/offer accept` · `/offer decline` · `/offer counter 15M` | The term sheet (the CEO answers; one counter; it expires in 24 h) |
+| `/company bridge` | A small bridge round from Bridge Capital, once per stage, when on fumes or out of pitches |
+| `/invest company tokens` | Angel investing: your 🪙 (50 to 1,000 per company, 500 a day) for shares of an Idea, Pre-seed or Seed company; held until its CEO answers (`/company angels`, `/company angel accept name`), back to you after 24 h |
+| `/ventures` · `/ventures graveyard` | The 🦄 Unicorn Board and the startup graveyard |
+
 **New accounts** need a username of 3-16 English *or* Hebrew letters, digits or `_` (not both alphabets, so nobody can hide a look-alike letter in a name) and a password of 6 to 64 characters. Older accounts keep their names and passwords.
+
+## Hashbrown Ventures 🏢
+
+A startup game that lasts a season (28 game days). The whole design, with every number, is in [VENTURES.md](VENTURES.md).
+
+- **Found** a company in one of 5 sectors. It's a private group: its chat is your office. Company money is game
+  dollars ($), never tokens: tokens only go in through the founding fee and angel investing.
+- **Every day** the company has 3 action points (+1 for every other player of the team who is online that day, up to
+  6). They don't stack: use them or lose them.
+- **At 21:00 Israel time** the daily tick runs: salaries and the office are paid, customers come and go, the paper
+  valuation moves, and a 📊 report lands in the company chat. Missed days while the server was off don't count.
+- **Out of cash** after a tick = 🚨 on fumes: raise money or cut costs before the next tick, or the company dies and
+  goes to the ⚰️ graveyard (`/ventures graveyard`).
+- **Funding rounds:** Idea → Pre-seed → Seed → Series A → B → C → IPO. Each needs milestones (MRR, quality,
+  reputation, 4 days in the stage). `/pitch` an investor: six characters, from a friendly angel to a tough partner.
+  With Hashbrown awake they react to your words; the numbers always come from the server (just meeting the
+  milestones isn't enough: beat them, and pitch well). The Seed round adds a 10% option pool.
+- **Angels:** friends can `/invest` tokens for shares in early companies; the CEO says yes or no.
+- **Without Hashbrown** the investors ask their own questions and use the formula, so the game works the same.
+- **A test server:** start it with `HASHBROWN_VENTURES_MIN_AGE_HOURS=0 python3 server.py` so brand-new accounts can
+  found companies and invest at once (normally an account must be 24 hours old), and type `ventures tick` in the
+  server window to run a game day right away.
+- **The balance simulation:** `python3 -m chatserver.ventures_balance` plays 20 seasons of 20 bot companies with the
+  real formulas and prints how many die, raise and go public, and how many tokens the exits would create.
 
 ## Games and more 🎲
 
@@ -412,6 +454,7 @@ Type these in the server window:
 - `list`: who's online
 - `save`: save data now
 - `lag 300`, `loss 10`, `lab`, `lab off`: the network lab
+- `ventures tick`: 🏢 run one Hashbrown Ventures game day now (for testing)
 
 ## How it works (short version)
 
@@ -465,6 +508,12 @@ Every packet is **one JSON object on one line**, ending with `\n` (newline-delim
 | server → client | `file` | `from`, `filename`, `data` |
 | both ways | `file_start`, `file_chunk`, `file_ack`, `file_end`, `file_cancel` | big files in 1 MB chunks; the next chunk only after its `file_ack` (flow control) |
 | client → server | `get_groups` / `get_group` / `groups_closed` | (none) / `group` (its key) / (none): the website's Groups screen opens, looks at one group, closes |
+| server → client | `company_event` | 🏢 only to apps with `ventures` in their login `features`: `company` (its id), `kind` (`founded`, `report`, `round`, `death`), `text` (the same text also arrives as a normal line) |
+| server → client | `pitch` | 🎤 `ventures` apps: `company`, `state` (`waiting`, `thinking`, `question`, `decided`, `ended`), `investor` {`id`, `name`, `firm`, `emoji`}, `turn`, `questions`, `chars` |
+| server → client | `chat` + `investor` | 🎤 the investor's lines in the company chat are chat packets with an optional `investor` field |
+| server → client | `msg` + `term_sheet` | 📄 the term sheet card: `id`, `investor`, `round`, `amount`, `equity_bp` (100 = 1%), `pre`, `post`, `expires`, `can_counter` |
+| server → client | `term_sheet_closed` | 📄 `id`, `why` (`accepted`, `declined`, `expired`, `walked`) |
+| server → client | `msg` + `company_invite` | 🏢 on a group-invite card to a company: `company`, `name`, `sector`, `role`, `equity_bp` |
 | server → client | `friends` | 🤝 only to apps with `friends` in their login `features`, whenever it changes (checked every second): `friends` [{`name`, `online`, `status`, `room`, `playing`}], `requests` (names who asked you), `sent` (names you asked), `groups` [{`key`, `name`}] you're an admin of |
 | server → client | `groups` / `group_info` | one card per group / one group's details, sent when asked and once a second while the screen is open and something changed. A private group you're not in shows only its name, emoji and size; `bank_details` only goes to members, `admin` only to that group's admins |
 | client → server | `get_profile` / `change_password` | `name` / `old`, `new`: the server answers `profile` (`profile`, `mine`) |

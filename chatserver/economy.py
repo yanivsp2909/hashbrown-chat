@@ -16,10 +16,12 @@ def account_defaults():
 
 
 def total_supply():
-    """Every token in the game: wallets, savings, group banks, the fund, the jackpot and Hashbrown's tips."""
+    """Every token in the game: wallets, savings, group banks, the fund, the jackpot, Hashbrown's tips and the
+    🏢 angel offers waiting for an answer (those tokens are held, not gone)."""
     wallets = sum(a.get("tokens", 0) + a.get("savings", 0) for a in state.accounts.values())
+    held = sum(o.get("tokens", 0) for o in (state.ventures or {}).get("angels", {}).values())
     return wallets + sum(g.get("bank", 0) for g in state.groups.values()) + state.public_fund + state.jackpot \
-        + state.hashbrown_tokens
+        + state.hashbrown_tokens + held
 
 
 def to_saved():

@@ -116,6 +116,8 @@ class FakeFoundry:
       break_with        ..."failed" (response.failed event), "error" (error event), "incomplete"
                         or "drop" (just hang up)
       delay             seconds to wait before answering; piece_delay between pieces
+      answers           a list of texts: each request takes the next one (then `answer` again)
+      reject_text_format  answer 400 to requests that ask for a JSON format ("text")
     """
 
     def __init__(self):
@@ -125,6 +127,8 @@ class FakeFoundry:
         self.delay = 0
         self.piece_delay = 0
         self.reject_reasoning = False
+        self.reject_text_format = False
+        self.answers = []
         self.break_after = None
         self.break_with = "failed"
         self.requests = []  # (headers, body) of every request
@@ -150,6 +154,8 @@ class FakeFoundry:
                 fake.requests.append((dict(self.headers), body))
                 time.sleep(fake.delay)
                 status = 400 if fake.reject_reasoning and "reasoning" in body else fake.status
+                if fake.reject_text_format and "text" in body:
+                    status = 400
                 if status != 200:
                     data = json.dumps({"error": {"message": "boom", "type": "fake_error", "code": None}}).encode()
                     self.send_response(status)
@@ -167,7 +173,7 @@ class FakeFoundry:
                     pass
 
             def stream_answer(self):
-                pieces = fake.pieces if fake.pieces is not None else [fake.answer]
+                pieces = fake.pieces if fake.pieces is not None else [fake.answers.pop(0) if fake.answers else fake.answer]
                 number = 0
                 for number, piece in enumerate(pieces, 1):
                     if fake.break_after is not None and number > fake.break_after:

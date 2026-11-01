@@ -23,5 +23,6 @@ from chatserver import (  # noqa: F401  (importing them is what registers the co
     cmd_network,
     cmd_wars,
     cmd_company,
+    cmd_funding,
     cmd_ventures,
 )

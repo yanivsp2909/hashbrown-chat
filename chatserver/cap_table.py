@@ -36,6 +36,8 @@ def dilute(cap, holder, bp):
 
 def move(cap, giver, taker, bp):
     """Give `bp` from one holder to another (never more than the giver has)."""
+    if giver == taker:
+        return dict(cap)
     bp = max(0, min(bp, cap.get(giver, 0)))
     moved = {**cap, giver: cap.get(giver, 0) - bp, taker: cap.get(taker, 0) + bp}
     return normalize(moved)

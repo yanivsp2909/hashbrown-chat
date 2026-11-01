@@ -6,8 +6,11 @@ writes the news and invents events. A season lasts 28 game days (about 4 weeks);
 
 > **Status:** approved 2026-11-01 (decisions in section 16). Phase 1 and 2 in progress. Every number here is a starting value: the Phase 1 balance
 > simulation tunes them and the final values live in `chatserver/config.py`, section "ventures".
-> A quick model of these formulas (scratch, not committed) gave: careful bots reach IPO in about 45% of runs on
-> day 23-27, bots that hire everything die in ~30% of runs, idle bots stall at Seed or Series A.
+> **Balance simulation** (`python3 -m chatserver.ventures_balance`, 20 seasons x 20 bot companies x 30 days, the real
+> formulas): 25% die, 57% reach Seed or later, 0.9 IPOs a season, the richest company holds $223M. Exits (IPOs only
+> so far) pay ~4,500 🪙 a season on average and ~21,000 at most (after the 20% tax and the 5,000 cap per person); the
+> fund pays first, so new tokens average ~1,100 and peak at ~15,000 a season, under the 20,000 season cap. Acquisitions
+> and season-end payouts (Phase 4) will be added to the simulation then.
 
 ## 0. Design pillars
 
@@ -44,7 +47,7 @@ game pauses, the next tick is just the next day (no catch-up, nobody dies while 
 | Rule | Value |
 |---|---|
 | Fee | `FOUND_COST` 200 🪙 from the founder, into the public fund |
-| Start | cash $100,000 (founders' savings), quality 5, hype 10, reputation 50, customers 0, stage Idea |
+| Start | cash $50,000 (founders' savings, about a week of runway), quality 5, hype 10, reputation 50, customers 0, stage Idea |
 | Name | the group name rules (`rooms.valid_name`), unique among groups; becomes the company's group |
 | One company per person | `COMPANY_MAX_PER_PERSON` 1 as founder or member at a time (angel stakes in others are unlimited) |
 | Account age | 24 h (same rule as /give: no throwaway accounts) |
@@ -67,7 +70,7 @@ reused). The company record itself lives in `state.ventures["companies"]["c17"]`
 
 | Role | Who | Bonus | Can |
 |---|---|---|---|
-| 👑 CEO | the founder (transferable) | pitch rating +1 (the founder's vision) | everything: term sheets, invites, roles, equity, acquisitions, IPO, shutdown |
+| 👑 CEO | the founder (transferable) | the decisions | everything: term sheets, invites, roles, equity, acquisitions, IPO, shutdown |
 | 🛠️ CTO | one | build +20% | actions, pitch, invite |
 | 💰 CFO | one | burn −5%, term-sheet valuations +5% | actions, pitch, invite |
 | 📣 CMO | one | marketing +20%, hype decays 10% slower | actions, pitch, invite |
@@ -79,12 +82,16 @@ Players in the company: at most `TEAM_MAX_PLAYERS` 6. NPC staff (hired with acti
 ### 2.4 Joining, equity and leaving
 - `/company invite <name> <role> [equity%]` sends the existing group-invite card (an optional `company_invite`
   field: company, role, equity). `/join` accepts as today.
-- **Co-founder grants** move equity from the CEO's own stake; **employee grants** come from the option pool
-  (created at Seed). `/company grant <name> <percent>` later on.
-- **Vesting:** 25% of a grant at once, then 1/28 a game day up to 100%. Leaving (`/company leave`) or being let go
+- **Grants** (an invite with equity, or `/company grant`) always move equity from the CEO's own stake. The option pool
+  made at Seed is kept for later. The founder's starting stake is theirs from day one (it never vests away).
+- An invite's role and equity count only with the invite they were sent with (an older offer doesn't come back with
+  a plain `/invite`), and only the CEO offers a C-level seat or equity.
+- **Vesting:** 25% of a grant at once, then 1/28 a game day up to 100%; a later grant gets its own clock (mixed by
+  size). Every round shrinks the grants like the shares. Leaving (`/company leave`) or being let go
   (`/company fire <name>`) keeps the vested part; the rest goes back to the pool (or the CEO before Seed).
 - `/company ceo <name>` hands over the CEO seat (to a player member).
-- `/company shutdown <name>` (CEO, type the name): the company goes to the graveyard, "shut down by its founders".
+- `/company shutdown <name>` (only the CEO, typing the name): the company goes to the graveyard, "shut down by its founders".
+- A company takes people only by invite: no join requests, no `/approve`.
 
 ### 2.5 Action points (AP)
 - `AP_BASE` 3 a day, +1 per other player member who is online at any time that game day, at most `AP_MAX` 6. Refill at the tick; unused points are lost.
@@ -96,7 +103,7 @@ All money is in game dollars, stored as whole dollars, shown as $12.3K / $4.5M /
 
 | Number | Meaning | Start | Range |
 |---|---|---|---|
-| cash | the company bank (dollars, not 🪙) | $100K | below 0 = trouble |
+| cash | the company bank (dollars, not 🪙) | $50K | below 0 = trouble |
 | burn / day | salaries + office + sector costs | $7K | |
 | revenue / day | customers × price (sector) | $0 | "MRR" in reports |
 | runway | cash ÷ (burn − revenue), in days | 14 | ∞ when profitable |
@@ -121,17 +128,17 @@ All money is in game dollars, stored as whole dollars, shown as $12.3K / $4.5M /
 | Series C | $400K | $800K | 200 | 20 | 14 |
 | Public | $800K | $1.5M | 400 | 20 | 20 |
 
-`SALARY` $12K a day per NPC hire, `FOUNDER_PAY` $5K per player member, `HIRE_COST` $10K one-time per hire.
+`SALARY` $14K a day per NPC hire, `FOUNDER_PAY` $5K per player member, `HIRE_COST` $10K one-time per hire.
 
 ### 3.2 Sector base numbers (Phase 1 uses only these; Phase 3 adds the special mechanics)
 
 | Sector | Customer word | Price / day (ARPU) | Base new / day | Churn / day | Cost of revenue | Valuation multiple |
 |---|---|---|---|---|---|---|
-| 🤖 AI Lab | API customers | $40 | 80 | 5% | 35% (compute) | 50× |
-| 🛡️ Cybersecurity | clients | $4,000 | 0.8 | 2% | 10% | 30× |
-| 📱 Hardware | units a day (demand) | $250 margin | 12 | 20% (demand fades) | in the margin | 10× |
-| 💻 SaaS | users | $10 | 300 | 6% | 10% | 25× |
-| 🎮 Game studio | players | $2 | 1,500 | 12% | 10% | 16× |
+| 🤖 AI Lab | API customers | $40 | 64 | 5% | 35% (compute) | 50× |
+| 🛡️ Cybersecurity | clients | $4,000 | 0.64 | 2% | 10% | 30× |
+| 📱 Hardware | units a day (demand) | $250 margin | 9.6 | 20% (demand fades) | in the margin | 10× |
+| 💻 SaaS | users | $10 | 240 | 6% | 10% | 25× |
+| 🎮 Game studio | players | $2 | 1,200 | 12% | 10% | 16× |
 
 Customers are kept as a decimal number and shown rounded (a cyber company with 0.8 new clients a day signs one
 client a day 80% of the time over a few days; the report shows whole clients).
@@ -160,7 +167,7 @@ For every live company, in this order, computed by a pure function `ventures_sim
 that returns a new company plus report lines:
 
 1. **Product:** quality += 0.4 × engineers^0.7 × (1 − quality/110).
-2. **Hype:** hype = hype × 0.85 (CMO: × 0.865) + marketers^0.6 × (1 − hype/120). Idle 3+ days (no action): hype × 0.5
+2. **Hype:** hype = hype × 0.85 (CMO: × 0.865) + marketers^0.6 × (1 − hype/120). Idle 3+ days (no action): hype × 0.5, churn × 2
    and reputation −2 a day ("investors smell a zombie").
 3. **Customers:** attract = (quality/50)^1.2 × (0.5 + hype/100) × (0.6 + reputation/125);
    new = base new × reach × (1 + 0.08 × sales^0.8) × attract × crowd × event factors × random(0.7, 1.3);
@@ -169,7 +176,7 @@ that returns a new company plus report lines:
 4. **Money:** revenue = customers × price; burn = staff × salary + players × founder pay + office + revenue ×
    cost of revenue + sector costs (CFO −5%); cash += revenue − burn.
 5. **Valuation:** ARR = revenue × 12; mark = ARR × multiple × (0.5 + quality/100) × (0.7 + hype/200) ×
-   (0.7 + reputation/170) × market mood; valuation = max(mark, last post-money × 0.6).
+   (0.7 + reputation/170) × market mood; valuation = max(mark, last post-money × 0.8).
 6. **Luck:** 10% a setback (customers −10..25%, reputation −3..10), 10% good luck (hype +5..20, reputation +2..6),
    template text. Phase 3 replaces this with the event system.
 7. **Death check** (section 5.1), then AP refill, a row in `venture_days` for the charts, and the daily report.
@@ -196,14 +203,14 @@ that returns a new company plus report lines:
 
 ### 6.1 The ladder
 
-| From | Raising | Milestones (all needed) + at least 3 game days in the stage | Typical raise | Post-money floor | Equity band |
+| From | Raising | Milestones (all needed) + at least 4 game days in the stage | Typical raise | Post-money floor | Equity band |
 |---|---|---|---|---|---|
 | Idea | Pre-seed | quality 15 | $500K | $3M | 8-20% |
 | Pre-seed | Seed | MRR $10K, quality 30 | $3M | $12M | 12-25% |
 | Seed | Series A | MRR $60K, quality 45, reputation 40 | $15M | $50M | 15-25% |
 | Series A | Series B | MRR $250K, quality 60, reputation 45 | $50M | $200M | 10-20% |
 | Series B | Series C | MRR $800K, quality 72, reputation 55 | $150M | $700M | 8-15% |
-| Series C | IPO | MRR $2.5M, quality 82, reputation 65, valuation ≥ $1B, revenue ≥ 80% of burn | sells 15% new shares | – | 15% |
+| Series C | IPO | MRR $2.5M, quality 82, reputation 65, valuation ≥ $1B, revenue ≥ 60% of burn | sells 15% new shares | – | 15% |
 
 The Seed round also creates a 10% option pool (pre-money, so it dilutes the founders, like real life).
 
@@ -230,7 +237,9 @@ fair post-money = max(floor, valuation) × (0.85 + 0.3 × score) × investor fac
 amount          = typical raise × (0.7 + 0.6 × score), kept in [0.5×, 1.5×] typical
 equity          = amount / post-money, kept in the stage's band (post-money is moved to fit)
 ```
-- score < `PASS_BELOW` 0.10: always a pass (the AI can't fund a company the numbers say no to).
+- score < `PASS_BELOW` 0.38: a pass. The pitch rating adds at most 0.10, so a company whose numbers alone score
+  below 0.28 always gets a pass, whatever the AI says (the no-AI rating goes up to 7 of 10). Just meeting the
+  milestones isn't enough: `/company` shows the **investor interest** (🥶 low / 🙂 fair / 🔥 hot) so players know.
 - The fallback pitch rating (no AI): 3 + up to 3 for length (40-600 characters), +2 if it names the customer and
   a number, +2 if it answers the questions asked; 0 for an empty pitch.
 
@@ -296,10 +305,11 @@ Expires in 24 h. CEO: /offer accept · /offer decline · /offer counter <valuati
 
 ### 6.7 Bridge round
 When the pitches for a stage are used up (or the company is on fumes): `/company bridge`, once per stage, formula
-only: "Bridge Capital" gives 0.3 × the stage's typical raise at 0.7 × the floor valuation. Doesn't move the stage.
+only: "Bridge Capital" gives 0.15 × the stage's typical raise at 0.7 × the floor valuation. Doesn't move the stage.
 
 ### 6.8 Angel investing (players)
-- `/invest <company> <tokens>`: an offer to put personal 🪙 into a company at Idea, Pre-seed or Seed.
+- `/invest <company> <tokens>`: an offer to put personal 🪙 into a company at Idea, Pre-seed or Seed. The price is fixed
+  when the offer is made; `/invest cancel <company>` takes a waiting offer back.
 - The tokens are **held** (like an auction bid) until the CEO answers (`/company angels`, `/company angel accept
   <name>` / `decline`) or 24 h pass (returned).
 - On accept: the tokens go to the **public fund**; the company gets `ANGEL_DOLLARS_PER_TOKEN` $1,000 each; the angel
