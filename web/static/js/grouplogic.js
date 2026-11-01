@@ -37,6 +37,20 @@ export function packetsFor(action, group, ctx = {}) {
   return [FOR_THE_GROUP.has(action) ? { ...packet, group: group.key } : packet];
 }
 
+/** 📨 Names for the Invite picker: people online, then names this page has seen; never members or you. */
+export function inviteCandidates(online, known, members, me) {
+  const taken = new Set([...(members || []), me].map((n) => String(n || "").toLowerCase()));
+  const names = [...(Array.isArray(online) ? online.map((p) => p?.name) : []), ...(Array.isArray(known) ? known : [])];
+  const picked = [];
+  for (const name of names) {
+    const lower = String(name || "").toLowerCase();
+    if (!name || typeof name !== "string" || taken.has(lower)) continue;
+    taken.add(lower);
+    picked.push(name);
+  }
+  return picked;
+}
+
 export const isMember = (role) => role === "owner" || role === "admin" || role === "member";
 export const isAdmin = (role) => role === "owner" || role === "admin";
 

@@ -3,6 +3,7 @@
 import { $, clear, el, str } from "./dom.js";
 import { sendLine } from "./api.js";
 import { getState, setState, subscribe } from "./store.js";
+import * as GI from "./groupinvites.js";
 
 export const INVITE_LIFETIME = 180_000;  // the server forgets a challenge after 3 minutes
 const LOW_TIME = 30_000;
@@ -33,6 +34,41 @@ function removeInvite(from, at) {
 /** The server's {"type": "invite_closed"}: that challenge was answered (maybe by typing /accept), or its sender left. */
 export function closeInvite(from) {
   removeInvite(from);
+}
+
+// ----- 📨 group invites: they last a day, so they stay on the rail (after a reload too) until answered or over
+
+const nowSeconds = () => Date.now() / 1000;
+const MAX_TIMER_MS = 2 ** 31 - 1;   // setTimeout can't wait longer (about 24.8 days)
+
+export function addGroupInvite(invite) {
+  if (invite.expires <= nowSeconds()) return;
+  setState({ groupInvites: GI.withInvite(getState().groupInvites, invite) });
+  const wait = Math.min(MAX_TIMER_MS, (invite.expires - nowSeconds()) * 1000 + 500);
+  setTimeout(() => setState({ groupInvites: GI.stillOpen(getState().groupInvites, nowSeconds()) }), wait);
+}
+
+/** {"type": "invite_closed", "group": key}: answered (here, by typing, or on another device), or over. */
+export function closeGroupInvite(group) {
+  setState({ groupInvites: GI.withoutInvite(getState().groupInvites, group) });
+}
+
+function groupInviteTicket(invite) {
+  const answer = (word) => async () => {
+    closeGroupInvite(invite.group);
+    const error = await sendLine(GI.answerLine(invite, word));
+    if (error) addGroupInvite(invite);   // didn't get through: the ticket comes back
+  };
+  return ticket(`group-invite:${invite.group}`, {
+    title: `📨 ${invite.from} invites you`,
+    lines: [el("strong", { dir: "auto", text: invite.name }), GI.timeLeft(invite.expires, nowSeconds())],
+    actions: [
+      el("button", { class: "btn btn-primary", type: "button", onclick: answer("accept"), text: "Accept",
+        "aria-label": `Accept the invite to ${invite.name}` }),
+      el("button", { class: "btn btn-ghost", type: "button", onclick: answer("decline"), text: "Decline",
+        "aria-label": `Decline the invite to ${invite.name}` }),
+    ],
+  });
 }
 
 function ticket(key, { title, lines = [], actions = [], lit = false, stamp = null, drain = null, onclick = null }) {
@@ -113,11 +149,12 @@ function wordleTicket(wordle, openGame) {
 export function initRail({ openGame }) {
   let shown = null;
   subscribe((state) => {
-    const key = [state.invites, state.match, state.wordle];
+    const key = [state.invites, state.groupInvites, state.match, state.wordle];
     if (shown && key.every((part, i) => part === shown[i])) return;
     shown = key;
     clear(rail).append(
       ...state.invites.map(inviteTicket),
+      ...GI.stillOpen(state.groupInvites, nowSeconds()).map(groupInviteTicket),
       ...(state.match ? [matchTicket(state.match, openGame)] : []),
       ...(state.wordle ? [wordleTicket(state.wordle, openGame)] : []));
   });

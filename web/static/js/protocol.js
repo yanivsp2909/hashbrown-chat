@@ -5,7 +5,8 @@ import { sendLine } from "./api.js";
 import { getState, setState } from "./store.js";
 import * as chat from "./chat.js";
 import { receive } from "./files.js";
-import { addInvite, closeInvite } from "./rail.js";
+import { addGroupInvite, addInvite, closeGroupInvite, closeInvite } from "./rail.js";
+import { readInvite } from "./groupinvites.js";
 import { inviteFrom, isPresence, isWordleOver, matchResult, myBalance, parseHelp, parseOnline, renamed, welcomeNick } from "./patterns.js";
 import { clearPasswords, showLoginError } from "./login.js";
 import { noteTarget } from "./games/panel.js";
@@ -167,6 +168,8 @@ function onServerText(msg, live) {
   if (wordleOver) setState({ wordle: { ...wordle, result: text, state: wordle.state && { ...wordle.state, finished: true } } });
   const rename = renamed(text);
   if (rename && rename[0] === getState().nick) setNick(rename[1]);
+  const groupInvite = kind === "event" ? readInvite(msg.group_invite) : null;
+  if (groupInvite) addGroupInvite(groupInvite);   // 📨 a ticket with Accept / Decline (a replay too: it lasts a day)
   const challenger = kind === "event" ? inviteFrom(text) : null;
   if (challenger && live) addInvite(challenger, text);
   const actions = challenger && !live ? [  // live, the ticket has the buttons; after a reload there's no ticket
@@ -192,6 +195,7 @@ const INVITE_ENDS = { accepted: "✅ Accepted", declined: "👎 Declined", gone:
 
 /** {"type": "invite_closed", "from", "why"}: a challenge to you is over, so its ticket and buttons go. */
 function onInviteClosed(msg) {
+  if (typeof msg.group === "string") return closeGroupInvite(msg.group);   // 📨 a group invite, not a challenge
   const from = str(msg.from);
   closeInvite(from);
   const card = inviteCards.get(from);

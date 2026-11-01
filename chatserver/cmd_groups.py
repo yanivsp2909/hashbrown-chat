@@ -3,7 +3,7 @@
 """
 import time
 
-from chatserver import achievements, config, history, registry, rooms, state, storage
+from chatserver import achievements, config, history, invites, registry, rooms, state, storage
 
 
 @registry.command("/groups", "/groups", "list all groups", "👥 Groups")
@@ -76,8 +76,14 @@ def cmd_join(client, args):
         else:
             rooms.move_to_room(client, key)
         return
+    if invites.take(client, key, group):   # 📨 invited: straight in, private or not
+        storage.save_data()
+        rooms.move_to_room(client, key)
+        rooms.send_room_list(client.key)
+        return
     if not group["private"]:
         group["members"].append(client.key)
+        invites.withdraw(key, group, client.key, "accepted")
         storage.save_data()
         rooms.move_to_room(client, key)
         return
@@ -112,6 +118,7 @@ def cmd_leave(client, args):
     group["members"].remove(client.key)
     if client.key in group["admins"]:
         group["admins"].remove(client.key)
+    invites.withdraw(key, group, client.key)
     storage.save_data()
     if client.room == key:   # (a Groups screen button from another room: you stay where you are)
         rooms.move_to_room(client, "lobby")
@@ -179,6 +186,7 @@ def cmd_approve(client, args):
     key, group, target = found
     group["requests"].remove(target)
     group["members"].append(target)
+    invites.withdraw(key, group, target, "accepted")   # 📨 in now: a waiting invite is used up
     storage.save_data()
     rooms.send_room_list(target)
     rooms.tell(target, f"✅ You were accepted into {rooms.room_title(key)}! Type /join {group['name']}", "event")

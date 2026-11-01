@@ -18,7 +18,7 @@ import json
 import time
 import traceback
 
-from chatserver import bank_log, config, rooms, state, textutil
+from chatserver import bank_log, config, invites, rooms, state, textutil
 
 
 def role_of(group, key):
@@ -121,6 +121,7 @@ def details(key, viewer):
         shown["admin"] = {
             "requests": [rooms.nick(k) for k in group["requests"] if k in state.accounts],
             "banned": [rooms.nick(k) for k in group["banned"] if k in state.accounts],
+            "invites": invites.admin_list(group),   # 📨 [{name, hours_left}]
             "muted": [{"name": rooms.nick(who), "minutes": int((until - now) // 60) + 1}
                       for (room, who), until in state.mutes.items() if room == key and until > now and who in state.accounts],
         }

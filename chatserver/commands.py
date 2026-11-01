@@ -8,6 +8,7 @@ from chatserver import (  # noqa: F401  (importing them is what registers the co
     cmd_profile,
     cmd_poll,
     cmd_groups,
+    cmd_invites,
     cmd_group_admin,
     cmd_bank,
     cmd_tokens,

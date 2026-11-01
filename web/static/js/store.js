@@ -9,6 +9,7 @@ let state = Object.freeze({
   match: null,           // {state, text, result} for ttt / damka / math
   wordle: null,          // {state, text, result}
   invites: [],           // [{from, text, at}] challenges waiting for you
+  groupInvites: [],      // 📨 [{group, name, from, expires}] group invites waiting for you (groupinvites.js)
   knownNames: [],
   online: null,          // [{name, shown, room, playing}] from a quiet /users, null = not known yet
   balance: null,         // your tokens from a quiet /balance, null = not known yet

@@ -3,7 +3,7 @@
 """
 import time
 
-from chatserver import bank_log, group_stocks, history, registry, rooms, state, storage, wars
+from chatserver import bank_log, group_stocks, history, invites, registry, rooms, state, storage, wars
 
 
 # ----- 🛡️ Group admin
@@ -40,6 +40,7 @@ def admin_target(client, args, owner_only=False, must_be_member=True):
 
 def remove_from_group(key, group, target):
     group["members"].remove(target)
+    invites.withdraw(key, group, target)   # 📨 an old invite mustn't bring them back
     if target in group["admins"]:
         group["admins"].remove(target)
     if target in state.online and state.online[target].room == key:
@@ -67,6 +68,7 @@ def cmd_ban(client, args):
             remove_from_group(key, group, target)
         if target in group["requests"]:
             group["requests"].remove(target)
+        invites.withdraw(key, group, target)   # 📨 a waiting invite ends too
         if target not in group["banned"]:
             group["banned"].append(target)
         storage.save_data()
@@ -133,6 +135,7 @@ def cmd_demote(client, args):
             client.say(f"{rooms.nick(target)} isn't an admin.")
             return
         group["admins"].remove(target)
+        invites.tidy(key, group)   # 📨 their invites end now (a new promotion doesn't bring them back)
         storage.save_data()
         rooms.notify_room(key, f"⬇️ {rooms.shown(target)} is no longer an admin")
 
@@ -146,6 +149,7 @@ def cmd_disband(client, args):
         client.say("👑 Only the owner can disband the group.", "error")
         return
     title = rooms.room_title(key)
+    invites.close_all(key, group)   # 📨 the invites' cards go
     for member in group["members"]:
         rooms.tell(member, f"💥 {title} was disbanded by its owner.", "event")
     if group["bank"]:

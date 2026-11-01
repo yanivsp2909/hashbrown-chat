@@ -25,6 +25,7 @@
   /create name [private]           new group (50 🪙)
   /join name                       enter a group (or ask to)
   /lobby                           go back to the lobby
+  /invites [decline group]         your group invites 📨 (/join group accepts one)
 
 🏦 Group bank
   /topgroups                       richest groups

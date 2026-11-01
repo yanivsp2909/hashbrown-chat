@@ -5,7 +5,7 @@ import json
 import os
 import time
 
-from chatserver import config, economy, profiles, qotd, reminders, state, textutil
+from chatserver import config, economy, invites, profiles, qotd, reminders, state, textutil
 
 
 # ---------------------------------------------------------------- saving / loading
@@ -41,6 +41,7 @@ def load_data():
     for key, group in state.groups.items():
         for field, default in new_group(key, "", False).items():
             group.setdefault(field, default)
+        group["invites"] = invites.clean_saved(group["invites"])   # 📨 never trust the file
     textutil.log(f"[SERVER] Loaded {len(state.accounts)} accounts and {len(state.groups)} groups")
     return True
 
@@ -91,4 +92,5 @@ def new_account(username, salt, digest):
 def new_group(name, owner, private):
     return {"name": name, "owner": owner, "admins": [], "members": [owner] if owner else [],
             "banned": [], "requests": [], "private": private, "bank": 0, "upgrades": [], "emoji": "",
-            "topic": ""}   # 📌 /pin
+            "topic": "",   # 📌 /pin
+            "invites": {}}   # 📨 invited login -> {"by": the admin, "at": time} (invites.py)

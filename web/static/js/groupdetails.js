@@ -209,6 +209,33 @@ function settingForm(info, { id, label, action, value, placeholder, needs, max, 
     locked ? el("p", { id: `${id}-why`, class: "field-hint", text: `Needs the ${needs} upgrade first.` }) : null);
 }
 
+const inviteNames = (info) => G.inviteCandidates(getState().online, getState().knownNames,
+  (Array.isArray(info.members_list) ? info.members_list : []).map((m) => str(m.name)), getState().nick);
+
+/** 📨 Invite someone (a name picker: who's online, then names this page has seen), and the invites still waiting. */
+function inviteBlock(info) {
+  const waiting = Array.isArray(info.admin.invites) ? info.admin.invites : [];
+  const submit = async (event) => {
+    event.preventDefault();
+    const field = $("gs-invite");
+    const target = field.value.trim();
+    if (!target) return field.focus();
+    if (await act("invite", info, { target })) field.value = "";
+  };
+  return el("div", { class: "gs-sub" },
+    el("form", { class: "gs-setting", onsubmit: submit },
+      el("label", { class: "field field-small", for: "gs-invite" }, el("span", { text: "📨 Invite someone (even to a private group)" })),
+      el("div", { class: "gs-setting-row" },
+        el("input", { id: "gs-invite", class: "input", list: "gs-invite-names", placeholder: "Their name", maxlength: "16",
+          autocomplete: "off", autocapitalize: "none", spellcheck: "false", "aria-describedby": "gs-invite-hint" }),
+        el("button", { class: "btn btn-primary", type: "submit", text: "Invite", "data-act": actKey("invite", info, "") })),
+      el("datalist", { id: "gs-invite-names" }, inviteNames(info).map((n) => el("option", { value: n }))),
+      el("p", { id: "gs-invite-hint", class: "field-hint", text: "They get a card with Accept and Decline. An invite lasts 24 hours." })),
+    waiting.length ? el("div", {}, el("h4", { class: "gs-h4", text: `📨 Waiting invites (${waiting.length})` }),
+      el("ul", { class: "gs-people" }, waiting.map((w) => el("li", { class: "gs-person" },
+        el("span", { dir: "auto", text: `${str(w.name)} · ${Number(w.hours_left) || 1} h left` }))))) : null);
+}
+
 function adminBlock(info) {
   const admin = info.admin;
   if (!admin) return null;
@@ -219,6 +246,7 @@ function adminBlock(info) {
     el("div", { class: "gs-tools", role: "group", "aria-label": who }, buttons));
   return block("gs-admin-title", "🛡️ Admin tools",
     el("p", { class: "gs-muted", text: `These act on ${name} from wherever you are: you stay in the chat you're in.` }),
+    inviteBlock(info),
     muted.length ? el("div", { class: "gs-sub" }, el("h4", { class: "gs-h4", text: "🔇 Muted" }),
       el("ul", { class: "gs-people" }, muted.map((m) => person(`${str(m.name)} · ${m.minutes} min left`,
         el("button", { class: "btn btn-ghost gs-small", type: "button", text: "Unmute", "aria-label": `Unmute ${str(m.name)}`,

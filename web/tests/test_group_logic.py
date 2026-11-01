@@ -58,6 +58,12 @@ class GroupLogicTestCase(unittest.TestCase):
                           "/pin clear", "/pin Movie night", "/personality", "/leave", "/disband"])
         self.assertTrue(all(len(p) == 1 and p[0]["group"] == "potatoes" for p in got))
 
+    def test_who_the_invite_picker_offers(self):
+        # 📨 people online first, then names seen, never members or you, each once (case doesn't matter)
+        self.assertEqual(out("""G.inviteCandidates(
+            [{name: "Bobby"}, {name: "Alice"}, {name: "Cat"}, {}], ["Dan", "bobby", "Eve"], ["Alice", "Eve"], "Alice")"""),
+            ["Bobby", "Cat", "Dan"])
+
     def test_an_unknown_action_sends_nothing(self):
         self.assertEqual(out('G.packetsFor("explode", {key: "potatoes", name: "Potatoes"}, {})'), [])
 
