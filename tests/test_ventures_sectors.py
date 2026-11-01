@@ -163,3 +163,11 @@ def test_events_come_at_their_hours(user, monkeypatch):
         assert ventures_events.maybe_run(datetime(2026, 11, 2, 12, 5))
         assert not ventures_events.maybe_run(datetime(2026, 11, 2, 12, 30))
         assert ventures_events.maybe_run(datetime(2026, 11, 2, 21, 0))   # (16 and 20 together, one event)
+
+
+def test_a_template_headline_says_the_real_effect():
+    event = {"kind": "market_mood", "direction": "down", "sector": "all", "company": "", "strength": 3, "days": 5}
+    fields, _ = ventures_events.effect(event)
+    assert fields == {"mood": 0.8} and "-20%" in ventures_events.template_headline(event, None)
+    outage = {"kind": "outage", "direction": "up", "sector": "all", "company": "c1", "strength": 2, "days": 1}
+    assert "6%" in ventures_events.template_headline(outage, {"name": "Spudly"})

@@ -343,6 +343,31 @@ Server admins only (the password comes from the Keychain item `hashbrown-admin` 
 
 A startup game that lasts a season (28 game days). The whole design, with every number, is in [VENTURES.md](VENTURES.md).
 
+**On the website** you never need a command: 🏢 **Ventures** in the menu opens the home (your company or a big
+"Start a company" button, the 🦄 Unicorn Board, 📰 news, your investments, the ⚰️ graveyard). "Start a company" is a
+three-step wizard (name, sector, found it). Your company's **HQ** shows cash and runway first, the other numbers with
+small charts, today's actions as buttons (with their cost in ⚡ action points and $), the funding timeline and what
+the next round needs, the cap table as a pie, the team with an Invite form, angel offers, the daily reports, your
+sector's own panel, and the 🎤 pitch room (the investor's questions like a chat, your answer box, then the term sheet
+with Accept / Decline / Counter). Other companies' pages have an Invest box. The website hides `/company`, `/pitch`,
+`/offer`, `/invest` and `/ventures` from `/help` and the autocomplete; they still work in `client.py`.
+
+**Sectors** each have their own actions (`/company <action>` in the terminal):
+- 🤖 **AI lab:** `compute [units]` (GPUs: serving 100 customers needs 1 a day; without them the API goes down),
+  `train` (a new model in 2 days), `release` (onto the 🧠 Spud-Bench leaderboard; the best labs get more customers;
+  a low safety score can cause a scandal), `safety`.
+- 🛡️ **Cybersecurity:** `launch agent|network|antivirus|bounty` (product lines bring clients), `improve <line>`,
+  `audit` and `bounty` (your own security: a breach at a client costs clients and reputation).
+- 📱 **Hardware:** `manufacture [units]` (a batch arrives in 2 days; you sell only what's in stock), `supply`
+  (cheaper units), `keynote` (a triumph doubles demand for 3 days, a flop hurts), `newmodel`.
+- 💻 **SaaS:** `priceup` / `pricedown`, `retention` (less churn for 5 days), `experiment`.
+- 🎮 **Game studio:** `develop`, `playtest`, `launch` (a hit or a flop), `liveops`, `dlc`.
+
+**Market events** come at 12:00, 16:00 and 20:00 (Israel time): Hashbrown picks one from a fixed list (demand up or
+down, GPU prices, a chip shortage, a hacking wave, a talent war, investors' mood, a company going viral, a scandal,
+an outage, new AI rules) and writes the headline; the server decides the effect. Without Hashbrown a template event
+comes instead. Everything lands in 📰 **Ventures News** (big headlines in the lobby too).
+
 - **Found** a company in one of 5 sectors. It's a private group: its chat is your office. Company money is game
   dollars ($), never tokens: tokens only go in through the founding fee and angel investing.
 - **Every day** the company has 3 action points (+1 for every other player of the team who is online that day, up to
@@ -455,6 +480,7 @@ Type these in the server window:
 - `save`: save data now
 - `lag 300`, `loss 10`, `lab`, `lab off`: the network lab
 - `ventures tick`: 🏢 run one Hashbrown Ventures game day now (for testing)
+- `ventures event`: 🌪️ a market event now (for testing)
 
 ## How it works (short version)
 
@@ -508,6 +534,10 @@ Every packet is **one JSON object on one line**, ending with `\n` (newline-delim
 | server → client | `file` | `from`, `filename`, `data` |
 | both ways | `file_start`, `file_chunk`, `file_ack`, `file_end`, `file_cancel` | big files in 1 MB chunks; the next chunk only after its `file_ack` (flow control) |
 | client → server | `get_groups` / `get_group` / `groups_closed` | (none) / `group` (its key) / (none): the website's Groups screen opens, looks at one group, closes |
+| client → server | `get_ventures` / `ventures_closed` | 🏢 the website's Ventures screen opens / closes (no fields) |
+| client → server | `get_company` | 🏢 `company` (an id like `c12`): that company's HQ (kept fresh while it's open) |
+| server → client | `ventures` | 🏢 the home: `season`, `me` (tokens, can_found, why), `mine`, `board`, `graveyard`, `news`, `investments` {held, waiting}, `invites`, `sectors`, `roles` |
+| server → client | `company` | 🏢 `company`: the public part for everyone (name, sector, stage, valuation, team, cap, timeline, rounds, news, you), plus for members `numbers`, `history` (chart rows), `ap`, `next_tick`, `actions`, `reports`, `milestones`, `pitch` (with `log`), `sheet`, `angels`, `invites_out`, `bridge`, `interest`, `sector_panel`, `events` |
 | server → client | `company_event` | 🏢 only to apps with `ventures` in their login `features`: `company` (its id), `kind` (`founded`, `report`, `round`, `death`), `text` (the same text also arrives as a normal line) |
 | server → client | `pitch` | 🎤 `ventures` apps: `company`, `state` (`waiting`, `thinking`, `question`, `decided`, `ended`), `investor` {`id`, `name`, `firm`, `emoji`}, `turn`, `questions`, `chars` |
 | server → client | `chat` + `investor` | 🎤 the investor's lines in the company chat are chat packets with an optional `investor` field |

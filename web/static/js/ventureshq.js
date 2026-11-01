@@ -37,7 +37,10 @@ export const hidden = (text) => el("span", { class: "visually-hidden", text });
 export function renderHq(co, home) {
   const names = (getState().online || []).map((p) => str(p.name)).filter((n) => !co.team.some((t) => t.name === n));
   const parts = [head(co), statusLine(co), el("datalist", { id: "vs-online-names" }, ...names.map((n) => el("option", { value: n })))];
-  if (co.member) {
+  if (co.member && co.status !== "alive") {   // ⚰️ a closed company: its story, no buttons
+    parts.push(lead(co), numbers(co), el("div", { class: "vs-columns" },
+      el("div", { class: "vs-col" }, reports(co), companyNews(co)), el("div", { class: "vs-col" }, funding(co), capTable(co), team(co, home))));
+  } else if (co.member) {
     parts.push(lead(co), numbers(co), el("div", { class: "vs-columns" },
       el("div", { class: "vs-col" }, today(co), pitchRoom(co), sectorPanel(co), reports(co)),
       el("div", { class: "vs-col" }, funding(co), capTable(co), team(co, home), angels(co), companyNews(co), dangerZone(co))));
@@ -143,9 +146,13 @@ function costText(a) {
 }
 
 /** One action: its name, what it does, the cost and its button(s). Sector panels use it too. */
+const LABELS = { pr: "PR", priceup: "Raise the price", pricedown: "Lower the price", newmodel: "New model",
+  liveops: "Live ops", dlc: "DLC", compute: "Buy compute", manufacture: "Manufacture" };
+
 export function actionRow(co, a, icon = ICONS[str(a.name)] || "•") {
   const name = str(a.name);
-  const label = `${cap1(name === "pr" ? "PR" : name)}`;
+  const label = LABELS[name] || cap1(name);
+  a = { ...a, why: str(a.why).startsWith("⚡") ? "No action points left today." : a.why };
   const key = `act:${name}`;
   const whyId = a.why ? `why-act-${name}` : undefined;
   let controls;
@@ -193,7 +200,8 @@ function funding(co) {
   const steps = el("ol", { class: "vs-timeline", "aria-label": "Funding stages", tabindex: "0" }, ...co.timeline.map((t) => el("li", {
     class: `vs-stage vs-stage-${str(t.state)}`, "aria-current": t.state === "now" ? "step" : undefined },
   el("span", { class: "vs-stage-dot", "aria-hidden": "true", text: t.state === "done" ? "✓" : "" }),
-  el("span", { class: "vs-stage-name", text: str(t.name) }), hidden(STAGE_WORDS[t.state] || ""))));
+  el("span", { class: "vs-stage-name", "aria-hidden": "true", text: str(t.name).replace("Series ", "") }),
+  hidden(`${str(t.name)}${STAGE_WORDS[t.state] || ""}`))));
   const needs = co.member && co.milestones.length ? el("ul", { class: "vs-needs", "aria-label": "What the next stage needs" },
     ...co.milestones.map((m) => el("li", { class: m.ok ? "ok" : "" }, hidden(m.ok ? "Done: " : "Not yet: "), str(m.text)))) : null;
   const rounds = co.rounds.length ? el("ul", { class: "vs-list vs-rounds" }, ...co.rounds.map((r) => el("li", {},
@@ -203,7 +211,7 @@ function funding(co) {
     el("h3", { id: "vs-funding", class: "gs-h3", text: "🧭 Funding" }), steps,
     needs ? el("h4", { class: "gs-h4", text: "The next round needs" }) : null, needs,
     co.member && co.interest && co.interest.text ? el("p", { class: `vs-interest vs-interest-${str(co.interest.level)}`, text: `Investor interest: ${str(co.interest.text)}` }) : null,
-    rounds, co.member ? bridge(co) : null);
+    rounds, co.member && co.status === "alive" ? bridge(co) : null);
 }
 
 function bridge(co) {

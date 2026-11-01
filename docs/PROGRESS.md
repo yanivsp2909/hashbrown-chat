@@ -250,16 +250,16 @@ The full design and the phased plan are in `docs/VENTURES.md`.
 
 | # | Step | Status |
 |---|---|---|
-| A1 | 🏢 Ventures sidebar entry | not started |
-| A2 | Ventures home: my company / Start button, Unicorn Board, graveyard, news, my investments | not started |
-| A3 | "Start a company" wizard (name → sector cards → cost → Found, clear errors) | not started |
-| A4 | Company HQ: numbers + charts, today's actions, reports, team + invite, cap table pie, funding timeline, pitch room + term sheet, angels, sector panel slot | not started |
-| A5 | Data: `company` / `ventures` packets pushed on change; buttons send the existing commands | not started |
-| A6 | Website hides /company /pitch /offer /invest from autocomplete and /help | not started |
+| A1 | 🏢 Ventures sidebar entry | done: 🏢 Ventures in the sidebar (aria-expanded, closes the Groups screen and back) |
+| A2 | Ventures home: my company / Start button, Unicorn Board, graveyard, news, my investments | done: home with my company / Start a company (disabled with the reason), Unicorn Board, news, my investments + waiting offers, graveyard, invite tickets |
+| A3 | "Start a company" wizard (name → sector cards → cost → Found, clear errors) | done: three steps (name with the server's rule, sector radio cards with spice level, cost and what happens next); errors in the wizard; founding opens the HQ |
+| A4 | Company HQ: numbers + charts, today's actions, reports, team + invite, cap table pie, funding timeline, pitch room + term sheet, angels, sector panel slot | done: lead plate (cash + runway + chart), number tiles with charts, Today (AP dots, actions with costs and reasons), funding rail + milestones + interest + bridge, cap pie + table, team + invite form, angels, reports, pitch room (conversation, answer box, term sheet ticket with Accept / Decline / Counter, confirms), danger zone; outsiders: public numbers + Invest box |
+| A5 | Data: `company` / `ventures` packets pushed on change; buttons send the existing commands | done: get_ventures / get_company / ventures_closed -> ventures / company, pushed once a second when a record changed (and every 10 s); buttons send the existing commands |
+| A6 | Website hides /company /pitch /offer /invest from autocomplete and /help | done: hideVenturesHelp / withoutScreenCommands in protocol.js (client.py unchanged) |
 | A7 | Step A checks: tests, web tests, balance, Chrome (two logins, clicks only), code-reviewer, a11y-architect, impeccable-finish-reviewer, docs, push | not started |
-| B1 | Sector mechanics + HQ panels (AI lab, cyber, hardware, SaaS, game studio) | not started |
-| B2 | AI market events (fixed list, templates), a few a day | not started |
-| B3 | 📰 Ventures News (feed on the website + lobby) | not started |
+| B1 | Sector mechanics + HQ panels (AI lab, cyber, hardware, SaaS, game studio) | done: ventures_sectors.py (pure) + HQ sector panels (venturessector.js); sector actions in the menu; bots play them |
+| B2 | AI market events (fixed list, templates), a few a day | done: ventures_events.py, 11 kinds, strength 1-3, at 12/16/20 Israel time, AI JSON checked + template fallback; console `ventures event` |
+| B3 | 📰 Ventures News (feed on the website + lobby) | done: ventures_news.py (feed in chat_data.json, all in history.db venture_news), lobby line + optional AI line for big ones; home + HQ news |
 | B4 | Step B checks + push | not started |
 | C1 | Market share per sector, partnerships, poaching | not started |
 | C2 | Acquisitions (offer, accept, decline) | not started |

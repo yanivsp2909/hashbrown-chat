@@ -149,11 +149,15 @@ def hit_now(event, company):
 
 
 def template_headline(event, company):
-    part = int(STRENGTH[event["strength"]] * 100)
+    fields, _ = effect(event)   # (the headline says exactly what the effect does)
+    factor = next(iter(fields.values()), 1 + STRENGTH[event["strength"]])
+    part = round(abs(factor - 1) * 100)
+    if event["kind"] == "outage":
+        part = round(STRENGTH[event["strength"]] * 25)
     up = event["direction"] == "up"
     return KINDS[event["kind"]][2].format(
         sector=config.SECTORS.get(event["sector"], {}).get("name", "startups"), company=company["name"] if company else "a startup",
-        pct=part if event["kind"] != "outage" else part // 4, days=event["days"], points={1: 10, 2: 20, 3: 30}[event["strength"]],
+        pct=part, days=event["days"], points={1: 10, 2: 20, 3: 30}[event["strength"]],
         updown="prices jump" if up else "prices drop", sign="+" if up else "-", mood="excited" if up else "nervous")
 
 
