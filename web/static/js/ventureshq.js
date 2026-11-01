@@ -65,6 +65,8 @@ function head(co) {
 function statusLine(co) {
   if (co.status === "dead") return el("p", { class: "vs-banner vs-banner-dead", text: `⚰️ ${str(co.name)} died: ${str(co.cause)}.` });
   if (co.status === "shutdown") return el("p", { class: "vs-banner vs-banner-dead", text: `🪦 ${str(co.name)} was shut down.` });
+  if (co.status === "acquired") return el("p", { class: "vs-banner vs-banner-dead", text: `🤝 ${str(co.name)} was ${str(co.cause)}. A happy ending!` });
+  if (co.status === "ended") return el("p", { class: "vs-banner vs-banner-dead", text: `🏛️ ${str(co.name)}'s season is over (${str(co.cause)}).` });
   if (co.fumes) return el("p", { class: "vs-banner vs-banner-fumes",
     text: "🚨 Out of cash: on fumes! Raise money (pitch or bridge) or cut costs before the next game day, or the company dies." });
   const events = Array.isArray(co.events) ? co.events : [];
