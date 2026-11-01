@@ -7,10 +7,11 @@ writes the news and invents events. A season lasts 28 game days (about 4 weeks);
 > **Status:** approved 2026-11-01 (decisions in section 16). Phase 1 and 2 in progress. Every number here is a starting value: the Phase 1 balance
 > simulation tunes them and the final values live in `chatserver/config.py`, section "ventures".
 > **Balance simulation** (`python3 -m chatserver.ventures_balance`: 20 seasons of 20 bot companies over 28 game days,
-> with the real formulas, sectors, the formula investor, IPOs, acquisitions and season-end payouts): 24% die, 60% reach
-> Seed or later, about 1.15 IPOs and 2 acquisitions a season, the richest company holds about $250M. Exits pay ~8,000 🪙
-> a season on average (~17,000 at most) after the 20% tax and the 5,000 cap per person; the fund pays first, so new
-> tokens average ~1,600 a season and peak at ~9,000, well under the 20,000 season cap (nothing ever waited).
+> with the real formulas, sectors, the formula investor, IPOs, acquisitions and season-end payouts), after the change
+> to 6 action points a day (each action about half as strong): 26% die, 60% reach Seed or later, about 1.15 IPOs and
+> 1.8 acquisitions a season, the richest company holds about $235M. Exits pay ~8,600 🪙 a season on average (~15,500 at
+> most) after the 20% tax and the 5,000 cap per person; the fund pays first, so new tokens average ~1,600 a season and
+> peak at ~7,100, well under the 20,000 season cap (nothing ever waited).
 
 ## 0. Design pillars
 
@@ -94,7 +95,8 @@ Players in the company: at most `TEAM_MAX_PLAYERS` 6. NPC staff (hired with acti
 - A company takes people only by invite: no join requests, no `/approve`.
 
 ### 2.5 Action points (AP)
-- `AP_BASE` 3 a day, +1 per other player member who is online at any time that game day, at most `AP_MAX` 6. Refill at the tick; unused points are lost.
+- `AP_BASE` 6 a day, +1 per other player member who is online at any time that game day, at most `AP_MAX` 9 (changed
+  from 3 and 6 on 2026-11-01; every action got about half as strong, see section 4). Refill at the tick; unused points are lost.
 - Any player member may spend them. Each action says who did it in the company chat.
 
 ## 3. The numbers
@@ -120,13 +122,13 @@ All money is in game dollars, stored as whole dollars, shown as $12.3K / $4.5M /
 
 | Stage | Office / day | Marketing cost | Staff max | Hire batch | Reach |
 |---|---|---|---|---|---|
-| Idea | $2K | $5K | 2 | 1 | 1.0 |
-| Pre-seed | $5K | $10K | 5 | 1 | 1.2 |
-| Seed | $15K | $30K | 12 | 2 | 2 |
-| Series A | $50K | $100K | 30 | 5 | 4 |
-| Series B | $150K | $300K | 80 | 10 | 8 |
-| Series C | $400K | $800K | 200 | 20 | 14 |
-| Public | $800K | $1.5M | 400 | 20 | 20 |
+| Idea | $2K | $2.5K | 2 | 1 | 1.0 |
+| Pre-seed | $5K | $5K | 5 | 1 | 1.2 |
+| Seed | $15K | $15K | 12 | 2 | 2 |
+| Series A | $50K | $50K | 30 | 5 | 4 |
+| Series B | $150K | $150K | 80 | 10 | 8 |
+| Series C | $400K | $400K | 200 | 20 | 14 |
+| Public | $800K | $750K | 400 | 20 | 20 |
 
 `SALARY` $14K a day per NPC hire, `FOUNDER_PAY` $5K per player member, `HIRE_COST` $10K one-time per hire.
 
@@ -150,16 +152,17 @@ Shared by all sectors (Phase 1). Every action costs AP and sometimes cash, and i
 
 | Action | AP | Cash | Effect |
 |---|---|---|---|
-| `build` | 1 | – | quality += 5 × (1 + 0.15 × √engineers) × (1 − quality/110) (CTO +20%) |
+| `build` | 1 | – | quality += 2.5 × (1 + 0.15 × √engineers) × (1 − quality/110) (CTO +20%) |
 | `hire <engineer\|sales\|marketer>` | 1 | $10K each | + hire batch of that kind (up to staff max) |
 | `layoff <kind> <n>` | 1 | $12K each (severance) | staff −n, reputation −3 |
-| `marketing` | 1 | marketing cost | hype += 15 × (1 − hype/120) (CMO +20%) |
-| `sales` | 1 | – | customers += base new × reach × 0.5 × (1 + 0.1 × √sales staff) |
-| `pr` | 1 | $5K × reach | reputation += 4 × (1 − reputation/110) |
-| `pivot [sector]` | 3 | – | once per stage: quality ×0.5, hype 10, customers ×0.3, reputation −5, may change sector |
-| `pitch` | 2 | – | starts a pitch (section 5) |
+| `marketing` | 1 | marketing cost | hype += 7.5 × (1 − hype/120) (CMO +20%) |
+| `sales` | 1 | – | customers += base new × reach × 0.25 × (1 + 0.1 × √sales staff) |
+| `pr` | 1 | $2.5K × reach | reputation += 2 × (1 − reputation/110) |
+| `pivot [sector]` | 5 | – | once per stage: quality ×0.5, hype 10, customers ×0.3, reputation −5, may change sector |
+| `pitch` | 3 | – | starts a pitch (section 5) |
 
-Sector actions (Phase 3) are listed in section 6.
+Sector actions (Phase 3) are listed in section 7. Their gains (safety, audits, product levels, game development,
+playtests, live ops, DLC, supplier deals) are multiplied by `SECTOR_ACTION_STRENGTH` 0.5 since the day has 6 points.
 
 ## 5. The daily tick (formulas)
 
@@ -196,7 +199,7 @@ that returns a new company plus report lines:
 📊 Day 12 · Spudly (💻 SaaS, Seed)
 💵 Cash $1.24M (−$84K) · 🔥 burn $96K/day · 📈 MRR $45.2K (+6%) · ⏳ runway 14 days
 👥 4,512 users (+380, churn 4.1%) · ⭐ quality 47 · 📣 hype 32 · 🤝 reputation 55 · 💎 $18.4M
-⚡ 4 action points today. Next round (Series A) needs: MRR $60K (now $45.2K) ✅ quality 45 ✅ reputation 40
+⚡ 7 action points today. Next round (Series A) needs: MRR $60K (now $45.2K) ✅ quality 45 ✅ reputation 40
 ```
 
 ## 6. Funding rounds: the heart of the game
@@ -210,7 +213,7 @@ that returns a new company plus report lines:
 | Seed | Series A | MRR $60K, quality 45, reputation 40 | $15M | $50M | 15-25% |
 | Series A | Series B | MRR $250K, quality 60, reputation 45 | $50M | $200M | 10-20% |
 | Series B | Series C | MRR $600K, quality 72, reputation 55 | $150M | $700M | 8-15% |
-| Series C | IPO | MRR $1.5M, quality 82, reputation 65, valuation ≥ $500M, revenue ≥ 60% of burn | sells 15% new shares | – | 15% |
+| Series C | IPO | MRR $1.5M, quality 86, reputation 70, valuation ≥ $500M, revenue ≥ 60% of burn | sells 15% new shares | – | 15% |
 
 The Seed round also creates a 10% option pool (pre-money, so it dilutes the founders, like real life).
 
@@ -237,14 +240,14 @@ fair post-money = max(floor, valuation) × (0.85 + 0.3 × score) × investor fac
 amount          = typical raise × (0.7 + 0.6 × score), kept in [0.5×, 1.5×] typical
 equity          = amount / post-money, kept in the stage's band (post-money is moved to fit)
 ```
-- score < `PASS_BELOW` 0.38: a pass. The pitch rating adds at most 0.10, so a company whose numbers alone score
-  below 0.28 always gets a pass, whatever the AI says (the no-AI rating goes up to 7 of 10). Just meeting the
+- score < `PASS_BELOW` 0.26: a pass. The pitch rating adds at most 0.10, so a company whose numbers alone score
+  below 0.16 always gets a pass, whatever the AI says (the no-AI rating goes up to 7 of 10). Just meeting the
   milestones isn't enough: `/company` shows the **investor interest** (🥶 low / 🙂 fair / 🔥 hot) so players know.
 - The fallback pitch rating (no AI): 3 + up to 3 for length (40-600 characters), +2 if it names the customer and
   a number, +2 if it answers the questions asked; 0 for an empty pitch.
 
 ### 6.4 The pitch (`/pitch`)
-1. `/pitch` (CEO or C-level, in the company chat; 2 AP). Needs the next milestones (otherwise it lists what's
+1. `/pitch` (CEO or C-level, in the company chat; 3 AP). Needs the next milestones (otherwise it lists what's
    missing). At most `PITCHES_PER_STAGE` 3 per stage, +1 every 5 game days while stuck. One pitch at a time.
 2. The investor arrives (template line, no AI): "🦈 Maya Stone (Granite Ventures): You have 10 minutes. What do
    you build, for whom, and why do you win? Write it in the chat, then `/pitch send`."
@@ -365,7 +368,7 @@ events and an HQ panel.
 
 ### 7.5 🎮 Game studio
 - **One game in development:** `develop` (1 AP: progress +10..20 × (1 + 0.1 × engineers), quality +), `playtest`
-  (1 AP: quality +6 and a hint of the reception), `launch` (2 AP, needs progress 100).
+  (1 AP: quality +3 and a hint of the reception), `launch` (2 AP, needs progress 100).
 - **Launch roll** = quality × 0.5 + hype × 0.4 + random(−25, 25): ≥ 75 hit (players +5 × base × reach, $20 a new
   player once, news), < 40 flop. A live game loses 12% of players a day.
 - **Live ops** (`liveops`, 1 AP): decay halved for 3 ticks, players +5%. **DLC** (`dlc`, 1 AP, $20K × reach):
@@ -436,7 +439,7 @@ templates exist in both. Command replies stay English (the website's patterns de
 
 ### 9.3 Partnerships and poaching
 - `/company partner <other>`: different sectors, both CEOs agree; both +10% new customers for 7 ticks; one at a time.
-- `/company poach <other> <engineer|sales|marketer>` (2 AP, $50K × reach): success = 0.3 + 0.3 × (your valuation −
+- `/company poach <other> <engineer|sales|marketer>` (3 AP, $50K × reach): success = 0.3 + 0.3 × (your valuation −
   theirs) ÷ the bigger one, kept in 10-70%; moves one hire batch of NPC staff. A company can be poached at most
   twice a day; the target gets a notice. Players are never poached.
 

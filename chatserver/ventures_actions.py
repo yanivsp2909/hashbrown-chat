@@ -22,7 +22,7 @@ ACTIONS = {
     "marketing": (1, "marketing", "📣 a campaign (hype up)"),
     "sales": (1, "sales", "🤝 a sales push (customers now)"),
     "pr": (1, "pr", "📰 press and talks (reputation up)"),
-    "pivot": (3, "pivot [sector]", "🔀 start over on a new idea, once per stage"),
+    "pivot": (config.PIVOT_AP, "pivot [sector]", "🔀 start over on a new idea, once per stage"),
 }
 
 
@@ -98,7 +98,7 @@ def do_marketing(co, args):
 def do_sales(co, args):
     bonus = 1 + config.COO_SALES_BONUS if ventures_sim.has_role(co, "coo") else 1
     sector = ventures_sim.sector(co)
-    signed = sector["base_new"] * ventures_sim.stage(co)["reach"] * 0.5 * (1 + 0.1 * co["staff"]["sales"] ** 0.5) * bonus
+    signed = sector["base_new"] * ventures_sim.stage(co)["reach"] * config.SALES_PUSH * (1 + 0.1 * co["staff"]["sales"] ** 0.5) * bonus
     amount = f"{signed:.1f}" if signed < 10 else f"about {round(signed):,}"
     return ({"customers": co["customers"] + signed}, f"🤝 The sales push signed {amount} new {sector['customers']}.")
 

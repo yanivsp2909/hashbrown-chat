@@ -273,6 +273,12 @@ The full design and the phased plan are in `docs/VENTURES.md`.
 | D3 | Balance simulation for all phases + tuning; tokens a season | done: the simulation plays whole 28-day seasons with IPOs, acquisitions and season-end payouts; tuned (3 days per stage, IPO at $1.5M a day and $500M): 24% die, 60% reach Seed, 1.15 IPOs and 2 acquisitions a season, ~8,000 🪙 paid a season (17,000 at most), new tokens ~1,600 (9,000 at most) of the 20,000 cap |
 | D4 | Step D checks + push + final report | done: 1229 server + 87 website tests, the balance simulation, Chrome with two logins by clicks only (How to play card, wizard x2, acquisition offer → ticket → Sell with confirm → exit tokens, IPO bell → celebration, season end → Hall of Fame banner, phone 390 px, light and dark, no console errors), code-reviewer (How to play card works without browser storage, honest balance tests, later-stage acquisitions simulated, stale doc lines); pushed |
 
+### Ventures change: 6 action points a day (2026-11-01)
+
+| # | Change | Status |
+|---|---|---|
+| V-AP | AP_BASE 3 -> 6, AP_MAX 6 -> 9 (+1 per teammate online); rebalanced so a season still feels like 28 days | done: each action about half as strong (build 2.5, marketing 7.5, PR 2, sales push 0.25, sector gains x0.5 via SECTOR_ACTION_STRENGTH), marketing and PR half price (same cost per effect), pitch 3 AP, poach 3 AP, pivot 5 AP (PIVOT_AP), PASS_BELOW 0.26, IPO needs quality 86 and reputation 70. Balance before / after: dead 24% / 26%, Seed+ 60% / 60%, IPOs 1.15 / 1.15, acquisitions 2.00 / 1.80, new tokens avg 1,636 / 1,616, max 9,053 / 7,148 of 20,000. With only the AP change: 9% dead, 82% Seed+, 6.3 IPOs, the mint cap hit. The How to play card and the wizard read the numbers from the server ("rules" in the ventures packet) |
+
 ## Docs
 
 | Item | Status |

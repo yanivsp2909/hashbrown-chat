@@ -250,8 +250,8 @@ START_QUALITY = 5
 START_HYPE = 10
 START_REPUTATION = 50
 TEAM_MAX_PLAYERS = 6               # players in one company
-AP_BASE = 3                        # ⚡ action points a day...
-AP_MAX = 6                         # ⚡ ...+1 for each other player member seen that day, up to this
+AP_BASE = 6                        # ⚡ action points a day...
+AP_MAX = 9                         # ⚡ ...+1 for each other player member seen that day, up to this
 SALARY = 14_000                    # $ a day per hired (NPC) employee
 FOUNDER_PAY = 5_000                # $ a day per player in the company
 HIRE_COST = 10_000                 # $ once per hire (recruiting)
@@ -264,13 +264,13 @@ STAGE_NAMES = {"idea": "Idea", "preseed": "Pre-seed", "seed": "Seed", "a": "Seri
                "c": "Series C", "public": "Public"}
 # Per stage: office $ a day, marketing cost $, staff max, people per hire action, reach (how far sales go)
 STAGE_NUMBERS = {
-    "idea":    {"office": 2_000, "marketing": 5_000, "staff_max": 2, "hire_batch": 1, "reach": 1.0},
-    "preseed": {"office": 5_000, "marketing": 10_000, "staff_max": 5, "hire_batch": 1, "reach": 1.2},
-    "seed":    {"office": 15_000, "marketing": 30_000, "staff_max": 12, "hire_batch": 2, "reach": 2.0},
-    "a":       {"office": 50_000, "marketing": 100_000, "staff_max": 30, "hire_batch": 5, "reach": 4.0},
-    "b":       {"office": 150_000, "marketing": 300_000, "staff_max": 80, "hire_batch": 10, "reach": 8.0},
-    "c":       {"office": 400_000, "marketing": 800_000, "staff_max": 200, "hire_batch": 20, "reach": 14.0},
-    "public":  {"office": 800_000, "marketing": 1_500_000, "staff_max": 400, "hire_batch": 20, "reach": 20.0},
+    "idea":    {"office": 2_000, "marketing": 2_500, "staff_max": 2, "hire_batch": 1, "reach": 1.0},
+    "preseed": {"office": 5_000, "marketing": 5_000, "staff_max": 5, "hire_batch": 1, "reach": 1.2},
+    "seed":    {"office": 15_000, "marketing": 15_000, "staff_max": 12, "hire_batch": 2, "reach": 2.0},
+    "a":       {"office": 50_000, "marketing": 50_000, "staff_max": 30, "hire_batch": 5, "reach": 4.0},
+    "b":       {"office": 150_000, "marketing": 150_000, "staff_max": 80, "hire_batch": 10, "reach": 8.0},
+    "c":       {"office": 400_000, "marketing": 400_000, "staff_max": 200, "hire_batch": 20, "reach": 14.0},
+    "public":  {"office": 800_000, "marketing": 750_000, "staff_max": 400, "hire_batch": 20, "reach": 20.0},
 }
 # Per sector: icon, name, the word for customers, price $ a day per customer, new customers a day (before reach
 # and attraction), churn a day, cost of revenue (part of revenue), valuation multiple of yearly revenue
@@ -311,10 +311,15 @@ CMO_MARKETING_BONUS = 0.20         # 📣 marketing +20% with a CMO...
 CMO_HYPE_KEEP = 0.865              # 📣 ...and hype keeps this much a tick (0.85 without)
 COO_HIRE_DISCOUNT = 0.30           # ⚙️ hires cost 30% less with a COO...
 COO_SALES_BONUS = 0.10             # ⚙️ ...and sales +10%
-BUILD_POINTS = 5                   # ⭐ quality one build adds (less near 100, more with engineers)
-MARKETING_POINTS = 15              # 📣 hype one campaign adds (less near 100)
-PR_POINTS = 4                      # 📰 reputation one pr adds
-PR_COST = 5_000                    # 📰 $ for pr, times the stage's reach
+# One action's effect. A day has 6 action points (it had 3), so each action does about half of what it did:
+# a season still feels like 28 days, and the cash cost per effect stayed the same
+BUILD_POINTS = 2.5                 # ⭐ quality one build adds (less near 100, more with engineers)
+MARKETING_POINTS = 7.5             # 📣 hype one campaign adds (less near 100)
+PR_POINTS = 2                      # 📰 reputation one pr adds
+PR_COST = 2_500                    # 📰 $ for pr, times the stage's reach
+SALES_PUSH = 0.25                  # 🤝 one sales push signs this part of a day's new customers (sector base x reach)
+SECTOR_ACTION_STRENGTH = 0.5       # 🏭 the sector actions' gains (safety, audits, development...) are multiplied by this
+PIVOT_AP = 5                       # 🔀 a pivot costs this many action points
 ENGINEER_POLISH = 0.4              # ⭐ quality engineers add by themselves every tick
 HYPE_KEEP = 0.85                   # 📣 hype keeps this much each tick (a CMO keeps CMO_HYPE_KEEP)
 LUCK_CHANCE = 0.10                 # 🎲 each tick: this chance of a setback, and the same of good luck
@@ -354,16 +359,16 @@ ROUNDS = {
     "seed":    {"mrr": 60_000, "quality": 45, "reputation": 40, "raise": 15_000_000, "floor": 50_000_000, "equity": (15, 25)},
     "a":       {"mrr": 250_000, "quality": 60, "reputation": 45, "raise": 50_000_000, "floor": 200_000_000, "equity": (10, 20)},
     "b":       {"mrr": 600_000, "quality": 72, "reputation": 55, "raise": 150_000_000, "floor": 700_000_000, "equity": (8, 15)},
-    "c":       {"mrr": 1_500_000, "quality": 82, "reputation": 65, "raise": 0, "floor": 500_000_000, "equity": (15, 15)},
+    "c":       {"mrr": 1_500_000, "quality": 86, "reputation": 70, "raise": 0, "floor": 500_000_000, "equity": (15, 15)},
 }
 ROUND_MIN_TICKS = 3                # a round needs at least this many ticks in the stage
 IPO_PROFIT_PERCENT = 60            # 🔔 the IPO also needs revenue of at least this % of the burn
 OPTION_POOL_PERCENT = 10           # 📜 the Seed round makes an option pool this big (it dilutes everyone)
-PASS_BELOW = 0.30                  # an investor always passes when the score is lower (just meeting the
+PASS_BELOW = 0.26                  # an investor always passes when the score is lower (just meeting the
                                    # milestones isn't enough: beat them, or pitch well; from the balance simulation)
 PITCHES_PER_STAGE = 3              # 🎤 pitches a company gets per stage...
 PITCH_REFILL_TICKS = 5             # 🎤 ...+1 every this many ticks while all are used
-PITCH_AP = 2                       # ⚡ a pitch costs this many action points
+PITCH_AP = 3                       # ⚡ a pitch costs this many action points
 PITCH_QUESTIONS = 2                # 🎤 the investor asks this many questions, then decides
 PITCH_CHARS = 1_500                # 🎤 characters of founders' words handed to the investor in one turn
 PITCH_IDLE_MINUTES = 30            # 🎤 a pitch nobody sends to the investor for this long ends
@@ -393,7 +398,7 @@ INCUMBENTS = {"ai": 4_000, "cyber": 40, "hardware": 600, "saas": 30_000, "game":
 CROWD_EFFECT = 0.15                # 🏁 each strong rival in your sector takes this much of your new customers
 PARTNER_TICKS = 7                  # 🤝 a partnership lasts this many game days...
 PARTNER_BONUS = 0.10               # 🤝 ...and brings both companies this many more new customers
-POACH_AP = 2                       # 🎣 poaching staff costs action points...
+POACH_AP = 3                       # 🎣 poaching staff costs action points...
 POACH_COST = 50_000                # 🎣 ...and $ (times the stage's reach)
 POACH_PER_DAY = 2                  # 🎣 a company can be poached at most this many times a day
 ACQUIRE_MIN_STAGE = "a"            # 🤝 a company from Series A on can buy another...

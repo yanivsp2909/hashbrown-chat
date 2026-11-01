@@ -200,11 +200,11 @@ def test_layoff_saves_salaries_but_costs_reputation():
 
 
 def test_pivot_once_per_stage_and_it_can_change_sector():
-    co = company(ap=3, quality=40.0, customers=1000.0)
+    co = company(ap=config.PIVOT_AP, quality=40.0, customers=1000.0)
     new, _ = ventures_actions.apply(co, "pivot", "ai")
     assert new["sector"] == "ai" and new["quality"] == pytest.approx(20.0) and new["ap"] == 0
     with pytest.raises(ventures_actions.ActionError, match="once"):
-        ventures_actions.apply({**new, "ap": 3}, "pivot", "")
+        ventures_actions.apply({**new, "ap": config.PIVOT_AP}, "pivot", "")
 
 
 def test_unknown_action():
@@ -234,3 +234,8 @@ def test_the_report_warns_about_a_short_runway():
     co = company(cash=20_000)
     _, lines = ventures_sim.next_day(co, random.Random(9), players=1)
     assert any("days of cash left" in line for line in lines)
+
+
+def test_a_day_has_six_action_points_and_friends_add_up_to_nine():
+    assert config.AP_BASE == 6 and config.AP_MAX == 9
+    assert company()["ap"] == config.AP_BASE

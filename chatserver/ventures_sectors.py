@@ -300,7 +300,7 @@ def do_release(co, args, rng, tick):
 
 
 def do_safety(co, args, rng, tick):
-    safety = min(100, state(co)["safety"] + 10)
+    safety = min(100, round(state(co)["safety"] + 10 * config.SECTOR_ACTION_STRENGTH))
     return with_state(co, safety=safety), f"🦺 Safety research: safety score {safety}/100."
 
 
@@ -317,19 +317,20 @@ def do_improve(co, args, rng, tick):
     lines = state(co)["lines"]
     if lines[key] == 0:
         raise SectorError(f"🧩 Launch {config.CYBER_LINES[key]} first.")
-    level = min(100, round(lines[key] + 10 * (1 - lines[key] / 110)))
+    level = min(100, round(lines[key] + 10 * config.SECTOR_ACTION_STRENGTH * (1 - lines[key] / 110)))
     return with_state(co, lines={**lines, key: level}), f"🔧 {config.CYBER_LINES[key]}: level {level}."
 
 
 def do_audit(co, args, rng, tick):
-    security = min(100, state(co)["security"] + 15)
+    security = min(100, round(state(co)["security"] + 15 * config.SECTOR_ACTION_STRENGTH))
     return with_state(co, security=security), f"🔍 Audit done: security {security}/100."
 
 
 def do_bounty(co, args, rng, tick):
-    security = min(100, state(co)["security"] + 8)
-    return (with_state({**co, "reputation": min(100.0, co["reputation"] + 3)}, security=security),
-            f"🐛 Hackers found bugs for you: security {security}/100, reputation +3.")
+    security = min(100, round(state(co)["security"] + 8 * config.SECTOR_ACTION_STRENGTH))
+    trust = 3 * config.SECTOR_ACTION_STRENGTH
+    return (with_state({**co, "reputation": min(100.0, co["reputation"] + trust)}, security=security),
+            f"🐛 Hackers found bugs for you: security {security}/100, reputation +{trust:g}.")
 
 
 def do_manufacture(co, args, rng, tick):
@@ -342,7 +343,7 @@ def do_manufacture(co, args, rng, tick):
 def do_supply(co, args, rng, tick):
     s = state(co)
     floor = config.DEVICES.get(s["device"], config.DEVICES["phone"])[1] * 0.6
-    unit_cost = max(int(floor), int(s["unit_cost"] * 0.95))
+    unit_cost = max(int(floor), int(s["unit_cost"] * (1 - 0.05 * config.SECTOR_ACTION_STRENGTH)))
     return with_state(co, unit_cost=unit_cost), f"🤝 New supplier deal: ${unit_cost:,} a unit."
 
 
@@ -379,21 +380,22 @@ def do_retention(co, args, rng, tick):
 
 def do_experiment(co, args, rng, tick):
     if rng.random() < 0.5:
-        gain = rng.uniform(0.05, 0.15)
+        gain = rng.uniform(0.05, 0.15) * config.SECTOR_ACTION_STRENGTH
         return {**co, "customers": co["customers"] * (1 + gain)}, f"🧪 The experiment worked: users +{gain:.0%}!"
     return co, "🧪 The experiment didn't move anything. We learned something, at least."
 
 
 def do_develop(co, args, rng, tick):
     project = state(co)["project"]
-    progress = min(100, project["progress"] + round(rng.uniform(10, 20) * (1 + 0.1 * co["staff"]["engineer"])))
-    quality = min(100.0, project["quality"] + 3)
+    work = rng.uniform(10, 20) * (1 + 0.1 * co["staff"]["engineer"]) * config.SECTOR_ACTION_STRENGTH
+    progress = min(100, project["progress"] + max(1, round(work)))
+    quality = min(100.0, project["quality"] + 3 * config.SECTOR_ACTION_STRENGTH)
     return with_state(co, project={**project, "progress": progress, "quality": quality}), f"🛠️ Game {project['number']}: {progress}% done."
 
 
 def do_playtest(co, args, rng, tick):
     project = state(co)["project"]
-    quality = min(100.0, project["quality"] + 6)
+    quality = min(100.0, project["quality"] + 6 * config.SECTOR_ACTION_STRENGTH)
     hint = "players loved it" if quality >= 70 else "mixed feelings" if quality >= 45 else "players were bored"
     return with_state(co, project={**project, "quality": quality}), f"🕹️ Playtest: {hint} (quality {quality:.0f})."
 
@@ -416,12 +418,13 @@ def do_launch_game(co, args, rng, tick):
 
 
 def do_liveops(co, args, rng, tick):
-    return (with_state({**co, "customers": co["customers"] * 1.05}, liveops_until=tick + config.LIVEOPS_TICKS),
-            "📅 Live events: players stay longer for 3 days (+5% now).")
+    boost = 0.05 * config.SECTOR_ACTION_STRENGTH
+    return (with_state({**co, "customers": co["customers"] * (1 + boost)}, liveops_until=tick + config.LIVEOPS_TICKS),
+            f"📅 Live events: players stay longer for 3 days (+{boost:.1%} now).")
 
 
 def do_dlc(co, args, rng, tick):
-    earned = int(co["customers"] * 0.5)
+    earned = int(co["customers"] * 0.5 * config.SECTOR_ACTION_STRENGTH)
     return {**co, "cash": co["cash"] + earned}, f"🎁 The DLC sold: +${earned:,}."
 
 

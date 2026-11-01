@@ -50,6 +50,8 @@ def home(viewer):
                        "mint_cap": config.VENTURES_MINT_SEASON_CAP},
             "investors": ventures_season.investors_board(),
             "fame": list(reversed(ventures.get("fame", [])))[:18],
+            "rules": {"ap_base": config.AP_BASE, "ap_max": config.AP_MAX, "season_days": config.SEASON_TICKS,
+                      "tick_hour": config.VENTURES_TICK_HOUR},
             "me": {"tokens": state.accounts[viewer]["tokens"], "found_cost": config.FOUND_COST,
                    "can_found": mine is None and found_refusal(viewer) is None,
                    "why": "" if mine else (found_refusal(viewer) or "")},

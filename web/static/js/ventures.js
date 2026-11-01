@@ -240,6 +240,7 @@ function howToSeen() {
 }
 
 function howToPlay() {
+  const rules = home.rules;
   const done = () => {
     howToDismissed = true;
     try { localStorage.setItem(HOW_TO_KEY, "1"); } catch { /* (then it shows again on the next visit: fine) */ }
@@ -249,13 +250,15 @@ function howToPlay() {
   return el("section", { class: "vs-plate vs-howto", "aria-labelledby": "vs-howto-title" },
     el("h3", { id: "vs-howto-title", class: "vs-start-title", text: "🏢 How to play Ventures" }),
     el("ol", { class: "vs-howto-steps" },
-      el("li", {}, el("strong", { text: "Start a company " }), "in one of 5 sectors (200 🪙). Invite friends as co-founders: each friend who shows up adds an action point."),
-      el("li", {}, el("strong", { text: "Spend your ⚡ action points " }), "every day: build, hire, market, sell, and your sector's own moves. They don't pile up."),
-      el("li", {}, el("strong", { text: "At 21:00 a new game day starts: " }), "salaries are paid, customers come and go, and a report lands in your HQ."),
+      el("li", {}, el("strong", { text: "Start a company " }), `in one of 5 sectors (${str(home.me.found_cost)} 🪙). Invite friends as co-founders.`),
+      el("li", {}, el("strong", { text: `Spend your ${str(rules.ap_base)} ⚡ action points ` }),
+        `every day: build, hire, market, sell, and your sector's own moves. Each teammate who shows up that day adds 1 ` +
+        `(up to ${str(rules.ap_max)}). They don't pile up.`),
+      el("li", {}, el("strong", { text: `At ${str(rules.tick_hour)}:00 a new game day starts: ` }), "salaries are paid, customers come and go, and a report lands in your HQ."),
       el("li", {}, el("strong", { text: "Out of cash = on fumes, " }), "then dead. Watch the runway and raise money in time."),
       el("li", {}, el("strong", { text: "Pitch investors " }), "when the next round's milestones are met. Accept, decline or counter their term sheet."),
       el("li", {}, el("strong", { text: "Go all the way: " }), "Seed, Series A, B, C, then 🔔 the IPO. Exits pay real 🪙 to everyone who owns a part (angels too).")),
-    el("p", { class: "gs-muted", text: "A season lasts 28 game days; the best go to the 🏛️ Hall of Fame." }),
+    el("p", { class: "gs-muted", text: `A season lasts ${str(rules.season_days)} game days; the best go to the 🏛️ Hall of Fame.` }),
     button("Got it, let's build 🚀", done, { primary: true, key: "howto-done" }));
 }
 
@@ -389,7 +392,8 @@ function confirmStepView() {
     el("ul", { class: "vs-next" },
       el("li", { text: `Costs ${str(me.found_cost)} 🪙 (you have ${str(me.tokens)}); it goes to the public fund.` }),
       el("li", { text: "You get $50K of founders' savings and a private company chat. You're the 👑 CEO." }),
-      el("li", { text: "Every day you have a few action points: build, hire, market, sell. At 21:00 a new game day starts." }),
+      el("li", { text: `Every day you have ${str(home.rules.ap_base)} ⚡ action points (+1 for each teammate online, up to ` +
+        `${str(home.rules.ap_max)}): build, hire, market, sell. At ${str(home.rules.tick_hour)}:00 a new game day starts.` }),
       el("li", { text: "Run out of cash and the company dies. Raise money by pitching investors." })),
     wizard.error ? el("p", { class: "vs-error", text: wizard.error }) : null,
     button(`🏢 Found ${wizard.name}`, found, { primary: true, key: "wiz-found" }));

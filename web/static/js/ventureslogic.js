@@ -153,6 +153,7 @@ export function readHome(msg) {
   return {
     season: m.season && typeof m.season === "object" ? m.season : { number: 1, day: 0, days: 28, next_tick: 0, minted: 0, mint_cap: 0 },
     investors: asList(m.investors), fame: asList(m.fame),
+    rules: m.rules && typeof m.rules === "object" ? m.rules : { ap_base: 6, ap_max: 9, season_days: 28, tick_hour: 21 },
     me: m.me && typeof m.me === "object" ? m.me : { tokens: 0, found_cost: 200, can_found: false, why: "" },
     mine: m.mine && typeof m.mine === "object" && typeof m.mine.id === "string" ? m.mine : null,
     board: asList(m.board), graveyard: asList(m.graveyard), news: asList(m.news),

@@ -326,18 +326,18 @@ Server admins only (the password comes from the Keychain item `hashbrown-admin` 
 | `/company found name sector` | Found a startup (200 🪙, into the public fund; sectors `ai`, `cyber`, `hardware`, `saas`, `game`). It's a private group with $50K of founders' savings. One company at a time |
 | `/company` | Your company: cash, burn, MRR, runway, customers, quality, hype, reputation, team, today's action points, what the next round needs |
 | `/company actions` | Today's actions with their cost in action points (⚡) and dollars, and why one isn't possible |
-| `/company build` · `hire engineer\|sales\|marketer` · `layoff kind [n]` · `marketing` · `sales` · `pr` · `pivot [sector]` | Spend action points: quality, staff, hype, customers, reputation; a pivot (3 ⚡, once per stage) starts over on a new idea |
+| `/company build` · `hire engineer\|sales\|marketer` · `layoff kind [n]` · `marketing` · `sales` · `pr` · `pivot [sector]` | Spend action points: quality, staff, hype, customers, reputation; a pivot (5 ⚡, once per stage) starts over on a new idea |
 | `/company invite name role [equity%]` | Invite a co-founder (`cto`, `cfo`, `cmo`, `coo`) or an `engineer` / `designer` / `sales`; C-level seats and equity only from the CEO. They accept with `/join name` |
 | `/company role name role` · `grant name percent` · `ceo name` · `fire name` · `leave` | The team: change a role, give shares from your own, hand over the CEO seat, let someone go. Grants vest 25% at once, then day by day for 28 days; leaving keeps the vested part |
 | `/company shutdown name` | Close it for good (it goes to the graveyard) |
 | `/company report` · `captable` · `team` · `info name` | The last daily report, who owns what, the team, anyone's public profile |
-| `/pitch` | Pitch an investor (2 ⚡, needs the next round's milestones, 3 per stage). Talk in the company chat, then `/pitch send`; the investor asks 2 questions, then makes an offer or passes. `/pitch your words` adds and sends in one go, `/pitch stop` ends it |
+| `/pitch` | Pitch an investor (3 ⚡, needs the next round's milestones, 3 per stage). Talk in the company chat, then `/pitch send`; the investor asks 2 questions, then makes an offer or passes. `/pitch your words` adds and sends in one go, `/pitch stop` ends it |
 | `/offer` · `/offer accept` · `/offer decline` · `/offer counter 15M` | The term sheet (the CEO answers; one counter; it expires in 24 h) |
 | `/company bridge` | A small bridge round from Bridge Capital, once per stage, when on fumes or out of pitches |
 | `/invest company tokens` | Angel investing: your 🪙 (50 to 1,000 per company, 500 a day) for shares of an Idea, Pre-seed or Seed company; held until its CEO answers (`/company angels`, `/company angel accept name`), back to you after 24 h |
 | `/ventures` · `/ventures graveyard` | The 🦄 Unicorn Board and the startup graveyard |
 | `/company partner name` · `/company partner accept name` | A partnership with a company from another sector (both CEOs): +10% new customers for both for 7 days |
-| `/company poach name engineer\|sales\|marketer` | Try to hire a rival's staff away (2 ⚡ and $; better odds when you're worth more) |
+| `/company poach name engineer\|sales\|marketer` | Try to hire a rival's staff away (3 ⚡ and $; better odds when you're worth more) |
 | `/company acquire name 5M` · `/company sell accept\|decline` | Offer to buy a company (yours from Series A on, 60% to 2x its valuation); its CEO says yes or no in 24 h. Yes: its owners get an exit, its customers and staff join you |
 | `/company ipo` | 🔔 Series C with every IPO milestone: list on the stock market as `#name`; owners get an exit, 15% new shares bring cash |
 
@@ -384,8 +384,8 @@ comes instead. Everything lands in 📰 **Ventures News** (big headlines in the 
 
 - **Found** a company in one of 5 sectors. It's a private group: its chat is your office. Company money is game
   dollars ($), never tokens: tokens only go in through the founding fee and angel investing.
-- **Every day** the company has 3 action points (+1 for every other player of the team who is online that day, up to
-  6). They don't stack: use them or lose them.
+- **Every day** the company has 6 action points (+1 for every other player of the team who is online that day, up to
+  9). They don't stack: use them or lose them.
 - **At 21:00 Israel time** the daily tick runs: salaries and the office are paid, customers come and go, the paper
   valuation moves, and a 📊 report lands in the company chat. Missed days while the server was off don't count.
 - **Out of cash** after a tick = 🚨 on fumes: raise money or cut costs before the next tick, or the company dies and

@@ -30,6 +30,8 @@ def test_the_home_without_a_company(user):
     assert [s["key"] for s in home["sectors"]] == list(config.SECTORS)
     assert all(s["pitch"] and s["twist"] and 1 <= s["difficulty"] <= 3 for s in home["sectors"])
     assert home["season"]["days"] == config.SEASON_TICKS and home["season"]["next_tick"] > 0
+    assert home["rules"] == {"ap_base": config.AP_BASE, "ap_max": config.AP_MAX, "season_days": config.SEASON_TICKS,
+                             "tick_hour": config.VENTURES_TICK_HOUR}
 
 
 def test_the_home_with_a_company_and_the_board(user):
