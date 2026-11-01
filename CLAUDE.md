@@ -10,6 +10,10 @@ a website (`web/`: `web_server.py` + `bridge.py` + `static/`) and an AI member, 
   Old `client.py` copies must keep working (they ignore unknown types and fields: keep it that way).
 - **Keep the wording** that `web/static/js/patterns.js` matches. If server text changes, `web/tests/test_bridge.py` says which pattern breaks.
 - **No encryption** anywhere (teacher's rule): no TLS, packets stay readable.
+- **Networking stays on Python's built-in `socket` module**, as learned in school: TCP for the chat, UDP for discovery.
+  Never replace it with websockets, asyncio frameworks or a web framework. A new feature adds new packet types on
+  the same TCP connection. (The website's `web_server.py` uses the standard library's `http.server` only because a
+  browser can't open a raw TCP socket; its bridge talks to the chat server over that same TCP connection.)
 - `client.py` is one file, standard library only. The server's only library is `openai` (`requirements.txt`), and it must start without it.
 - **Tests never call the real AI** (fake server in `tests/helpers.py`). Never print or log the API key, never open
   `hashbrown_config.json` by hand, never run `test_hashbrown.py` or `start.sh`.
