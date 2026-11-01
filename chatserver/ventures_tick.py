@@ -9,8 +9,9 @@ import time
 import traceback
 from datetime import timedelta
 
-from chatserver import (config, invites, rooms, state, storage, textutil, ventures_events, ventures_log, ventures_news,
-                        ventures_sectors, ventures_sim, ventures_store, ventures_team)
+from chatserver import (config, invites, rooms, state, storage, textutil, ventures_deals, ventures_events, ventures_exits,
+                        ventures_log, ventures_news, ventures_season, ventures_sectors, ventures_sim, ventures_store,
+                        ventures_team)
 from chatserver.hashbrown_text import israel_now
 from chatserver.ventures_text import money
 
@@ -62,6 +63,8 @@ def run_tick(rng=None):
         except Exception:
             textutil.log(f"[VENTURES] ⚠️ A daily job failed:\n{traceback.format_exc()}")
     drop_old_offers()
+    ventures_exits.pay_queue()   # 🚪 exits that waited for the fund
+    ventures_season.maybe_end(tick)   # 🏛️ the season's last day
     storage.save_data()
 
 
@@ -69,7 +72,7 @@ def make_world(tick):
     """What every company's day depends on: the market events, the mood and the Spud-Bench ranks."""
     events, mood, _, _ = ventures_events.world_effects()
     _, boost = ventures_sectors.bench(ventures_store.alive(), tick)
-    return {"tick": tick, "events": events, "mood": mood, "bench": boost}
+    return {"tick": tick, "events": events, "mood": mood, "bench": boost, "crowd": ventures_deals.crowd(ventures_store.alive())}
 
 
 def drop_old_offers():
@@ -101,6 +104,8 @@ def live_one_day(co, rng, tick, world=None):
     for headline in news:
         ventures_news.add("sector", headline, new)
     if new["status"] == "dead":
+        if (new.get("ipo") or {}).get("symbol"):
+            ventures_deals.delist(new, "the company died")
         ventures_team.bury(new, "died")
 
 

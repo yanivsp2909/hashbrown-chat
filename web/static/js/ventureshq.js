@@ -9,6 +9,7 @@ import * as V from "./ventureslogic.js";
 import { act, backHome, button, confirmStep, draft, newsList, render, setDraft } from "./ventures.js";
 import { pitchRoom } from "./venturespitch.js";
 import { sectorPanel } from "./venturessector.js";
+import { dealsInbox, dealsWith, ipoPanel, marketPanel } from "./venturesdeals.js";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -41,12 +42,13 @@ export function renderHq(co, home) {
     parts.push(lead(co), numbers(co), el("div", { class: "vs-columns" },
       el("div", { class: "vs-col" }, reports(co), companyNews(co)), el("div", { class: "vs-col" }, funding(co), capTable(co), team(co, home))));
   } else if (co.member) {
-    parts.push(lead(co), numbers(co), el("div", { class: "vs-columns" },
+    parts.push(dealsInbox(co), lead(co), numbers(co), el("div", { class: "vs-columns" },
       el("div", { class: "vs-col" }, today(co), pitchRoom(co), sectorPanel(co), reports(co)),
-      el("div", { class: "vs-col" }, funding(co), capTable(co), team(co, home), angels(co), companyNews(co), dangerZone(co))));
+      el("div", { class: "vs-col" }, ipoPanel(co), funding(co), marketPanel(co), capTable(co), team(co, home), angels(co),
+        companyNews(co), dangerZone(co))));
   } else {
     parts.push(el("div", { class: "vs-columns" },
-      el("div", { class: "vs-col" }, outsiderNumbers(co), invest(co), funding(co), companyNews(co)),
+      el("div", { class: "vs-col" }, outsiderNumbers(co), ipoPanel(co), invest(co), dealsWith(co), funding(co), companyNews(co)),
       el("div", { class: "vs-col" }, capTable(co), team(co, home))));
   }
   return parts;

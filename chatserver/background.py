@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, auctions, bank_log, config, drawing, economy, friends, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, ventures_angels, ventures_events, ventures_pitch, ventures_rounds, ventures_tick, ventures_view, wars
+from chatserver import achievements, auctions, bank_log, config, drawing, economy, friends, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, ventures_angels, ventures_deals, ventures_events, ventures_pitch, ventures_rounds, ventures_tick, ventures_view, wars
 
 
 # ---------------------------------------------------------------- background threads
@@ -56,6 +56,8 @@ def market_loop():
             run_safely(auctions.tick)
             run_safely(ventures_tick.maybe_run)   # 🏢 the startup game's daily tick
             run_safely(ventures_events.maybe_run)   # 🌪️ market events at their hours
+            run_safely(ventures_deals.stock_tick)   # 🔔 public companies' stocks follow their valuation
+            run_safely(ventures_deals.expire_due)   # 🤝 old offers to buy a company go
             run_safely(ventures_rounds.expire_due)   # 📄 old term sheets close
             run_safely(ventures_angels.expire_due)   # 😇 unanswered angel offers come back
             run_safely(ventures_pitch.expire_idle)   # 🎤 forgotten pitches end

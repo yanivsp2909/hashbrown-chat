@@ -5,13 +5,13 @@ You can be in one company at a time, so /company works from any room.
 import random
 import time
 
-from chatserver import (cap_table, config, fund, registry, rooms, state, storage, ventures_actions, ventures_angels, ventures_news, ventures_rounds,
+from chatserver import (cap_table, config, fund, registry, rooms, state, storage, ventures_actions, ventures_angels, ventures_deals, ventures_news, ventures_rounds,
                         ventures_sim, ventures_store, ventures_team, ventures_tick)
 from chatserver.ventures_text import money, runway_text, sector_title, stage_name, whole
 
 USAGE = ("Usage: /company found name sector · /company (status) · /company actions · /company <action> · "
          "/company info name · report · captable · team · invite · role · grant · ceo · fire · leave · shutdown · "
-         "bridge · angels")
+         "bridge · angels · partner · poach · acquire · sell · ipo")
 
 
 @registry.command("/company", "/company [found name sector | action | info name ...]",
@@ -191,4 +191,6 @@ TEAM = {"actions": actions, "report": report, "captable": captable, "team": team
         "invite": ventures_team.invite, "role": ventures_team.set_role, "grant": ventures_team.grant,
         "ceo": ventures_team.hand_over, "fire": ventures_team.fire,
         "leave": lambda client, co, args: ventures_team.leave(client, co), "shutdown": ventures_team.shutdown}
-FUNDING = {"bridge": ventures_rounds.bridge, "angels": ventures_angels.list_angels, "angel": ventures_angels.answer}
+FUNDING = {"bridge": ventures_rounds.bridge, "angels": ventures_angels.list_angels, "angel": ventures_angels.answer,
+           "partner": ventures_deals.partner, "poach": ventures_deals.poach, "acquire": ventures_deals.acquire,
+           "sell": ventures_deals.sell, "ipo": ventures_deals.ipo}

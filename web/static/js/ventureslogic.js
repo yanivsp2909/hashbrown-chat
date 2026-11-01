@@ -151,7 +151,8 @@ export function readHome(msg) {
   const m = msg && typeof msg === "object" ? msg : {};
   const inv = m.investments && typeof m.investments === "object" ? m.investments : {};
   return {
-    season: m.season && typeof m.season === "object" ? m.season : { number: 1, day: 0, days: 28, next_tick: 0 },
+    season: m.season && typeof m.season === "object" ? m.season : { number: 1, day: 0, days: 28, next_tick: 0, minted: 0, mint_cap: 0 },
+    investors: asList(m.investors), fame: asList(m.fame),
     me: m.me && typeof m.me === "object" ? m.me : { tokens: 0, found_cost: 200, can_found: false, why: "" },
     mine: m.mine && typeof m.mine === "object" && typeof m.mine.id === "string" ? m.mine : null,
     board: asList(m.board), graveyard: asList(m.graveyard), news: asList(m.news),

@@ -10,6 +10,7 @@ import { send } from "./api.js";
 import * as groups from "./groups.js";
 import * as V from "./ventureslogic.js";
 import { renderHq } from "./ventureshq.js";
+import { celebrate } from "./venturesdeals.js";
 
 const REPLY_MS = 7000;
 const REPLY_WINDOW = 4000;   // only replies this soon after a button here (not the quiet refreshes)
@@ -136,17 +137,19 @@ function seasonLine() {
   if (!s) return null;
   return el("p", { class: "vs-season" },
     el("span", { class: "vs-pill", text: `Season ${str(s.number)}` }),
-    ` Day ${str(s.day)} of ${str(s.days)} · the next game day starts ${V.countdown(s.next_tick)}`);
+    ` Day ${str(s.day)} of ${str(s.days)} · the next game day starts ${V.countdown(s.next_tick)}`,
+    el("span", { class: "vs-row-sub", text: ` · exits made ${V.whole(s.minted)} of ${V.whole(s.mint_cap)} new 🪙 this season` }));
 }
 
 function homeView() {
   const parts = [header("🏢 Ventures", { label: "Back to the chat", go: close }), seasonLine()];
   if (!home) return [...parts, el("p", { class: "gs-muted", text: "Loading Ventures…" })];
   parts.push(...home.invites.map(inviteTicket));
+  parts.push(seasonOver());
   parts.push(home.mine ? myCompanyCard(home.mine) : startCard());
   parts.push(el("div", { class: "vs-columns" },
     el("div", { class: "vs-col" }, boardPanel(), newsPanel()),
-    el("div", { class: "vs-col" }, investmentsPanel(), graveyardPanel())));
+    el("div", { class: "vs-col" }, investmentsPanel(), investorsPanel(), famePanel(), graveyardPanel())));
   return parts;
 }
 
@@ -223,6 +226,34 @@ function investmentsPanel() {
         el("span", { class: "vs-row-sub", text: `⏳ ${str(w.tokens)} 🪙 offered for ${V.percent(w.bp)}, waiting for the CEO` }))))];
   return panel("vs-invest", "😇 My investments", rows.length ? el("ul", { class: "vs-list" }, ...rows)
     : el("p", { class: "gs-empty", text: "Open a young company on the board to invest your tokens in it." }));
+}
+
+/** 🏛️ Right after a season ends, its winners on top of the home. */
+function seasonOver() {
+  const last = home.fame[0];
+  if (!last || Number(home.season.day) > 2 || Number(last.season) !== Number(home.season.number) - 1) return null;
+  const winners = home.fame.filter((f) => f.season === last.season).slice(0, 3);
+  return el("section", { class: "vs-plate vs-season-over", "aria-labelledby": "vs-season-over" },
+    el("h3", { id: "vs-season-over", class: "vs-start-title", text: `🏛️ Season ${str(last.season)} is over!` }),
+    el("ul", { class: "vs-list" }, ...winners.map((f) => el("li", {}, el("strong", { text: `${str(f.award)}: ` }), `${str(f.name)} (${str(f.text)})`))),
+    el("p", { class: "gs-muted", text: `Season ${str(home.season.number)} has started: everyone can found a company again.` }));
+}
+
+function investorsPanel() {
+  const board = Array.isArray(home.investors) ? home.investors : [];
+  if (!board.length) return null;
+  return panel("vs-investors", "💰 Best investors", el("ol", { class: "vs-list vs-ranked-plain" }, ...board.map((r) => el("li", { class: "vs-row vs-row-static" },
+    el("span", { class: "vs-row-main" }, el("span", { class: "vs-row-name", text: str(r.name) }),
+      el("span", { class: "vs-row-sub", text: `put in ${V.whole(r.tokens_in)} 🪙 · worth ${V.whole(r.value)} 🪙 now` })),
+    el("span", { class: "vs-row-value", text: `${str(r.multiple)}×` })))));
+}
+
+function famePanel() {
+  const fame = Array.isArray(home.fame) ? home.fame : [];
+  if (!fame.length) return null;
+  return panel("vs-fame", "🏛️ Hall of Fame", el("ul", { class: "vs-list" }, ...fame.slice(0, 12).map((f) => el("li", { class: "vs-grave-row" },
+    el("span", { class: "vs-row-name", text: `Season ${str(f.season)} · ${str(f.award)}` }),
+    el("span", { class: "vs-row-sub", text: `${str(f.name)}: ${str(f.text)}` })))));
 }
 
 function graveyardPanel() {
@@ -422,6 +453,10 @@ export function onCompany(msg) {
 
 /** What changed that a screen reader should hear (once). */
 function announceChanges(before, next) {
+  if (next.ipo && !before.ipo && next.member) celebrate(next);   // 🎉 the bell rang
+  if (next.acquisition_offer && !before.acquisition_offer) {
+    announce(`🤝 ${str(next.acquisition_offer.buyer)} wants to buy ${next.name} for ${V.money(next.acquisition_offer.amount)}.`);
+  }
   if (next.fumes && !before.fumes) announce(`🚨 ${next.name} is out of cash: on fumes!`);
   const was = (before.pitch && before.pitch.log) || [];
   const log = (next.pitch && next.pitch.log) || [];

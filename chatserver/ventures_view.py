@@ -16,9 +16,9 @@ import json
 import time
 import traceback
 
-from chatserver import (cap_table, config, rooms, state, textutil, ventures_actions, ventures_angels, ventures_events,
-                        ventures_log, ventures_news, ventures_pitch, ventures_rounds, ventures_sectors, ventures_sim,
-                        ventures_store, ventures_team, ventures_tick)
+from chatserver import (cap_table, config, rooms, state, textutil, ventures_actions, ventures_angels, ventures_deals,
+                        ventures_events, ventures_log, ventures_news, ventures_pitch, ventures_rounds, ventures_season,
+                        ventures_sectors, ventures_sim, ventures_store, ventures_team, ventures_tick)
 from chatserver.ventures_text import stage_name
 
 FORCE_EVERY = 10   # seconds: even with nothing changed, refresh (online dots, the countdown's clock)
@@ -46,7 +46,10 @@ def home(viewer):
     board = sorted(ventures_store.alive(), key=lambda c: -c["valuation"])[:20]
     return {"type": "ventures",
             "season": {"number": ventures["season"], "day": ventures["tick"], "days": config.SEASON_TICKS,
-                       "next_tick": ventures_tick.next_tick_at()},
+                       "next_tick": ventures_tick.next_tick_at(), "minted": ventures.get("minted", 0),
+                       "mint_cap": config.VENTURES_MINT_SEASON_CAP},
+            "investors": ventures_season.investors_board(),
+            "fame": list(reversed(ventures.get("fame", [])))[:18],
             "me": {"tokens": state.accounts[viewer]["tokens"], "found_cost": config.FOUND_COST,
                    "can_found": mine is None and found_refusal(viewer) is None,
                    "why": "" if mine else (found_refusal(viewer) or "")},
@@ -102,7 +105,31 @@ def public(co, viewer):
             "team": team(co), "cap": cap(co), "timeline": timeline(co), "member": viewer in ventures_store.members(co),
             "you": you(co, viewer), "news": ventures_news.feed(co["id"], 8),
             "events": [{"headline": e["headline"], "until": e["until"]} for e in ventures_events.active()
-                       if e.get("sector") in (co["sector"], "all") or e.get("company") == co["id"]]}
+                       if e.get("sector") in (co["sector"], "all") or e.get("company") == co["id"]],
+            "ipo": ipo_info(co), "deals": deals_for(co, viewer)}
+
+
+def ipo_info(co):
+    symbol = (co.get("ipo") or {}).get("symbol")
+    if not symbol:
+        return None
+    stock = state.stocks.get(symbol)
+    return {"symbol": symbol.upper(), "value": co["ipo"].get("value", 0), "price": stock["price"] if stock else 0,
+            "listed": bool(stock)}
+
+
+def deals_for(co, viewer):
+    """What the viewer's own company (as its CEO) could do with this one: buy it, partner, poach."""
+    mine = ventures_store.mine(viewer)
+    if not mine or mine["id"] == co["id"] or co["status"] != "alive" or ventures_team.ceo_of(mine) != viewer:
+        return None
+    minimum = int(co["valuation"] * config.ACQUIRE_MIN_PERCENT / 100)
+    tick = ventures_store.ensure()["tick"]
+    return {"company": mine["name"], "acquire_min": minimum,
+            "acquire_why": ventures_deals.acquire_refusal(mine, co, max(minimum, 1)) or "",
+            "partner_why": ventures_deals.partner_refusal(mine, co, tick) or "",
+            "poach_cost": int(config.POACH_COST * ventures_sim.stage(mine)["reach"]),
+            "poach_kinds": [k for k in ventures_store.STAFF_KINDS if co["staff"][k] > 0]}
 
 
 def team(co):
@@ -168,7 +195,37 @@ def inside(co, viewer):
             "next_tick": ventures_tick.next_tick_at(), "fumes": co["fumes"], "actions": actions(co),
             "reports": list(reversed(co["reports"])), "milestones": milestones(co, players),
             "pitch": pitch(co, viewer, players), "sheet": sheet(co), "angels": angels(co),
-            "invites_out": invites_out(co), "bridge": bridge(co, viewer), "interest": interest(co, players)}
+            "invites_out": invites_out(co), "bridge": bridge(co, viewer), "interest": interest(co, players),
+            "market": ventures_deals.shares(ventures_store.alive()).get(co["sector"], []),
+            "incumbents": config.INCUMBENTS[co["sector"]], "ipo_ready": ipo_ready(co, viewer, players),
+            "acquisition_offer": acquisition_offer(co), "partner": partner_info(co)}
+
+
+def ipo_ready(co, viewer, players):
+    if co["stage"] != "c":
+        return None
+    why = ("Only the CEO rings the bell." if ventures_team.ceo_of(co) != viewer
+           else "" if ventures_sim.ready(co, players) else "Reach every IPO milestone first.")
+    return {"ok": not why, "why": why}
+
+
+def acquisition_offer(co):
+    offer = ventures_store.ensure()["acquisitions"].get(co["id"])
+    buyer = ventures_store.get(offer["from"]) if offer else None
+    if not buyer:
+        return None
+    return {"buyer": buyer["name"], "amount": offer["amount"],
+            "expires": int(offer["at"] + config.ACQUIRE_OFFER_HOURS * 3600)}
+
+
+def partner_info(co):
+    tick = ventures_store.ensure()["tick"]
+    partner = co.get("partner") or {}
+    now = ventures_store.get(partner.get("with", "")) if partner.get("until", -1) >= tick else None
+    offer = ventures_store.ensure()["partner_offers"].get(co["id"])
+    asker = ventures_store.get(offer["from"]) if offer else None
+    return {"with": now["name"] if now else "", "until": partner.get("until", 0) if now else 0,
+            "offer_from": asker["name"] if asker and asker["status"] == "alive" else ""}
 
 
 def actions(co):

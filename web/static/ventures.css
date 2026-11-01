@@ -284,3 +284,62 @@ button.vs-row:hover { border-color: var(--crust-line); background: var(--panel-3
 .vs-bench li { display: flex; justify-content: space-between; gap: 10px; }
 .vs-bench .vs-mine-row { font-weight: 800; color: var(--text); }
 .vs-sector-panel .vs-actions { border-top: 1px solid var(--line-soft); padding-top: 10px; }
+
+/* the endgame: market share, offers, the IPO and its party, the season's end */
+.vs-shares .vs-share { display: grid; grid-template-columns: minmax(0, 1fr) minmax(60px, 1.2fr) 6ch; gap: 10px; align-items: center; }
+.vs-share.mine .vs-row-name { color: var(--text); font-weight: 800; }
+.vs-share:not(.mine) .vs-meter-fill { background: var(--muted); }
+.vs-ranked-plain { padding: 0; }
+.vs-inline { gap: 8px; }
+.vs-offer { max-width: 560px; }
+.vs-ipo .vs-big { font-size: 30px; }
+.vs-season-over { border-color: var(--crisp); }
+.vs-party {
+  position: absolute; inset: 0; z-index: var(--z-popover); display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--bg-deep) 70%, transparent);
+}
+.vs-party-card {
+  position: relative; max-width: 440px; width: 100%; text-align: center; padding: 28px 22px 22px; border-radius: 18px;
+  background: var(--paper); color: var(--paper-ink); box-shadow: var(--shadow-2); display: grid; gap: 10px; justify-items: center;
+}
+.vs-party-bell { margin: 0; font-size: 56px; line-height: 1; }
+.vs-party-title { margin: 0; font-size: 30px; font-weight: 850; letter-spacing: -0.02em; }
+.vs-party-title:focus { outline: none; }
+.vs-party-text { margin: 0; color: var(--paper-muted); font-weight: 650; }
+.vs-confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.vs-confetti span { position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px; opacity: 0; }
+.vs-confetti .c0 { background: var(--gold); } .vs-confetti .c1 { background: var(--ketchup); } .vs-confetti .c2 { background: var(--pickle); }
+.vs-confetti .c3 { background: var(--lavender); } .vs-confetti .c4 { background: var(--mustard); } .vs-confetti .c5 { background: var(--crisp); }
+@media (prefers-reduced-motion: no-preference) {
+  .vs-party-card { animation: vs-pop 420ms var(--ease-out); }
+  .vs-party-bell { animation: vs-ring 900ms ease-in-out 2; transform-origin: 50% 10%; }
+  .vs-confetti span { animation: vs-fall 2.6s ease-in forwards; }
+  @keyframes vs-pop { from { transform: scale(0.85); opacity: 0; } }
+  @keyframes vs-ring { 25% { transform: rotate(14deg); } 75% { transform: rotate(-14deg); } }
+  @keyframes vs-fall { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0.9; transform: translateY(110vh) rotate(540deg); } }
+}
+
+.vs-confetti span:nth-child(1) { left: 0%; animation-delay: 0ms; }
+.vs-confetti span:nth-child(2) { left: 41%; animation-delay: 97ms; }
+.vs-confetti span:nth-child(3) { left: 82%; animation-delay: 194ms; }
+.vs-confetti span:nth-child(4) { left: 23%; animation-delay: 291ms; }
+.vs-confetti span:nth-child(5) { left: 64%; animation-delay: 388ms; }
+.vs-confetti span:nth-child(6) { left: 5%; animation-delay: 485ms; }
+.vs-confetti span:nth-child(7) { left: 46%; animation-delay: 582ms; }
+.vs-confetti span:nth-child(8) { left: 87%; animation-delay: 679ms; }
+.vs-confetti span:nth-child(9) { left: 28%; animation-delay: 776ms; }
+.vs-confetti span:nth-child(10) { left: 69%; animation-delay: 873ms; }
+.vs-confetti span:nth-child(11) { left: 10%; animation-delay: 70ms; }
+.vs-confetti span:nth-child(12) { left: 51%; animation-delay: 167ms; }
+.vs-confetti span:nth-child(13) { left: 92%; animation-delay: 264ms; }
+.vs-confetti span:nth-child(14) { left: 33%; animation-delay: 361ms; }
+.vs-confetti span:nth-child(15) { left: 74%; animation-delay: 458ms; }
+.vs-confetti span:nth-child(16) { left: 15%; animation-delay: 555ms; }
+.vs-confetti span:nth-child(17) { left: 56%; animation-delay: 652ms; }
+.vs-confetti span:nth-child(18) { left: 97%; animation-delay: 749ms; }
+.vs-confetti span:nth-child(19) { left: 38%; animation-delay: 846ms; }
+.vs-confetti span:nth-child(20) { left: 79%; animation-delay: 43ms; }
+.vs-confetti span:nth-child(21) { left: 20%; animation-delay: 140ms; }
+.vs-confetti span:nth-child(22) { left: 61%; animation-delay: 237ms; }
+.vs-confetti span:nth-child(23) { left: 2%; animation-delay: 334ms; }
+.vs-confetti span:nth-child(24) { left: 43%; animation-delay: 431ms; }
