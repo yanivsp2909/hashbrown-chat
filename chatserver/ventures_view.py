@@ -128,7 +128,8 @@ def deals_for(co, viewer):
     return {"company": mine["name"], "acquire_min": minimum,
             "acquire_why": ventures_deals.acquire_refusal(mine, co, max(minimum, 1)) or "",
             "partner_why": ventures_deals.partner_refusal(mine, co, tick) or "",
-            "poach_cost": int(config.POACH_COST * ventures_sim.stage(mine)["reach"]),
+            "poach_cost": int(config.POACH_COST * ventures_sim.stage(mine)["reach"]), "poach_ap": config.POACH_AP,
+            "offer_hours": config.ACQUIRE_OFFER_HOURS, "acquire_max": int(co["valuation"] * ventures_deals.MAX_OVER_VALUE),
             "poach_kinds": [k for k in ventures_store.STAFF_KINDS if co["staff"][k] > 0]}
 
 
@@ -202,17 +203,17 @@ def inside(co, viewer):
 
 
 def ipo_ready(co, viewer, players):
-    if co["stage"] != "c":
+    if co["stage"] != "c" or co["status"] != "alive":
         return None
     why = ("Only the CEO rings the bell." if ventures_team.ceo_of(co) != viewer
            else "" if ventures_sim.ready(co, players) else "Reach every IPO milestone first.")
-    return {"ok": not why, "why": why}
+    return {"ok": not why, "why": why, "new_percent": config.IPO_NEW_SHARES_PERCENT}
 
 
 def acquisition_offer(co):
     offer = ventures_store.ensure()["acquisitions"].get(co["id"])
     buyer = ventures_store.get(offer["from"]) if offer else None
-    if not buyer:
+    if not buyer or buyer["status"] != "alive":
         return None
     return {"buyer": buyer["name"], "amount": offer["amount"],
             "expires": int(offer["at"] + config.ACQUIRE_OFFER_HOURS * 3600)}

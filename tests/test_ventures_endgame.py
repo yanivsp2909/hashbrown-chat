@@ -199,3 +199,86 @@ def test_the_home_shows_the_boards(user):
     adi.send({"type": "get_ventures"})
     home = adi.expect(lambda m: m.get("type") == "ventures")
     assert "investors" in home and "fame" in home and home["season"]["mint_cap"] == config.VENTURES_MINT_SEASON_CAP
+
+
+# ---------------------------------------------------------------- after the reviews
+
+def test_an_offer_cant_be_accepted_after_the_ipo(user):
+    adi, ben = two_companies(user)
+    update("Smallco", stage="c", stage_ticks=config.ROUND_MIN_TICKS, quality=90.0, reputation=80.0, hype=60.0,
+           customers=40_000.0, cash=50_000_000, valuation=2_000_000)
+    adi.line("/company acquire Smallco 3M")
+    ben.expect(lambda m: isinstance(m.get("acquisition"), dict))
+    ben.line("/company ipo")
+    ben.expect_text("is PUBLIC")
+    assert ventures_store.ensure()["acquisitions"] == {}   # the IPO dropped the offer
+    ben.line("/company sell accept")
+    ben.expect_text("No offer", kind="error")
+    assert company("Smallco")["status"] == "alive"
+
+
+def test_an_offer_far_above_the_value_is_refused_and_exits_count_near_the_value(user):
+    adi, ben = two_companies(user)
+    adi.line("/company acquire Smallco 9M")
+    adi.expect_text("At most 2x", kind="error")
+    adi.line("/company acquire Smallco 4M")
+    ben.expect(lambda m: isinstance(m.get("acquisition"), dict))
+    ben.line("/company sell accept")
+    ben.expect_text("Exit!")
+    assert ventures_store.ensure()["exits"][-1]["value"] == 3_000_000   # 1.5x the $2M valuation, not the $4M paid
+
+
+def test_a_second_buyer_cant_replace_a_waiting_offer(user):
+    adi, ben = two_companies(user)
+    cat = user("Cat")
+    grown_up("cat")
+    found(cat, "Thirdco", "game")
+    update("Thirdco", stage="a", cash=20_000_000)
+    adi.line("/company acquire Smallco 3M")
+    ben.expect(lambda m: isinstance(m.get("acquisition"), dict))
+    cat.line("/company acquire Smallco 3M")
+    cat.expect_text("already has an offer", kind="error")
+
+
+def test_the_deal_options_only_for_the_ceo_of_another_company(user):
+    adi, ben = two_companies(user)
+    cat = user("Cat")
+    for client, expect_deals in ((adi, True), (cat, False)):
+        client.send({"type": "get_company", "company": company("Smallco")["id"]})
+        packet = client.expect(lambda m: m.get("type") == "company")["company"]
+        assert (packet["deals"] is not None) == expect_deals and "numbers" not in packet
+    adi.send({"type": "get_company", "company": company("Smallco")["id"]})
+    deals = adi.expect(lambda m: m.get("type") == "company")["company"]["deals"]
+    assert deals["acquire_min"] == 1_200_000 and deals["acquire_max"] == 4_000_000 and deals["poach_ap"] == config.POACH_AP
+
+
+def test_a_delisted_company_says_so(user):
+    adi = user("Adi")
+    grown_up("adi")
+    found(adi)
+    ipo_ready()
+    adi.line("/company ipo")
+    adi.expect_text("is PUBLIC")
+    with state.lock:
+        ventures_deals.delist(company(), "the season ended")
+    adi.send({"type": "get_company", "company": company()["id"]})
+    ipo = adi.expect(lambda m: m.get("type") == "company")["company"]["ipo"]
+    assert ipo["listed"] is False
+
+
+def test_delisting_hands_back_the_cost_and_pays_profit_only_from_the_fund(user):
+    adi, cat = user("Adi"), user("Cat")
+    grown_up("adi", "cat")
+    found(adi)
+    ipo_ready()
+    adi.line("/company ipo")
+    adi.expect_text("is PUBLIC")
+    cat.line("/buy #spudly 2")
+    cat.expect_text("📈 You bought 2 #SPUDLY")
+    spent = state.accounts["cat"]["spent"]["#spudly"]
+    state.stocks["#spudly"]["price"] *= 5   # a big rise
+    with state.lock:
+        state.public_fund = 0
+        before = state.accounts["cat"]["tokens"]
+        ventures_deals.delist(company(), "test")
+    assert state.accounts["cat"]["tokens"] == before + spent   # the cost back; no fund, no profit

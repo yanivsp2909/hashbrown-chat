@@ -57,8 +57,8 @@ def pay_exit(co, value, kind, percent=100):
         _, _, waiting = pay(login, net, f"{co['name']} {kind}")
         paid.append({"login": login, "bp": bp, "net": net, "waiting": waiting})
         later = f" ({waiting:,} of it waits for the public fund)" if waiting else ""
-        rooms.tell(login, f"🚪 Exit! Your {cap_table.percent_text(bp)} of {co['name']} ({kind}, valued "
-                          f"{money(value * percent / 100)}) paid {net:,} 🪙 after {config.EXIT_TAX_PERCENT}% tax{later}.", "money")
+        safe_tell(login, f"🚪 Exit! Your {cap_table.percent_text(bp)} of {co['name']} ({kind}, valued "
+                         f"{money(value * percent / 100)}) paid {net:,} 🪙 after {config.EXIT_TAX_PERCENT}% tax{later}.")
     record(co, kind, value, paid)
     storage.save_data()
     return paid
@@ -73,17 +73,27 @@ def record(co, kind, value, paid):
 
 
 def pay_queue():
-    """At the tick: what waits is paid from the fund, oldest first (never new tokens)."""
-    left = []
+    """At the tick: what waits is paid from the fund, oldest first (never new tokens). The new queue is saved
+    before anyone is told, so a broken message can never pay the same thing twice."""
+    left, told = [], []
     for item in ventures_store.ensure().get("exit_queue", []):
         if item["login"] not in state.accounts:
             continue
         paid = fund.pay_from_fund_only(item["login"], item["tokens"])
         if paid:
-            rooms.tell(item["login"], f"🚪 The public fund paid {paid:,} 🪙 of your exit ({item['why']}).", "money")
+            told.append((item["login"], f"🚪 The public fund paid {paid:,} 🪙 of your exit ({item['why']})."))
         if item["tokens"] - paid > 0:
             left.append({**item, "tokens": item["tokens"] - paid})
     ventures_store.set_field("exit_queue", left)
+    for login, text in told:
+        safe_tell(login, text)
+
+
+def safe_tell(login, text):
+    try:
+        rooms.tell(login, text, "money")
+    except Exception:   # (a message must never stop a payout halfway)
+        pass
 
 
 def received(login, season=None):

@@ -261,16 +261,16 @@ The full design and the phased plan are in `docs/VENTURES.md`.
 | B2 | AI market events (fixed list, templates), a few a day | done: ventures_events.py, 11 kinds, strength 1-3, at 12/16/20 Israel time, AI JSON checked + template fallback; console `ventures event` |
 | B3 | 📰 Ventures News (feed on the website + lobby) | done: ventures_news.py (feed in chat_data.json, all in history.db venture_news), lobby line + optional AI line for big ones; home + HQ news |
 | B4 | Step B checks + push | done: checks shared with A7 (one Chrome run, one code review for A + B) |
-| C1 | Market share per sector, partnerships, poaching | not started |
-| C2 | Acquisitions (offer, accept, decline) | not started |
-| C3 | IPO onto the stock market | not started |
-| C4 | Exits (V2: tax, per-person cap, season mint cap, queue) | not started |
-| C5 | Leaderboards, seasons of 28 days, Hall of Fame, fresh start | not started |
-| C6 | Website: acquisition card, IPO celebration, leaderboards, season end + Hall of Fame | not started |
-| C7 | Step C checks (security-reviewer for exits/acquisitions/IPO) + push | not started |
+| C1 | Market share per sector, partnerships, poaching | done: crowding (each strong rival -15% of your new customers) and market share with the incumbents' slice; partnerships (other sector, both CEOs, +10% for 7 days); poaching (2 ⚡, $50K x reach, 10-70% chance, 2 a day per target) |
+| C2 | Acquisitions (offer, accept, decline) | done: /company acquire (Series A+, 60%-200% of the valuation, one waiting offer per target, no self-dealing) and /company sell accept|decline; re-checked at accept; the exit counts at most 1.5x the valuation; same sector: 70% of the customers and the staff move, other sector: +10% for good |
+| C3 | IPO onto the stock market | done: /company ipo lists #group on the market (price = valuation / $10M, follows it 20% a tick), 15% new shares for cash; delisting hands back what shares cost and pays profit only from the fund |
+| C4 | Exits (V2: tax, per-person cap, season mint cap, queue) | done: ventures_exits.py: tax 20%, 5,000 cap per person, the fund first, then new tokens up to VENTURES_MINT_SEASON_CAP 20,000, the rest queued and paid from the fund at each tick; companies are closed before anyone is paid |
+| C5 | Leaderboards, seasons of 28 days, Hall of Fame, fresh start | done: best investors board, seasons of 28 game days (20% payouts, delisting, Hall of Fame, Season Champion achievement, fresh start) |
+| C6 | Website: acquisition card, IPO celebration, leaderboards, season end + Hall of Fame | done: acquisition ticket, partnership card, IPO bell + celebration, ticker panel, market share, deal options on other companies' pages, investors board, Hall of Fame, season-over banner |
+| C7 | Step C checks (security-reviewer for exits/acquisitions/IPO) + push | done: 1229 server tests, web tests, balance; security-reviewer (HIGH fixed: an offer accepted after the IPO paid a second exit and could mint through a disband; exit value capped near the valuation; close before paying; queue saved before messages; deal records checked on load; delist like /sell; no offer replacing), code-reviewer APPROVE (celebration removed with the screen, delisted panel, IPO button only alive, live buyers only, config numbers in the texts) |
 | D1 | Polish: Fry Station look, light/dark, phone, keyboard, screen readers | not started |
-| D2 | "How to play" card on the first visit | not started |
-| D3 | Balance simulation for all phases + tuning; tokens a season | not started |
+| D2 | "How to play" card on the first visit | done: a How to play card on the first visit (remembered in the browser) |
+| D3 | Balance simulation for all phases + tuning; tokens a season | done: the simulation plays whole 28-day seasons with IPOs, acquisitions and season-end payouts; tuned (3 days per stage, IPO at $1.5M a day and $500M): 24% die, 60% reach Seed, 1.15 IPOs and 2 acquisitions a season, ~8,000 🪙 paid a season (17,000 at most), new tokens ~1,600 (9,000 at most) of the 20,000 cap |
 | D4 | Step D checks + push + final report | not started |
 
 ## Docs

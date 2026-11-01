@@ -164,6 +164,9 @@ def poach_refusal(co, other, kind, count, price, tick):
 
 # ---------------------------------------------------------------- acquisitions
 
+MAX_OVER_VALUE = 2        # 🤝 an offer may be at most twice the company's valuation...
+EXIT_OVER_VALUE = 1.5     # 🤝 ...and its holders' exit counts at most 1.5x the valuation (no cheap token printing)
+
 def self_dealing(buyer, seller):
     """Someone on both sides (a member of both, or more than SELF_DEAL_PERCENT of both)?"""
     both = set(ventures_store.members(buyer)) & set(ventures_store.members(seller))
@@ -185,6 +188,9 @@ def acquire(client, co, args):
     why_not = acquire_refusal(co, other, amount)
     if why_not:
         return client.say(why_not, "error")
+    pending = ventures_store.ensure()["acquisitions"].get(other["id"])
+    if pending and pending["from"] != co["id"]:
+        return client.say(f"🤝 {other['name']} already has an offer waiting. Try again when it's answered.", "error")
     offer = {"id": f"q{int(time.time() * 1000) % 10**9}", "from": co["id"], "amount": amount, "at": time.time()}
     ventures_store.set_field("acquisitions", {**ventures_store.ensure()["acquisitions"], other["id"]: offer})
     client.say(f"🤝 Offered {money(amount)} for {other['name']}. Their CEO has {config.ACQUIRE_OFFER_HOURS} h to answer.")
@@ -204,11 +210,15 @@ def acquire_refusal(co, other, amount):
         return f"🤝 Companies buy others from {config.STAGE_NAMES[config.ACQUIRE_MIN_STAGE]} on."
     if other["stage"] == "public":
         return "🔔 A public company can't be bought here (its shares trade on the market)."
+    if other["status"] != "alive":
+        return f"{other['name']} isn't a live company any more."
     if self_dealing(co, other):
         return "🚫 Someone is on both sides of this deal. Not allowed."
     minimum = int(other["valuation"] * config.ACQUIRE_MIN_PERCENT / 100)
     if amount < minimum:
         return f"🤝 At least {config.ACQUIRE_MIN_PERCENT}% of its valuation: {money(minimum)}."
+    if amount > other["valuation"] * MAX_OVER_VALUE:
+        return f"🤝 At most {MAX_OVER_VALUE}x its valuation: {money(other['valuation'] * MAX_OVER_VALUE)}."
     if amount > co["cash"]:
         return f"💸 {co['name']} has {money(co['cash'])} cash."
     return None
@@ -232,6 +242,9 @@ def sell(client, co, args):
         return client.say(f"👎 You turned down {buyer['name'] if buyer else 'the'} offer.")
     if not buyer or buyer["status"] != "alive" or buyer["cash"] < offer["amount"] or self_dealing(buyer, co):
         return client.say("🤝 The buyer can't pay any more (or the deal isn't allowed now): the offer is gone.", "error")
+    why_not = acquire_refusal(buyer, co, offer["amount"])   # (the company may have changed since: public, richer...)
+    if why_not:
+        return client.say(f"🤝 The offer doesn't fit any more ({why_not}): it's gone.", "error")
     merge(buyer, co, offer["amount"])
     return None
 
@@ -249,8 +262,12 @@ def merge(buyer, co, amount):
                "customers": buyer["customers"] + (co["customers"] * config.ACQUIRE_KEEP_CUSTOMERS if same else 0),
                "synergy": buyer.get("synergy", 0.0) + (0 if same else config.PARTNER_BONUS)}
     ventures_store.put({**buyer, **changes})
-    ventures_exits.pay_exit(co, amount, "acquisition")
+    drop_offer(co["id"])
+    if (co.get("ipo") or {}).get("symbol"):
+        delist(co, "the company was bought")
+    # closed BEFORE anyone is paid: if something breaks halfway, it can never be paid twice
     co = ventures_store.put({**co, "status": "acquired", "cause": f"bought by {buyer['name']} for {money(amount)}"})
+    ventures_exits.pay_exit(co, min(amount, co["valuation"] * EXIT_OVER_VALUE), "acquisition")
     ventures_team.bury(co, "was acquired")
     ventures_news.add("acquisition", f"🤝 {buyer['name']} bought {co['name']} for {money(amount)}!", buyer, big=True)
     storage.save_data()
@@ -282,6 +299,7 @@ def ipo(client, co, args):
     symbol = "#" + co["group"]
     price = max(config.STOCK_MIN_PRICE, value // config.IPO_DOLLARS_PER_TOKEN_PRICE)
     holders_before = {**co, "cap": co["cap"]}
+    drop_offer(co["id"])   # (a public company can't be bought: any waiting offer ends)
     co = ventures_team.dilute(co, "public", config.IPO_NEW_SHARES_PERCENT * 100)
     co = ventures_store.put({**co, "stage": "public", "stage_ticks": 0, "cash": co["cash"] + raised,
                              "raised": co["raised"] + raised, "valuation": value, "peak": max(co["peak"], value),
@@ -323,14 +341,13 @@ def delist(co, why):
         shares = account.get("portfolio", {}).get(symbol, 0)
         if not shares:
             continue
+        basis = account.get("spent", {}).get(symbol, 0)
         account["portfolio"] = {k: v for k, v in account["portfolio"].items() if k != symbol}
         account["spent"] = {k: v for k, v in account.get("spent", {}).items() if k != symbol}
-        owed = shares * stock["price"]
-        paid = fund.pay_from_fund_only(login, owed)
-        if owed > paid:
-            queue = ventures_store.ensure().get("exit_queue", [])
-            ventures_store.set_field("exit_queue", queue + [{"login": login, "tokens": owed - paid, "why": f"{symbol} delisted",
-                                                             "at": time.time()}])
+        worth = shares * stock["price"]
+        back = min(worth, basis)               # what the shares cost (or less, if they fell): handed back
+        account["tokens"] += back
+        fund.pay_from_fund_only(login, worth - back)   # a profit only as far as the fund can pay (like /sell)
         rooms.tell(login, f"🔕 {symbol.upper()} was delisted ({why}): your {shares} shares were paid at {stock['price']} 🪙 each.",
                    "money")
     ventures_store.put({**co, "ipo": {**co["ipo"], "delisted": True}})

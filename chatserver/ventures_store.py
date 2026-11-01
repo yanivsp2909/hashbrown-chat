@@ -156,12 +156,20 @@ def clean_saved(saved):
     if isinstance(saved.get("exit_queue"), list):   # 🚪 tokens owed to people: keep every well-formed one
         result["exit_queue"] = [q for q in saved["exit_queue"] if isinstance(q, dict) and isinstance(q.get("login"), str)
                                 and is_count(q.get("tokens")) and q["tokens"] > 0 and isinstance(q.get("why"), str)]
-    for field in ("exits", "fame"):
-        if isinstance(saved.get(field), list):
-            result[field] = [e for e in saved[field] if isinstance(e, dict)][-config.EXITS_KEPT:]
-    for field in ("acquisitions", "partner_offers", "poached"):
+    if isinstance(saved.get("exits"), list):
+        result["exits"] = [e for e in saved["exits"] if isinstance(e, dict) and is_count(e.get("season"))
+                           and is_number(e.get("value")) and isinstance(e.get("paid"), list) and isinstance(e.get("name"), str)
+                           and all(isinstance(p, dict) and isinstance(p.get("login"), str) and is_count(p.get("tokens"))
+                                   for p in e["paid"])][-config.EXITS_KEPT:]
+    if isinstance(saved.get("fame"), list):
+        result["fame"] = [f for f in saved["fame"] if isinstance(f, dict) and is_count(f.get("season"))
+                          and all(isinstance(f.get(k), str) for k in ("award", "name", "text"))]
+    deal_fields = {"acquisitions": (("from", str), ("amount", int), ("at", float)), "partner_offers": (("from", str), ("at", float)),
+                   "poached": (("tick", int), ("n", int))}
+    for field, needs in deal_fields.items():
         if isinstance(saved.get(field), dict):
-            result[field] = {k: v for k, v in saved[field].items() if isinstance(k, str) and isinstance(v, dict)}
+            result[field] = {k: v for k, v in saved[field].items() if isinstance(k, str) and isinstance(v, dict)
+                             and all(is_number(v.get(n)) if kind is not str else isinstance(v.get(n), str) for n, kind in needs)}
     for field in ("season", "tick", "next_id", "news_id", "minted"):
         if is_count(saved.get(field)):
             result[field] = saved[field]

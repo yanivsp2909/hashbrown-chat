@@ -336,6 +336,10 @@ Server admins only (the password comes from the Keychain item `hashbrown-admin` 
 | `/company bridge` | A small bridge round from Bridge Capital, once per stage, when on fumes or out of pitches |
 | `/invest company tokens` | Angel investing: your 🪙 (50 to 1,000 per company, 500 a day) for shares of an Idea, Pre-seed or Seed company; held until its CEO answers (`/company angels`, `/company angel accept name`), back to you after 24 h |
 | `/ventures` · `/ventures graveyard` | The 🦄 Unicorn Board and the startup graveyard |
+| `/company partner name` · `/company partner accept name` | A partnership with a company from another sector (both CEOs): +10% new customers for both for 7 days |
+| `/company poach name engineer\|sales\|marketer` | Try to hire a rival's staff away (2 ⚡ and $; better odds when you're worth more) |
+| `/company acquire name 5M` · `/company sell accept\|decline` | Offer to buy a company (yours from Series A on, 60% to 2x its valuation); its CEO says yes or no in 24 h. Yes: its owners get an exit, its customers and staff join you |
+| `/company ipo` | 🔔 Series C with every IPO milestone: list on the stock market as `#name`; owners get an exit, 15% new shares bring cash |
 
 **New accounts** need a username of 3-16 English *or* Hebrew letters, digits or `_` (not both alphabets, so nobody can hide a look-alike letter in a name) and a password of 6 to 64 characters. Older accounts keep their names and passwords.
 
@@ -362,6 +366,16 @@ with Accept / Decline / Counter). Other companies' pages have an Invest box. The
   (cheaper units), `keynote` (a triumph doubles demand for 3 days, a flop hurts), `newmodel`.
 - 💻 **SaaS:** `priceup` / `pricedown`, `retention` (less churn for 5 days), `experiment`.
 - 🎮 **Game studio:** `develop`, `playtest`, `launch` (a hit or a flop), `liveops`, `dlc`.
+
+**The endgame:** rivals in the same sector share the customers (🏁 market share on the HQ). Partnerships, poaching
+and acquisitions are buttons on another company's page (for your company's CEO); an offer to buy your company shows
+up as a ticket on your HQ. The 🔔 IPO lists the company on the 📈 Market as `#name`: everyone can trade it, and its
+price follows the company's valuation. **Exits** (an IPO, being bought, the end of a season) pay every player who owns
+a part in 🪙: 1 🪙 per $50,000 of their stake, at most 5,000 per person per exit, minus a 20% tax; the public fund pays
+first, then new tokens up to 20,000 a season for the whole server, and anything above that waits for the fund.
+**Seasons** last 28 game days: then private companies pay 20% of an exit, public ones are delisted (shareholders get
+back what they paid, the profit from the fund), the winners go to the 🏛️ Hall of Fame (the top founder gets the
+🏢 Season Champion achievement) and everyone can start again.
 
 **Market events** come at 12:00, 16:00 and 20:00 (Israel time): Hashbrown picks one from a fixed list (demand up or
 down, GPU prices, a chip shortage, a hacking wave, a talent war, investors' mood, a company going viral, a scandal,
@@ -538,6 +552,8 @@ Every packet is **one JSON object on one line**, ending with `\n` (newline-delim
 | client → server | `get_company` | 🏢 `company` (an id like `c12`): that company's HQ (kept fresh while it's open) |
 | server → client | `ventures` | 🏢 the home: `season`, `me` (tokens, can_found, why), `mine`, `board`, `graveyard`, `news`, `investments` {held, waiting}, `invites`, `sectors`, `roles` |
 | server → client | `company` | 🏢 `company`: the public part for everyone (name, sector, stage, valuation, team, cap, timeline, rounds, news, you), plus for members `numbers`, `history` (chart rows), `ap`, `next_tick`, `actions`, `reports`, `milestones`, `pitch` (with `log`), `sheet`, `angels`, `invites_out`, `bridge`, `interest`, `sector_panel`, `events` |
+| server → client | `msg` + `acquisition` | 🤝 an offer to buy your company: `id`, `buyer`, `target`, `amount`, `expires` |
+| server → client | `msg` + `partner_offer` | 🤝 a partnership offer: `company`, `name` |
 | server → client | `company_event` | 🏢 only to apps with `ventures` in their login `features`: `company` (its id), `kind` (`founded`, `report`, `round`, `death`), `text` (the same text also arrives as a normal line) |
 | server → client | `pitch` | 🎤 `ventures` apps: `company`, `state` (`waiting`, `thinking`, `question`, `decided`, `ended`), `investor` {`id`, `name`, `firm`, `emoji`}, `turn`, `questions`, `chars` |
 | server → client | `chat` + `investor` | 🎤 the investor's lines in the company chat are chat packets with an optional `investor` field |

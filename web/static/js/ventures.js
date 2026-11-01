@@ -417,6 +417,7 @@ export function open() {
 
 export function close(refocus = true) {
   if (view === null) return;
+  $("vs-party")?.remove();   // (the IPO celebration belongs to the screen)
   view = null;
   company = null;
   setOpen(false);
@@ -428,6 +429,7 @@ export function close(refocus = true) {
 }
 
 function showHome() {
+  $("vs-party")?.remove();
   view = "";
   company = null;
   send({ type: "get_ventures" });
@@ -436,6 +438,7 @@ function showHome() {
 }
 
 export function openCompany(id) {
+  $("vs-party")?.remove();
   view = str(id);
   company = null;
   companyError = "";

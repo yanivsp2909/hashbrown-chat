@@ -38,11 +38,12 @@ def end_season():
     companies = list(ventures_store.companies().values())
     fame = awards(season, companies)
     for co in ventures_store.alive():
+        # closed BEFORE anyone is paid: if something breaks halfway, nobody is paid twice
+        ended = ventures_store.put({**co, "status": "ended", "cause": f"season {season} ended"})
         if co["stage"] == "public":
-            ventures_deals.delist(co, "the season ended")
+            ventures_deals.delist(ended, "the season ended")
         else:
-            ventures_exits.pay_exit(co, co["valuation"], "season end", config.SEASON_END_PAYOUT_PERCENT)
-        ventures_store.put({**ventures_store.get(co["id"]), "status": "ended", "cause": f"season {season} ended"})
+            ventures_exits.pay_exit(ended, co["valuation"], "season end", config.SEASON_END_PAYOUT_PERCENT)
     ventures_store.set_field("fame", ventures_store.ensure()["fame"] + fame)
     for entry in fame:
         if entry.get("login") in state.accounts and entry["award"] == "Most valuable company":

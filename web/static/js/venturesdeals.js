@@ -59,6 +59,9 @@ export function dealsInbox(co) {
 
 /** 🔔 The IPO: the button when it's ready, the ticker once public. */
 export function ipoPanel(co) {
+  if (co.ipo && !co.ipo.listed) {
+    return el("p", { class: "vs-note", text: `🔕 Was public as ${str(co.ipo.symbol)} (delisted).` });
+  }
   if (co.ipo) {
     return el("section", { class: "vs-plate vs-ipo", "aria-labelledby": "vs-ipo" },
       el("h3", { id: "vs-ipo", class: "gs-h3", text: `🔔 Public as ${str(co.ipo.symbol)}` }),
@@ -69,7 +72,7 @@ export function ipoPanel(co) {
   const ready = co.ipo_ready;
   if (!ready) return null;
   const ring = async () => {
-    if (await confirmStep({ title: "🔔 Go public?", text: `${co.name} lists on the stock market. ${15}% new shares are sold to the public ` +
+    if (await confirmStep({ title: "🔔 Go public?", text: `${co.name} lists on the stock market. ${str(ready.new_percent)}% new shares are sold to the public ` +
       "for cash, and every player who owns a part gets an exit in 🪙 now.", yes: "Ring the bell" })) act("ipo", "/company ipo");
   };
   return el("section", { class: "vs-plate vs-ipo", "aria-labelledby": "vs-ipo" },
@@ -110,13 +113,13 @@ export function dealsWith(co) {
     }
     setDraft("acquire-amount-error", "");
     const price = amount.replace("/offer counter ", "");
-    if (await confirmStep({ title: `🤝 Offer to buy ${co.name}?`, text: `${d.company} offers ${price}. Their CEO has 24 h to say yes; ` +
+    if (await confirmStep({ title: `🤝 Offer to buy ${co.name}?`, text: `${d.company} offers ${price}. Their CEO has ${str(d.offer_hours)} h to say yes; ` +
       "the money leaves your cash only if they do.", yes: "Send the offer" })) act("acquire", `/company acquire ${co.name} ${price}`);
   };
   const error = draft("acquire-amount-error");
   return el("section", { class: "vs-panel", "aria-labelledby": "vs-deals" },
     el("h3", { id: "vs-deals", class: "gs-h3", text: `🤝 ${str(d.company)} and ${str(co.name)}` }),
-    el("label", { for: "vs-acquire", class: "gs-h4", text: `Buy it (at least ${V.money(d.acquire_min)})` }),
+    el("label", { for: "vs-acquire", class: "gs-h4", text: `Buy it (${V.money(d.acquire_min)} to ${V.money(d.acquire_max)})` }),
     el("div", { class: "row" },
       field("acquire-amount", { id: "vs-acquire", placeholder: "like 5M", "aria-invalid": error ? "true" : undefined,
         "aria-describedby": error ? "acquire-amount-error" : undefined }),
@@ -124,7 +127,7 @@ export function dealsWith(co) {
     formError("acquire-amount"),
     el("div", { class: "row" }, button("🤝 Offer a partnership", () => act("partner", `/company partner ${co.name}`),
       { key: "partner", small: true, disabled: Boolean(d.partner_why), why: str(d.partner_why) })),
-    d.poach_kinds.length ? el("div", { class: "row" }, el("span", { class: "gs-muted", text: `🎣 Poach (2 ⚡, ${V.money(d.poach_cost)}):` }),
+    d.poach_kinds.length ? el("div", { class: "row" }, el("span", { class: "gs-muted", text: `🎣 Poach (${str(d.poach_ap)} ⚡, ${V.money(d.poach_cost)}):` }),
       ...d.poach_kinds.map((kind) => button(kind, () => act(`poach:${kind}`, `/company poach ${co.name} ${kind}`),
         { key: `poach:${kind}`, small: true, label: `Poach their ${kind} staff` }))) : null);
 }
