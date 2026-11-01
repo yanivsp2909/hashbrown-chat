@@ -115,7 +115,8 @@ def do_pivot(co, args):
     if new_sector not in config.SECTORS:
         raise ActionError(f"Sectors: {', '.join(config.SECTORS)}")
     changes = {"sector": new_sector, "quality": co["quality"] * 0.5, "hype": 10.0, "customers": co["customers"] * 0.3,
-               "reputation": max(0.0, co["reputation"] - 5), "pivoted": co["stage"]}
+               "reputation": max(0.0, co["reputation"] - 5), "pivoted": co["stage"],
+               "sector_state": {**ventures_sectors.default_state(new_sector), "_sector": new_sector}}
     return changes, f"🔀 Pivot! Now a {config.SECTORS[new_sector]['icon']} {config.SECTORS[new_sector]['name']} company."
 
 

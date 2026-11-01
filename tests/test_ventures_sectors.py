@@ -171,3 +171,36 @@ def test_a_template_headline_says_the_real_effect():
     assert fields == {"mood": 0.8} and "-20%" in ventures_events.template_headline(event, None)
     outage = {"kind": "outage", "direction": "up", "sector": "all", "company": "c1", "strength": 2, "days": 1}
     assert "6%" in ventures_events.template_headline(outage, {"name": "Spudly"})
+
+
+@pytest.mark.integration
+def test_events_slots_and_prices_survive_a_restart(user):
+    from chatserver import storage
+    adi = user("Adi")
+    grown_up("adi")
+    found(adi, "Labby", "ai")
+    with state.lock:
+        ventures_events.apply_event({"kind": "compute_price", "direction": "up", "sector": "ai", "company": "",
+                                     "strength": 3, "days": 3, "headline": None, "text": ""}, random.Random(1))
+        ventures_store.set_field("event_slots", {"day": "2026-11-02", "done": [12, 16]})
+        assert ventures_sectors.compute_price() == int(config.COMPUTE_PRICE * 1.4)
+        storage.save_data()
+        state.ventures = {}
+        assert storage.load_data()
+        assert ventures_sectors.compute_price() == int(config.COMPUTE_PRICE * 1.4)
+        assert state.ventures["event_slots"] == {"day": "2026-11-02", "done": [12, 16]}
+
+
+def test_a_cyber_line_button_with_nothing_to_pick_is_off():
+    from chatserver import ventures_view
+    co = sector_state(company("cyber"), lines={k: 30 for k in config.CYBER_LINES})
+    rows = {r["name"]: r for r in ventures_view.actions(co)}
+    assert not rows["launch"]["ok"] and "launched" in rows["launch"]["why"] and rows["improve"]["ok"]
+
+
+def test_pivoting_back_starts_fresh():
+    co = sector_state(company("ai"), compute=99)
+    there, _ = act(co, "pivot", "game")
+    back = {**there, "pivoted": "", "ap": 6}
+    again, _ = act(back, "pivot", "ai")
+    assert ventures_sectors.state(again)["compute"] == 0

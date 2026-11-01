@@ -10,26 +10,30 @@ before money is counted, and the actions menu adds ACTIONS[sector]. world = {"ti
 import math
 
 from chatserver import config
+from chatserver import state as shared   # (this module has its own state() for a company's sector numbers)
 
 
 class SectorError(Exception):
     """Why a sector action can't be done (ventures_actions turns it into an ActionError)."""
 
 
-# 🌪️ Prices that market events move right now (ventures_events.set_market keeps them up to date)
-MARKET = {"compute": 1.0, "chips": 1.0}
-
-
-def set_market(compute, chips):
-    MARKET.update(compute=compute, chips=chips)
+def market_factor(name):
+    """🌪️ How much the market events in force move a price ("compute" or "chips"), read from the saved events."""
+    ventures = shared.ventures or {}
+    tick = ventures.get("tick", 0)
+    factor = 1.0
+    for event in ventures.get("events", []):
+        if event.get("until", -1) >= tick:
+            factor *= event.get(name, 1.0)
+    return factor
 
 
 def compute_price():
-    return int(config.COMPUTE_PRICE * MARKET["compute"])
+    return int(config.COMPUTE_PRICE * market_factor("compute"))
 
 
 def unit_cost(s):
-    return int(s["unit_cost"] * MARKET["chips"])
+    return int(s["unit_cost"] * market_factor("chips"))
 
 
 def default_state(sector):
@@ -83,6 +87,9 @@ def effects(co, world):
             churn *= config.RETENTION_CHURN
     elif kind == "game" and s["liveops_until"] >= tick:
         churn *= 0.5
+    demand *= world.get("crowd", {}).get(co["id"], 1.0)   # 🏁 strong rivals in the same sector
+    partner = co.get("partner") or {}
+    demand *= 1 + (config.PARTNER_BONUS if partner.get("until", -1) >= tick else 0.0) + co.get("synergy", 0.0)
     salary = 1.0
     for event in world.get("events", []):
         if event.get("sector") in (kind, "all") or event.get("company") == co["id"]:
@@ -445,4 +452,6 @@ def panel(co, world):
     elif co["sector"] == "hardware":
         data = {**data, "price": config.DEVICES.get(s["device"], config.DEVICES["phone"])[0], "unit_cost_now": unit_cost(s),
                 "keynote_ready": world.get("tick", 0) - s["keynote_tick"] >= config.KEYNOTE_COOLDOWN}
+    if co["sector"] == "saas":
+        data = {**data, "retention_on": s["retention_until"] >= world.get("tick", 0)}
     return {"sector": co["sector"], **data}

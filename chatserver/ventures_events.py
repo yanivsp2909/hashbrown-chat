@@ -131,7 +131,6 @@ def apply_event(event, rng):
     else:
         hit_now(event, company)
     ventures_news.add("event", f"🌪️ {headline}", company, event.get("text", ""), big=True)
-    set_market()
 
 
 def hit_now(event, company):
@@ -161,16 +160,9 @@ def template_headline(event, company):
         updown="prices jump" if up else "prices drop", sign="+" if up else "-", mood="excited" if up else "nervous")
 
 
-def set_market():
-    """The compute and chip prices the actions see right now."""
-    _, _, compute, chips = world_effects()
-    ventures_sectors.set_market(compute, chips)
-
-
 def expire():
     """At the tick: events past their last day are forgotten."""
     tick = ventures_store.ensure()["tick"]
     kept = [e for e in ventures_store.ensure()["events"] if e.get("until", -1) >= tick]
     if len(kept) != len(ventures_store.ensure()["events"]):
         ventures_store.set_field("events", kept)
-    set_market()

@@ -31,7 +31,7 @@ def summary(co):
     sector = config.SECTORS[co["sector"]]
     return {"id": co["id"], "name": co["name"], "sector": co["sector"], "icon": sector["icon"], "stage": co["stage"],
             "stage_name": stage_name(co["stage"]), "status": co["status"], "valuation": co["valuation"],
-            "age": co["age"], "fumes": co["fumes"], "team": [rooms.nick(k) for k in ventures_store.members(co)]}
+            "age": co["age"], "team": [rooms.nick(k) for k in ventures_store.members(co)]}
 
 
 def sectors():
@@ -50,7 +50,7 @@ def home(viewer):
             "me": {"tokens": state.accounts[viewer]["tokens"], "found_cost": config.FOUND_COST,
                    "can_found": mine is None and found_refusal(viewer) is None,
                    "why": "" if mine else (found_refusal(viewer) or "")},
-            "mine": summary(mine) if mine else None,
+            "mine": {**summary(mine), "fumes": mine["fumes"]} if mine else None,
             "board": [summary(co) for co in board],
             "graveyard": list(reversed(ventures["graveyard"][-20:])),
             "news": ventures_news.feed(limit=20),
@@ -101,8 +101,6 @@ def public(co, viewer):
                         "investor_name": ventures_rounds.investor_title(r["investor"])} for r in co["rounds"]],
             "team": team(co), "cap": cap(co), "timeline": timeline(co), "member": viewer in ventures_store.members(co),
             "you": you(co, viewer), "news": ventures_news.feed(co["id"], 8),
-            "sector_panel": ventures_sectors.panel(co, {"tick": ventures_store.ensure()["tick"],
-                                                        "companies": ventures_store.alive()}),
             "events": [{"headline": e["headline"], "until": e["until"]} for e in ventures_events.active()
                        if e.get("sector") in (co["sector"], "all") or e.get("company") == co["id"]]}
 
@@ -164,7 +162,9 @@ def inside(co, viewer):
                "runway": ventures_sim.runway(co, players), "customers": co["customers"], "quality": co["quality"],
                "hype": co["hype"], "reputation": co["reputation"], "staff": staff,
                "staff_total": ventures_sim.staff_total(co), "staff_max": ventures_sim.stage(co)["staff_max"]}
+    world = {"tick": ventures_store.ensure()["tick"], "companies": ventures_store.alive()}
     return {"numbers": numbers, "history": ventures_log.days(co["id"]), "ap": co["ap"], "ap_max": config.AP_MAX,
+            "sector_panel": ventures_sectors.panel(co, world),
             "next_tick": ventures_tick.next_tick_at(), "fumes": co["fumes"], "actions": actions(co),
             "reports": list(reversed(co["reports"])), "milestones": milestones(co, players),
             "pitch": pitch(co, viewer, players), "sheet": sheet(co), "angels": angels(co),
@@ -178,7 +178,10 @@ def actions(co):
                "pivot": list(config.SECTORS), "compute": ["10", "50", "200"], "manufacture": ["100", "300", "1000"],
                "launch": [k for k, level in lines.items() if level == 0] if co["sector"] == "cyber" else [],
                "improve": [k for k, level in lines.items() if level > 0]}
-    return [{**r, "choices": choices.get(r["name"], [])} for r in rows]
+    rows = [{**r, "choices": choices.get(r["name"], [])} for r in rows]
+    empty = {"launch": "every product line is launched", "improve": "launch a product line first"}
+    return [{**r, "ok": False, "why": empty[r["name"]]} if co["sector"] == "cyber" and r["name"] in empty and not r["choices"]
+            and r["ok"] else r for r in rows]
 
 
 def milestones(co, players):

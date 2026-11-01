@@ -53,6 +53,7 @@ def test_a_member_sees_everything_an_outsider_only_the_public_part(user):
     assert {"priceup", "retention"} <= {a["name"] for a in mine["actions"] if a["sector"]}
     theirs = hq_of(cat, co["id"])
     assert not theirs["member"] and "numbers" not in theirs and "actions" not in theirs and "pitch" not in theirs
+    assert "sector_panel" not in theirs and "fumes" not in theirs and "fumes" not in home_of(cat)["board"][0]
     assert theirs["cap"] == [{"name": "Adi", "kind": "player", "bp": 10000}]
 
 

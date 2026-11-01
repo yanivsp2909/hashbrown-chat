@@ -82,10 +82,10 @@ function hardwarePanel(s) {
   ];
 }
 
-function saasPanel(s, co) {
+function saasPanel(s) {
   return [el("dl", { class: "vs-facts" },
     fact("Price", `${Math.round(Number(s.price) * 100)}% of the usual`),
-    fact("Retention push", Number(s.retention_until) >= Number(co.age) ? "on" : "off"))];
+    fact("Retention push", s.retention_on ? "on" : "off"))];
 }
 
 function gamePanel(s) {

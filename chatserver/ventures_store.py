@@ -13,7 +13,7 @@ import math
 
 from chatserver import cap_table, config, state, textutil, ventures_sectors
 
-STATUSES = ("alive", "dead", "shutdown")
+STATUSES = ("alive", "dead", "shutdown", "acquired", "ended")
 STAFF_KINDS = ("engineer", "sales", "marketer")
 
 
@@ -21,7 +21,10 @@ def empty():
     return {"season": 1, "tick": 0, "day": "", "next_id": 1, "companies": {}, "graveyard": [],
             "angels": {}, "cooldowns": {}, "angel_days": {},
             "news": [], "news_id": 0, "news_ai": ["", 0],    # 📰 the feed (ventures_news.py)
-            "events": [], "event_slots": {}}                # 🌪️ market events in force (ventures_events.py)
+            "events": [], "event_slots": {},                # 🌪️ market events in force (ventures_events.py)
+            "minted": 0, "exit_queue": [], "exits": [],     # 🚪 exits (ventures_exits.py)
+            "acquisitions": {}, "partner_offers": {}, "poached": {},   # 🤝 deals waiting (ventures_deals.py)
+            "fame": []}                                     # 🏛️ the Hall of Fame (ventures_season.py)
 
 
 def ensure():
@@ -48,7 +51,10 @@ def new_company(cid, name, group_key, sector, founder, tick):
             "angel_in": {},      # 😇 login -> 🪙 they put in as an angel (accepted)
             "reports": [],       # 📊 the last REPORTS_KEPT daily reports: {"age", "text"}
             "pitch_log": [],     # 🎤 the last pitch's conversation: {"who": "investor"|"founders", "name", "text"}
-            "sector_state": {**ventures_sectors.default_state(sector), "_sector": sector}}   # 🏭 the sector's own numbers
+            "sector_state": {**ventures_sectors.default_state(sector), "_sector": sector},   # 🏭 the sector's own numbers
+            "partner": {},       # 🤝 {"with": company id, "until": tick} while a partnership lasts
+            "synergy": 0.0,      # 🤝 extra new customers for good, from buying a company in another sector
+            "ipo": {}}           # 🔔 {"symbol", "value", "tick"} once public
 
 
 # ---------------------------------------------------------------- finding companies
@@ -140,8 +146,23 @@ def clean_saved(saved):
     if isinstance(saved.get("events"), list):
         result["events"] = [e for e in saved["events"] if isinstance(e, dict) and isinstance(e.get("kind"), str)
                             and is_count(e.get("until")) and isinstance(e.get("headline"), str)
-                            and all(is_number(e.get(k, 1.0)) for k in ("demand", "churn", "salary", "mood", "compute", "chips"))]
-    for field in ("season", "tick", "next_id", "news_id"):
+                            and all(is_number(e.get(k, 1.0)) for k in ("demand", "churn", "salary", "mood", "compute", "chips"))][-20:]
+    slots = saved.get("event_slots")
+    if isinstance(slots, dict) and isinstance(slots.get("day"), str) and isinstance(slots.get("done"), list):
+        result["event_slots"] = {"day": slots["day"], "done": [h for h in slots["done"] if is_count(h)]}
+    news_ai = saved.get("news_ai")
+    if isinstance(news_ai, list) and len(news_ai) == 2 and isinstance(news_ai[0], str) and is_count(news_ai[1]):
+        result["news_ai"] = news_ai
+    if isinstance(saved.get("exit_queue"), list):   # 🚪 tokens owed to people: keep every well-formed one
+        result["exit_queue"] = [q for q in saved["exit_queue"] if isinstance(q, dict) and isinstance(q.get("login"), str)
+                                and is_count(q.get("tokens")) and q["tokens"] > 0 and isinstance(q.get("why"), str)]
+    for field in ("exits", "fame"):
+        if isinstance(saved.get(field), list):
+            result[field] = [e for e in saved[field] if isinstance(e, dict)][-config.EXITS_KEPT:]
+    for field in ("acquisitions", "partner_offers", "poached"):
+        if isinstance(saved.get(field), dict):
+            result[field] = {k: v for k, v in saved[field].items() if isinstance(k, str) and isinstance(v, dict)}
+    for field in ("season", "tick", "next_id", "news_id", "minted"):
         if is_count(saved.get(field)):
             result[field] = saved[field]
     if isinstance(saved.get("day"), str):

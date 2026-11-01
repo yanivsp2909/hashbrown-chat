@@ -38,6 +38,8 @@ def add(kind, headline, company=None, text="", big=False):
 
 def add_funny_line(entry):
     """🥔 Hashbrown writes one funny line for a big headline (counted in the game's AI budget; nothing without it)."""
+    if state.hashbrown is None:   # (Hashbrown is off: the template headline is the news)
+        return
     used_day, used = state.ventures_ai_today
     if textutil.today() == used_day and used >= config.VENTURES_AI_PER_DAY:
         return
