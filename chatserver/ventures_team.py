@@ -5,8 +5,8 @@ the C-level seats are its admins). docs/VENTURES.md, section 2.
 """
 import time
 
-from chatserver import (cap_table, config, history, invites, rooms, state, storage, ventures_log, ventures_store,
-                        ventures_text)
+from chatserver import (cap_table, config, history, invites, rooms, state, storage, ventures_log, ventures_news,
+                        ventures_store, ventures_text)
 
 C_LEVEL = [role for role, (_, _, is_c) in config.ROLES.items() if is_c]
 
@@ -349,6 +349,6 @@ def bury(co, how):
     wait_until = ventures["tick"] + config.FOUND_COOLDOWN_TICKS
     cooldowns = {**ventures_store.ensure()["cooldowns"], **{login: wait_until for login in ventures_store.members(co)}}
     ventures_store.set_field("cooldowns", cooldowns)
-    rooms.announce(f"⚰️ {co['name']} ({ventures_text.sector_title(co['sector'])}) {how}: {co['cause']}. "
-                   f"It lived {co['age']} days and peaked at {ventures_text.money(co['peak'])}.")
+    ventures_news.add("death", f"⚰️ {co['name']} {how} after {co['age']} days: {co['cause']}", co,
+                      f"It peaked at {ventures_text.money(co['peak'])} and raised {ventures_text.money(co['raised'])}.", big=True)
     send_event(co, "death", f"⚰️ {co['name']} {how}: {co['cause']}.")

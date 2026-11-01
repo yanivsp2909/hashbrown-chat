@@ -3,7 +3,7 @@
 No time, no files, no state: the server's tick (ventures_tick.py), the tests and the balance simulation
 (ventures_balance.py) all call the same functions. The formulas are in docs/VENTURES.md, section 5.
 """
-from chatserver import config, ventures_text
+from chatserver import config, ventures_sectors, ventures_text
 
 
 def sector(co):
@@ -30,7 +30,10 @@ def grow(value, amount, ceiling=110):
 # ---------------------------------------------------------------- money
 
 def revenue(co):
-    return co["customers"] * sector(co)["price"]
+    """$ a day: customers x the price (hardware: the units sold yesterday x the margin; SaaS: its price setting)."""
+    if co["sector"] == "hardware":
+        return ventures_sectors.hardware_revenue(co)
+    return co["customers"] * sector(co)["price"] * ventures_sectors.price_factor(co)
 
 
 def burn(co, players):
@@ -92,21 +95,27 @@ def ready(co, players=1):
 
 # ---------------------------------------------------------------- the daily tick
 
-def next_day(co, rng, players, mood=1.0):
-    """One tick for one live company. Returns (the new company, the report lines)."""
+def next_day(co, rng, players, mood=1.0, world=None):
+    """One tick for one live company. Returns (the new company, the report lines). world: {"tick", "events",
+    "bench"} from the server (the sector effects and market events); the news of the day go in result["_news"]."""
+    world = world or {}
+    fx = ventures_sectors.effects(co, world)
     idle = 0 if co["acted"] else co["idle"] + 1
     quality, hype, reputation = product_and_buzz(co, idle)
     luck_lines, customers, hype, reputation = luck(co, rng, co["customers"], hype, reputation)
     moved = {**co, "quality": quality, "hype": hype, "reputation": reputation, "customers": customers}
-    new = customers_arrive(moved, rng)
-    lost = customers * sector(co)["churn"] * (1.4 - quality / 100) * (2 if idle >= config.IDLE_TICKS else 1)
+    new = customers_arrive(moved, rng) * fx["demand"]
+    lost = customers * sector(co)["churn"] * (1.4 - quality / 100) * (2 if idle >= config.IDLE_TICKS else 1) * fx["churn"]
     moved = {**moved, "customers": max(0.0, customers + new - lost)}
-    earned, spent = revenue(moved), burn(moved, players)
+    moved, sector_lines, news = ventures_sectors.day(moved, rng, world)
+    luck_lines = sector_lines + luck_lines
+    mood = mood * world.get("mood", 1.0)
+    earned, spent = revenue(moved), burn(moved, players) + fx["extra_burn"]
     cash = int(round(co["cash"] + earned - spent))
     value = valuation({**moved, "cash": cash}, mood)
     result = {**moved, "cash": cash, "revenue": int(earned), "burn": int(spent), "valuation": int(value),
               "peak": int(max(co["peak"], value)), "age": co["age"] + 1, "stage_ticks": co["stage_ticks"] + 1,
-              "idle": idle, "acted": False}
+              "idle": idle, "acted": False, "_news": news}
     result, death_lines = check_cash(result, players)
     days_left = runway(result, players)
     numbers = {"tick": co["age"] + 1, "revenue": earned, "old_revenue": revenue(co), "burn": spent,

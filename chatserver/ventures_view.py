@@ -16,8 +16,9 @@ import json
 import time
 import traceback
 
-from chatserver import (cap_table, config, rooms, state, textutil, ventures_actions, ventures_angels, ventures_log,
-                        ventures_pitch, ventures_rounds, ventures_sim, ventures_store, ventures_team, ventures_tick)
+from chatserver import (cap_table, config, rooms, state, textutil, ventures_actions, ventures_angels, ventures_events,
+                        ventures_log, ventures_news, ventures_pitch, ventures_rounds, ventures_sectors, ventures_sim,
+                        ventures_store, ventures_team, ventures_tick)
 from chatserver.ventures_text import stage_name
 
 FORCE_EVERY = 10   # seconds: even with nothing changed, refresh (online dots, the countdown's clock)
@@ -52,7 +53,7 @@ def home(viewer):
             "mine": summary(mine) if mine else None,
             "board": [summary(co) for co in board],
             "graveyard": list(reversed(ventures["graveyard"][-20:])),
-            "news": [],
+            "news": ventures_news.feed(limit=20),
             "investments": investments(viewer),
             "invites": company_invites(viewer),
             "sectors": sectors(),
@@ -99,7 +100,11 @@ def public(co, viewer):
             "rounds": [{**r, "stage_name": stage_name(r["stage"]) if r["stage"] in config.STAGE_NAMES else "Bridge",
                         "investor_name": ventures_rounds.investor_title(r["investor"])} for r in co["rounds"]],
             "team": team(co), "cap": cap(co), "timeline": timeline(co), "member": viewer in ventures_store.members(co),
-            "you": you(co, viewer)}
+            "you": you(co, viewer), "news": ventures_news.feed(co["id"], 8),
+            "sector_panel": ventures_sectors.panel(co, {"tick": ventures_store.ensure()["tick"],
+                                                        "companies": ventures_store.alive()}),
+            "events": [{"headline": e["headline"], "until": e["until"]} for e in ventures_events.active()
+                       if e.get("sector") in (co["sector"], "all") or e.get("company") == co["id"]]}
 
 
 def team(co):
@@ -168,8 +173,11 @@ def inside(co, viewer):
 
 def actions(co):
     rows = ventures_actions.menu(co)
+    lines = ventures_sectors.state(co).get("lines", {})
     choices = {"hire": list(ventures_store.STAFF_KINDS), "layoff": [k for k in ventures_store.STAFF_KINDS if co["staff"][k]],
-               "pivot": list(config.SECTORS)}
+               "pivot": list(config.SECTORS), "compute": ["10", "50", "200"], "manufacture": ["100", "300", "1000"],
+               "launch": [k for k, level in lines.items() if level == 0] if co["sector"] == "cyber" else [],
+               "improve": [k for k, level in lines.items() if level > 0]}
     return [{**r, "choices": choices.get(r["name"], [])} for r in rows]
 
 

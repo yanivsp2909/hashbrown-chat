@@ -323,6 +323,28 @@ REPORTS_KEPT = 5                   # 📊 daily reports kept per company (the HQ
 PITCH_LOG_KEPT = 12                # 🎤 lines of the last pitch kept for the HQ's pitch room
 VENTURES_PUSH_EVERY = 1            # 🏢 seconds between refreshes of open Ventures screens (only if changed)
 VENTURES_CHART_TICKS = 30          # 📈 ticks of numbers the HQ charts get
+# Sector mechanics (docs/VENTURES.md, section 7)
+COMPUTE_PRICE = 1_000              # 🤖 $ per compute unit (GPU-days); events move it
+COMPUTE_PER_100_CUSTOMERS = 1      # 🤖 units a day to serve every 100 API customers
+TRAIN_COMPUTE = 10                 # 🤖 units per training run, times the model's generation
+TRAIN_TICKS = 2                    # 🤖 a training run takes this many game days
+SAFETY_START = 40                  # 🤖 the safety score at founding (0-100)
+NPC_LABS = [("OpenSpud", 52), ("DeepFry", 48), ("Anthropotato", 45), ("MetaMash", 40)]   # 🧠 the bench's other labs
+NPC_LAB_GROWTH = 1.5               # 🧠 their best score grows this much a game day
+CYBER_LINES = {"agent": "AI-agent security", "network": "network security", "antivirus": "antivirus",
+               "bounty": "bug bounty platform"}
+CYBER_SECURITY_START = 50          # 🛡️ your own security score
+BREACH_DIVISOR = 600               # 🛡️ a breach at a client: (100 - security) / this, each day
+DEVICES = {"phone": (999, 600), "laptop": (1_499, 900)}   # 📱 price $, unit cost $ at the start
+MANUFACTURE_TICKS = 2              # 📱 a batch arrives after this many game days
+BATCH_MAX = 500                    # 📱 units per batch, times the stage's reach
+STOCK_COST_PERCENT = 1             # 📱 unsold stock costs this % of its value a day
+KEYNOTE_COOLDOWN = 5               # 📱 game days between keynotes
+SAAS_PRICE_STEP = 1.2              # 💻 price up / down multiplies or divides by this (kept between 0.5x and 2x)
+RETENTION_TICKS = 5                # 💻 a retention push lowers churn for this many days...
+RETENTION_CHURN = 0.7              # 💻 ...to this part of it
+GAME_SALE_PRICE = 20               # 🎮 $ each new player pays at a launch
+LIVEOPS_TICKS = 3                  # 🎮 live ops halve the players' drift for this many days
 # Funding rounds. From each stage: what the NEXT round needs (MRR = revenue a day, quality, reputation), the
 # typical raise $, the lowest post-money $ and the equity band (%) an investor takes
 ROUNDS = {
@@ -336,7 +358,7 @@ ROUNDS = {
 ROUND_MIN_TICKS = 4                # a round needs at least this many ticks in the stage
 IPO_PROFIT_PERCENT = 60            # 🔔 the IPO also needs revenue of at least this % of the burn
 OPTION_POOL_PERCENT = 10           # 📜 the Seed round makes an option pool this big (it dilutes everyone)
-PASS_BELOW = 0.38                  # an investor always passes when the score is lower (just meeting the
+PASS_BELOW = 0.30                  # an investor always passes when the score is lower (just meeting the
                                    # milestones isn't enough: beat them, or pitch well; from the balance simulation)
 PITCHES_PER_STAGE = 3              # 🎤 pitches a company gets per stage...
 PITCH_REFILL_TICKS = 5             # 🎤 ...+1 every this many ticks while all are used
@@ -361,6 +383,10 @@ EXIT_TAX_PERCENT = 20              # 🚪 of every exit (it stays in the public 
 EXIT_MAX_TOKENS = 5_000            # 🚪 most 🪙 one person gets from one exit (before the tax)
 VENTURES_MINT_SEASON_CAP = 20_000  # 🚪 new 🪙 exits may create in one season (the fund pays first); more waits.
                                    # The balance simulation's worst season minted ~15,000 (20 companies)
+# 📰 News and market events
+NEWS_KEPT = 60                     # 📰 headlines kept in chat_data.json (all of them go to history.db too)
+VENTURES_NEWS_AI_PER_DAY = 8       # 📰 big headlines Hashbrown may rewrite with a funny line, a day
+EVENT_HOURS = [12, 16, 20]         # 🌪️ a market event at each of these hours (Israel time), if companies exist
 # 🥔 The AI in the game (each call also counts in HASHBROWN_DAILY_CAP)
 VENTURES_AI_PER_DAY = 40           # AI calls a day for the whole game
 VENTURES_AI_MAX_OUTPUT = 600       # tokens per AI answer

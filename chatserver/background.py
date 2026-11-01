@@ -5,7 +5,7 @@ import random
 import time
 import traceback
 
-from chatserver import achievements, auctions, bank_log, config, drawing, economy, friends, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, ventures_angels, ventures_pitch, ventures_rounds, ventures_tick, ventures_view, wars
+from chatserver import achievements, auctions, bank_log, config, drawing, economy, friends, savings, group_view, market, hashbrown_extras, netmap, offers, reminders, rooms, state, storage, textutil, transfers, ventures_angels, ventures_events, ventures_pitch, ventures_rounds, ventures_tick, ventures_view, wars
 
 
 # ---------------------------------------------------------------- background threads
@@ -55,6 +55,7 @@ def market_loop():
             run_safely(market.tick)
             run_safely(auctions.tick)
             run_safely(ventures_tick.maybe_run)   # 🏢 the startup game's daily tick
+            run_safely(ventures_events.maybe_run)   # 🌪️ market events at their hours
             run_safely(ventures_rounds.expire_due)   # 📄 old term sheets close
             run_safely(ventures_angels.expire_due)   # 😇 unanswered angel offers come back
             run_safely(ventures_pitch.expire_idle)   # 🎤 forgotten pitches end
@@ -196,6 +197,8 @@ def console_command(line):
                 textutil.log("[CONSOLE] Saved.")
         elif cmd in ("lag", "loss", "lab"):
             network_lab(cmd, rest.strip())
+        elif cmd == "ventures" and rest.strip() == "event":   # 🌪️ a market event now (for testing)
+            ventures_events.start(random.Random())
         elif cmd == "ventures" and rest.strip() == "tick":   # 🏢 a game day now (for testing)
             ventures_tick.run_tick()
             textutil.log(f"[CONSOLE] Ventures day {state.ventures['tick']} done.")

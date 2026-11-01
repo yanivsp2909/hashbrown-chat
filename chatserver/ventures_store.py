@@ -11,7 +11,7 @@ Company cash is game dollars and never the group's bank. Records are replaced, n
 """
 import math
 
-from chatserver import cap_table, config, state, textutil
+from chatserver import cap_table, config, state, textutil, ventures_sectors
 
 STATUSES = ("alive", "dead", "shutdown")
 STAFF_KINDS = ("engineer", "sales", "marketer")
@@ -19,7 +19,9 @@ STAFF_KINDS = ("engineer", "sales", "marketer")
 
 def empty():
     return {"season": 1, "tick": 0, "day": "", "next_id": 1, "companies": {}, "graveyard": [],
-            "angels": {}, "cooldowns": {}, "angel_days": {}}
+            "angels": {}, "cooldowns": {}, "angel_days": {},
+            "news": [], "news_id": 0, "news_ai": ["", 0],    # 📰 the feed (ventures_news.py)
+            "events": [], "event_slots": {}}                # 🌪️ market events in force (ventures_events.py)
 
 
 def ensure():
@@ -45,7 +47,8 @@ def new_company(cid, name, group_key, sector, founder, tick):
             "pitches": 0, "pitch": None, "sheet": None, "last_investor": "", "bridged": "", "angel_bp": 0,
             "angel_in": {},      # 😇 login -> 🪙 they put in as an angel (accepted)
             "reports": [],       # 📊 the last REPORTS_KEPT daily reports: {"age", "text"}
-            "pitch_log": []}     # 🎤 the last pitch's conversation: {"who": "investor"|"founders", "name", "text"}
+            "pitch_log": [],     # 🎤 the last pitch's conversation: {"who": "investor"|"founders", "name", "text"}
+            "sector_state": {**ventures_sectors.default_state(sector), "_sector": sector}}   # 🏭 the sector's own numbers
 
 
 # ---------------------------------------------------------------- finding companies
@@ -131,7 +134,14 @@ def clean_saved(saved):
     result = empty()
     if not isinstance(saved, dict):
         return result
-    for field in ("season", "tick", "next_id"):
+    if isinstance(saved.get("news"), list):
+        result["news"] = [n for n in saved["news"] if isinstance(n, dict) and isinstance(n.get("headline"), str)
+                          and is_count(n.get("id"))][-config.NEWS_KEPT:]
+    if isinstance(saved.get("events"), list):
+        result["events"] = [e for e in saved["events"] if isinstance(e, dict) and isinstance(e.get("kind"), str)
+                            and is_count(e.get("until")) and isinstance(e.get("headline"), str)
+                            and all(is_number(e.get(k, 1.0)) for k in ("demand", "churn", "salary", "mood", "compute", "chips"))]
+    for field in ("season", "tick", "next_id", "news_id"):
         if is_count(saved.get(field)):
             result[field] = saved[field]
     if isinstance(saved.get("day"), str):
@@ -207,7 +217,10 @@ def clean_company(cid, co):
                          and e.get("who") in ("investor", "founders") and isinstance(e.get("name"), str)][-config.PITCH_LOG_KEPT:]
     for field in ("cash", "revenue", "burn", "valuation", "last_post", "peak", "raised"):   # (whole dollars)
         kept[field] = int(kept[field])
-    kept["sheet"] = clean_sheet(co.get("sheet"), cid, kept["stage"])   # 📄 an open term sheet survives a restart (a pitch doesn't)
+    kept["sheet"] = clean_sheet(co.get("sheet"), cid, kept["stage"])
+    saved_state = co.get("sector_state")   # 🏭 a damaged one starts fresh (a sector state holds no money)
+    kept["sector_state"] = saved_state if isinstance(saved_state, dict) and saved_state.get("_sector") == kept["sector"] \
+        and set(ventures_sectors.default_state(kept["sector"])) <= set(saved_state) else base["sector_state"]   # 📄 an open term sheet survives a restart (a pitch doesn't)
     return kept
 
 

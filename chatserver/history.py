@@ -59,6 +59,8 @@ def _open():
         connection.execute("CREATE TABLE IF NOT EXISTS venture_days (company TEXT, age INTEGER, time REAL, cash INTEGER, "
                            "revenue INTEGER, customers REAL, quality REAL, hype REAL, reputation REAL, "
                            "valuation INTEGER, staff INTEGER, PRIMARY KEY (company, age))")
+        connection.execute("CREATE TABLE IF NOT EXISTS venture_news (id INTEGER PRIMARY KEY AUTOINCREMENT, time REAL, "
+                           "season INTEGER, tick INTEGER, kind TEXT, company TEXT, headline TEXT, text TEXT)")
         connection.execute("CREATE TABLE IF NOT EXISTS venture_offers (id TEXT PRIMARY KEY, company TEXT, time REAL, "
                            "investor TEXT, stage TEXT, amount INTEGER, post INTEGER, bp INTEGER, status TEXT, "
                            "source TEXT, raw TEXT)")

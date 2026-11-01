@@ -9,7 +9,8 @@ import time
 import traceback
 from datetime import timedelta
 
-from chatserver import config, invites, rooms, state, storage, textutil, ventures_log, ventures_sim, ventures_store, ventures_team
+from chatserver import (config, invites, rooms, state, storage, textutil, ventures_events, ventures_log, ventures_news,
+                        ventures_sectors, ventures_sim, ventures_store, ventures_team)
 from chatserver.hashbrown_text import israel_now
 from chatserver.ventures_text import money
 
@@ -48,9 +49,11 @@ def run_tick(rng=None):
     rng = rng or random.Random()
     tick = ventures_store.ensure()["tick"] + 1
     ventures_store.set_field("tick", tick)
+    ventures_events.expire()
+    world = make_world(tick)
     for co in sorted(ventures_store.alive(), key=lambda c: c["id"]):
         try:
-            live_one_day(co, rng, tick)
+            live_one_day(co, rng, tick, world)
         except Exception:   # one broken record must not stop every other company's day
             textutil.log(f"[VENTURES] ⚠️ The tick failed for {co.get('name')!r}:\n{traceback.format_exc()}")
     for job in list(_after_tick):
@@ -62,6 +65,13 @@ def run_tick(rng=None):
     storage.save_data()
 
 
+def make_world(tick):
+    """What every company's day depends on: the market events, the mood and the Spud-Bench ranks."""
+    events, mood, _, _ = ventures_events.world_effects()
+    _, boost = ventures_sectors.bench(ventures_store.alive(), tick)
+    return {"tick": tick, "events": events, "mood": mood, "bench": boost}
+
+
 def drop_old_offers():
     """Team offers whose invite ran out are forgotten."""
     for co in ventures_store.alive():
@@ -70,9 +80,10 @@ def drop_old_offers():
             ventures_store.put({**co, "offers": kept})
 
 
-def live_one_day(co, rng, tick):
+def live_one_day(co, rng, tick, world=None):
     players = max(1, len(ventures_store.members(co)))
-    new, lines = ventures_sim.next_day(co, rng, players)
+    new, lines = ventures_sim.next_day(co, rng, players, world=world or {"tick": tick})
+    news = new.pop("_news", [])
     online = [login for login in ventures_store.members(new) if login in state.online]
     if new["status"] == "alive":
         bonus = max(0, len(online) - 1)
@@ -87,6 +98,8 @@ def live_one_day(co, rng, tick):
     if new["fumes"] and new["status"] == "alive":
         for login in ventures_store.members(new):
             rooms.tell(login, f"🚨 {new['name']} is on fumes! Raise money or cut costs before the next tick.", "error")
+    for headline in news:
+        ventures_news.add("sector", headline, new)
     if new["status"] == "dead":
         ventures_team.bury(new, "died")
 

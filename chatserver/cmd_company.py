@@ -2,9 +2,10 @@
 🏢 /company: found a startup, see its numbers, spend today's action points, run the team (docs/VENTURES.md).
 You can be in one company at a time, so /company works from any room.
 """
+import random
 import time
 
-from chatserver import (cap_table, config, fund, registry, rooms, state, storage, ventures_actions, ventures_angels, ventures_rounds,
+from chatserver import (cap_table, config, fund, registry, rooms, state, storage, ventures_actions, ventures_angels, ventures_news, ventures_rounds,
                         ventures_sim, ventures_store, ventures_team, ventures_tick)
 from chatserver.ventures_text import money, runway_text, sector_title, stage_name, whole
 
@@ -31,7 +32,7 @@ def cmd_company(client, args):
                           "error" if sub else "system")
     if sub == "":
         return client.say(status_text(co))
-    if sub in ventures_actions.ACTIONS:
+    if ventures_actions.is_action(co, sub):
         return act(client, co, sub, rest)
     handler = TEAM.get(sub) or FUNDING.get(sub)
     if handler is None:
@@ -60,6 +61,7 @@ def found(client, args):
                f"{money(config.START_CASH)} of founders' savings. Invite co-founders with /company invite name role "
                f"[equity%], and spend today's {co['ap']} action points: /company actions", "event")
     rooms.announce(f"🏢 New startup: {name} ({sector_title(sector)}) by {rooms.shown(client.key)}", exclude={client.key})
+    ventures_news.add("founded", f"🏢 New startup: {name} ({sector_title(sector)}) by {rooms.nick(client.key)}", co)
     rooms.move_to_room(client, key)
     rooms.send_room_list(client.key)
     ventures_team.send_event(co, "founded", f"🏢 {name} was founded.")
@@ -173,7 +175,7 @@ def team(client, co, args):
 
 def act(client, co, name, args):
     try:
-        new, text = ventures_actions.apply(co, name, args)
+        new, text = ventures_actions.apply(co, name, args, random.Random(), ventures_store.ensure()["tick"])
     except ventures_actions.ActionError as e:
         return client.say(str(e), "error")
     ventures_store.put(new)

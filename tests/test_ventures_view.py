@@ -49,6 +49,8 @@ def test_a_member_sees_everything_an_outsider_only_the_public_part(user):
     assert mine["member"] and mine["numbers"]["cash"] == config.START_CASH and mine["ap"] == config.AP_BASE
     assert {a["name"] for a in mine["actions"]} >= {"build", "hire", "marketing"}
     assert mine["you"]["ceo"] and mine["timeline"][0]["state"] == "now"
+    assert mine["sector_panel"]["sector"] == "saas" and mine["sector_panel"]["price"] == 1.0
+    assert {"priceup", "retention"} <= {a["name"] for a in mine["actions"] if a["sector"]}
     theirs = hq_of(cat, co["id"])
     assert not theirs["member"] and "numbers" not in theirs and "actions" not in theirs and "pitch" not in theirs
     assert theirs["cap"] == [{"name": "Adi", "kind": "player", "bp": 10000}]

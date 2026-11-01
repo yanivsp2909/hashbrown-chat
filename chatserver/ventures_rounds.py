@@ -8,7 +8,7 @@ import re
 import time
 
 from chatserver import (cap_table, config, rooms, state, storage, ventures_log, ventures_sim, ventures_store,
-                        ventures_team, ventures_tick)
+                        ventures_news, ventures_team, ventures_tick)
 from chatserver.ventures_text import money, stage_name
 
 INVESTORS = {
@@ -190,7 +190,7 @@ def take_offer(client, co):
     co = ventures_store.put(accept(co, sheet))
     news = (f"💰 {co['name']} raised {money(sheet['amount'])} ({stage_name(co['stage'])}) from "
             f"{investor_title(sheet['investor'])} at a {money(sheet['post'])} valuation!")
-    rooms.announce(news)   # 📰 big news for everyone
+    ventures_news.add("round", news, co, big=True)   # 📰 big news for everyone (the lobby too)
     ventures_team.send_event(co, "round", news)
     storage.save_data()
 

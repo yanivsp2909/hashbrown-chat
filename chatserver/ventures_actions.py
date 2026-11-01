@@ -3,7 +3,9 @@
 apply(company, action, args) -> (the new company, what happened), or raises ActionError(why not).
 The /company commands, the website's buttons and the balance simulation's bots all use these.
 """
-from chatserver import config, ventures_sim
+import random
+
+from chatserver import config, ventures_sectors, ventures_sim
 from chatserver.ventures_store import STAFF_KINDS
 from chatserver.ventures_text import money
 
@@ -123,36 +125,58 @@ HANDLERS = {"build": do_build, "hire": do_hire, "layoff": do_layoff, "marketing"
 
 # ---------------------------------------------------------------- doing one
 
+def all_actions(co):
+    """The common actions and this company's sector actions: {name: (points, usage, what it does)}."""
+    return {**ACTIONS, **ventures_sectors.actions_of(co)}
+
+
+def is_action(co, name):
+    return name in all_actions(co)
+
+
+def price_of(co, name, args=""):
+    return cost(co, name, args) if name in ACTIONS else ventures_sectors.cost(co, name, args)
+
+
 def refusal(co, name, args=""):
     """Why this action can't be done now, or None (the cheap checks; the handler checks the rest)."""
-    if name not in ACTIONS:
-        return f"❓ Unknown action. The actions: {', '.join(ACTIONS)}"
+    actions = all_actions(co)
+    if name not in actions:
+        return f"❓ Unknown action. The actions: {', '.join(actions)}"
     if co["status"] != "alive":
         return "⚰️ This company isn't alive any more."
-    points = ACTIONS[name][0]
+    points = actions[name][0]
     if co["ap"] < points:
         return (f"⚡ That needs {points} action point{'s' if points > 1 else ''}, you have {co['ap']} left today. "
                 f"They refill at the daily tick.")
-    price = cost(co, name, args)
+    price = price_of(co, name, args)
     if price and price > co["cash"] and name != "layoff":   # (on fumes you can still cut costs)
         return f"💸 That costs {money(price)} and the company has {money(co['cash'])} cash."
     return None
 
 
-def apply(co, name, args=""):
+def apply(co, name, args="", rng=None, tick=0):
+    """Do an action: (the new company, what happened). rng and tick: for the sector actions (a keynote's luck)."""
     why_not = refusal(co, name, args)
     if why_not:
         raise ActionError(why_not)
-    price = cost(co, name, args)
-    changes, text = HANDLERS[name](co, args)
-    new = {**co, **changes, "ap": co["ap"] - ACTIONS[name][0], "cash": co["cash"] - price, "acted": True}
+    price = price_of(co, name, args)
+    if name in ACTIONS:
+        changes, text = HANDLERS[name](co, args)
+        done = {**co, **changes}
+    else:
+        try:
+            done, text = ventures_sectors.apply(co, name, args, rng or random.Random(), tick)
+        except ventures_sectors.SectorError as e:
+            raise ActionError(str(e))
+    new = {**done, "ap": co["ap"] - all_actions(co)[name][0], "cash": done["cash"] - price, "acted": True}
     return new, text + (f" Cost: {money(price)}." if price else "")
 
 
 def menu(co):
     """Every action with its cost and whether it's possible now: [{name, ap, cost, ok, why, usage, help}]."""
     rows = []
-    for name, (points, usage, text) in ACTIONS.items():
+    for name, (points, usage, text) in all_actions(co).items():
         why = refusal(co, name)
         if why is None and name == "hire" and hire_count(co) == 0:
             why = "👥 staff limit for this stage"
@@ -160,6 +184,6 @@ def menu(co):
             why = "🔀 already pivoted in this stage"
         if why is None and name == "layoff" and ventures_sim.staff_total(co) == 0:
             why = "no staff to let go"
-        rows.append({"name": name, "ap": points, "cost": cost(co, name), "ok": why is None, "why": why or "",
-                     "usage": usage, "help": text})
+        rows.append({"name": name, "ap": points, "cost": price_of(co, name), "ok": why is None, "why": why or "",
+                     "usage": usage, "help": text, "sector": name not in ACTIONS})
     return rows

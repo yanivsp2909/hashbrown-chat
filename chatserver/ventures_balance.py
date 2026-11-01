@@ -8,7 +8,7 @@ reaches the IPO, nobody gets infinite money, and how many 🪙 the exits would c
 import random
 import statistics
 
-from chatserver import cap_table, config, ventures_actions, ventures_rounds, ventures_sim, ventures_store
+from chatserver import cap_table, config, ventures_actions, ventures_rounds, ventures_sectors, ventures_sim, ventures_store
 
 STRATEGIES = ("careful", "hirer", "hype", "idle")
 SKILL = {"careful": (6, 9), "hirer": (4, 8), "hype": (5, 9), "idle": (2, 6)}   # how good their pitches are
@@ -16,8 +16,57 @@ SKILL = {"careful": (6, 9), "hirer": (4, 8), "hype": (5, 9), "idle": (2, 6)}   #
 
 # ---------------------------------------------------------------- the bots
 
+def sector_wish(co, rng):
+    """What the sector needs right now (a bot that plays its sector), or None."""
+    s = ventures_sectors.state(co)
+    kind = co["sector"]
+    if kind == "ai":
+        need = (co["customers"] // 100 + 1) * config.COMPUTE_PER_100_CUSTOMERS
+        if s["compute"] < need * 3:
+            return "compute", str(int(min(500, need * 5)))
+        if any(not m["released"] for m in s["models"]):
+            return "release", ""
+        if not s["training"] and s["compute"] >= config.TRAIN_COMPUTE * (len(s["models"]) + 1) and rng.random() < 0.5:
+            return "train", ""
+        if s["safety"] < 60 and rng.random() < 0.3:
+            return "safety", ""
+    elif kind == "cyber":
+        idle_lines = [k for k, level in s["lines"].items() if level == 0]
+        if len(idle_lines) == len(s["lines"]) or (idle_lines and rng.random() < 0.15):
+            return "launch", idle_lines[0]
+        if s["security"] < 60 and rng.random() < 0.4:
+            return "audit", ""
+        if rng.random() < 0.25:
+            return "improve", rng.choice([k for k, level in s["lines"].items() if level > 0])
+    elif kind == "hardware":
+        coming = s["stock"] + sum(b["units"] for b in s["batches"])
+        if coming < co["customers"] * 2 + 10:
+            limit = int(config.BATCH_MAX * ventures_sim.stage(co)["reach"])
+            affordable = int(co["cash"] / 3 / max(1, s["unit_cost"]))   # (never bet the company on one batch)
+            units = max(0, min(limit, affordable, int(co["customers"] * 3 + 20)))
+            return ("manufacture", str(units)) if units >= 5 else None
+        if rng.random() < 0.2:
+            return "supply", ""
+        if rng.random() < 0.15:
+            return "keynote", ""
+    elif kind == "game":
+        if s["project"]["progress"] >= 100:
+            return "launch", ""
+        if rng.random() < 0.5:
+            return "develop", ""
+        if rng.random() < 0.2:
+            return "liveops", ""
+    elif kind == "saas" and rng.random() < 0.2:
+        return rng.choice([("retention", ""), ("experiment", "")])
+    return None
+
+
 def wish(co, strategy, rng):
     """The action this kind of bot wants to do now: (name, args)."""
+    if strategy != "idle" or rng.random() < 0.3:
+        need = sector_wish(co, rng)
+        if need and rng.random() < 0.7:
+            return need
     need = config.ROUNDS.get(co["stage"], config.ROUNDS["c"])
     players = co["bot_players"]
     rich = co["cash"] > 25 * ventures_sim.burn(co, players)
@@ -51,7 +100,7 @@ def play_day(co, strategy, rng):
             co = {**co, "ap": co["ap"] - 1}
             continue
         try:
-            co, _ = ventures_actions.apply(co, name, args)
+            co, _ = ventures_actions.apply(co, name, args, rng, co.get("bot_tick", 0))
         except ventures_actions.ActionError:
             continue
     return co
@@ -120,14 +169,16 @@ def season(seed, companies=20, ticks=30):
         bots.append(bot)
         tokens_in += angel
     exits, max_cash = [], 0
-    for _ in range(ticks):
+    for tick in range(1, ticks + 1):
+        _, bench = ventures_sectors.bench(bots, tick)
         for i, co in enumerate(bots):
             if co["status"] != "alive" or co["stage"] == "public":
                 continue
             players = co["bot_players"]
-            co = play_day({**co, "ap": min(config.AP_MAX, config.AP_BASE + players - 1)}, co["bot_strategy"], rng)
+            co = play_day({**co, "ap": min(config.AP_MAX, config.AP_BASE + players - 1), "bot_tick": tick},
+                          co["bot_strategy"], rng)
             co = raise_money(co, co["bot_strategy"], rng)
-            co, _ = ventures_sim.next_day(co, rng, players)
+            co, _ = ventures_sim.next_day(co, rng, players, world={"tick": tick, "bench": bench})
             value = ipo_value(co, players, rng)
             if value:
                 exits.append(sum(payouts(co, value).values()))
