@@ -235,7 +235,7 @@ The full design and the phased plan are in `docs/VENTURES.md`.
 | V0 | Design (docs/VENTURES.md), architect review, Responses API structured-output lookup | done: approved with V2 changed (exits mint after the fund, capped per season) |
 | V-P1 | Founding, team, numbers, daily actions, the tick, death | done: /company found (a private group with "company": id, 200 🪙 to the fund, 24 h accounts, one company each), roles + equity invites on the group-invite card (company_invite field), grants with vesting, leave/fire/ceo/shutdown, 7 actions with AP (3 + 1 per other member seen, max 6), the tick at 21:00 Israel time inside market_loop (console: ventures tick), report in the company chat + company_event, on fumes then dead, graveyard, venture_days in history.db; company groups get no group income, bank, wars, stock or admin shuffles |
 | V-P2 | Funding rounds, AI investor, term sheets, cap table, angels (then STOP for a playtest) | done: /pitch with 6 investor characters (2 AP, 3 per stage, +1 every 5 stuck days), founders' chat lines collected + /pitch send, 2 questions then a decision; the AI answers JSON (Responses API json_schema strict, retried without it on a 400 and remembered), every field checked, numbers from the formula and clamped (0.7-1.3x fair valuation, 0.5-1.5x typical raise, the stage's equity band), any failure = the formula investor; term sheet card (msg + term_sheet), /offer accept/decline/counter once (formula), 24 h expiry, term_sheet_closed; Seed adds a 10% option pool; /company bridge; /invest angels with held tokens (to the fund on accept, back on decline/24 h), limits 50-1000 per company, 500 a day, 25% per stage; investor interest hint; balance simulation (ventures_balance.py, test) tuned: 25% die, 57% Seed+, 0.9 IPO a season, exits create ~1.1K new 🪙 a season (max ~15K), mint cap 20K; HASHBROWN_VENTURES_MIN_AGE_HOURS=0 for test servers |
-| V-P3 | Sector mechanics, AI events, news feed | not started |
+| V-P3 | Sector mechanics, AI events, news feed | see Step B below |
 
 ### Round 8 reviews (Phases 1-2)
 
@@ -243,8 +243,35 @@ The full design and the phased plan are in `docs/VENTURES.md`.
 - code-reviewer (WARN → fixed): only the CEO shuts down; an expired invite is no way in and `/approve`/`/reject` are off in companies; grants get their own vesting clock, shrink with every round, and only what really moved is granted; an offer counts only with the invite it came with and is forgotten after 24 h; one broken company can't stop the tick; runway warning; `$1M` not `$1000K`; game numbers moved to config.py.
 - bug-hunt agent (scripted two-player play on 8930): a company on fumes could do nothing (free actions and layoffs now work); promised equity comes from whoever promised it; a counter must ask for more; shutdown/death closes the open term sheet card; no invite card for someone already in a company; the CEO hears back from any room; `/bank` explains itself; wording fixes.
 - Chrome (two logins, 8190/8930, DevTools; the Claude-in-Chrome extension wasn't connected): found, actions, invite ticket → join as CTO, angel offer → accept, 4 forced ticks with reports, a full pitch without the AI → term sheet → counter → accept, cap table and the board; no console errors.
-| V-P4 | Competition, acquisitions, IPO, exits, leaderboards, seasons | not started |
-| V-P5 | Website screens and polish | not started |
+| V-P4 | Competition, acquisitions, IPO, exits, leaderboards, seasons | see Step C below |
+| V-P5 | Website screens and polish | see Steps A and D below |
+
+### Steps A-D (owner's change of plan 2026-11-01: no playtest stop, commit per feature, push per step)
+
+| # | Step | Status |
+|---|---|---|
+| A1 | 🏢 Ventures sidebar entry | not started |
+| A2 | Ventures home: my company / Start button, Unicorn Board, graveyard, news, my investments | not started |
+| A3 | "Start a company" wizard (name → sector cards → cost → Found, clear errors) | not started |
+| A4 | Company HQ: numbers + charts, today's actions, reports, team + invite, cap table pie, funding timeline, pitch room + term sheet, angels, sector panel slot | not started |
+| A5 | Data: `company` / `ventures` packets pushed on change; buttons send the existing commands | not started |
+| A6 | Website hides /company /pitch /offer /invest from autocomplete and /help | not started |
+| A7 | Step A checks: tests, web tests, balance, Chrome (two logins, clicks only), code-reviewer, a11y-architect, impeccable-finish-reviewer, docs, push | not started |
+| B1 | Sector mechanics + HQ panels (AI lab, cyber, hardware, SaaS, game studio) | not started |
+| B2 | AI market events (fixed list, templates), a few a day | not started |
+| B3 | 📰 Ventures News (feed on the website + lobby) | not started |
+| B4 | Step B checks + push | not started |
+| C1 | Market share per sector, partnerships, poaching | not started |
+| C2 | Acquisitions (offer, accept, decline) | not started |
+| C3 | IPO onto the stock market | not started |
+| C4 | Exits (V2: tax, per-person cap, season mint cap, queue) | not started |
+| C5 | Leaderboards, seasons of 28 days, Hall of Fame, fresh start | not started |
+| C6 | Website: acquisition card, IPO celebration, leaderboards, season end + Hall of Fame | not started |
+| C7 | Step C checks (security-reviewer for exits/acquisitions/IPO) + push | not started |
+| D1 | Polish: Fry Station look, light/dark, phone, keyboard, screen readers | not started |
+| D2 | "How to play" card on the first visit | not started |
+| D3 | Balance simulation for all phases + tuning; tokens a season | not started |
+| D4 | Step D checks + push + final report | not started |
 
 ## Docs
 
